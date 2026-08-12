@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+
+  --color-void: #0a0a0f;
+  --color-nebula: #12121f;
+  --color-cosmic: #1a1a2e;
+  
+  --color-plasma: #6c5ce7;
+  --color-nova: #a855f7;
+  --color-aurora: #22d3ee;
+  
+  --color-starlight: #e2e8f0;
+  --color-nebula-text: #94a3b8;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-nebula/60 backdrop-blur-md border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+  }
+  .glass-card-hover {
+    @apply hover:bg-nebula/80 hover:border-plasma/50 transition-all duration-300;
+  }
+  .text-glow { text-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
+  .text-glow-aurora { text-shadow: 0 0 20px rgba(34, 211, 238, 0.5); }
+  .border-glow { box-shadow: 0 0 15px rgba(108, 92, 231, 0.3), inset 0 0 20px rgba(168, 85, 247, 0.1); }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.starfield {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: -1; background-color: var(--color-void); overflow: hidden;
+}
+.star {
+  position: absolute; background: white; border-radius: 50%;
+  animation: twinkle var(--duration, 4s) infinite ease-in-out alternate;
+}
+@keyframes twinkle {
+  0% { opacity: 0.2; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px white; }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-thumb { background: #2d2d44; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #6c5ce7; }

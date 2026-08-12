@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="mn">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vmax.mn | Монголын Үл Хөдлөх Хөрөнгийн Зах Зээл</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+  </head>
+  <body class="bg-[#0a0a0f] text-slate-200 antialiased overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.fbAsyncInit = function() {
+        if (window.FB) {
+          window.FB.init({
+            appId      : 'YOUR_FACEBOOK_APP_ID',
+            cookie     : true,
+            xfbml      : true,
+            version    : 'v19.0'
+          });
+        }
+      };
+    </script>
+  </body>
+</html>
