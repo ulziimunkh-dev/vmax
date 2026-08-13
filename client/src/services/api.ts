@@ -13,8 +13,35 @@ export const authAPI = {
   login: (data: any) => api.post('/auth/login', data),
   googleLogin: (token: string) => api.post('/auth/google', { token }),
   facebookLogin: (accessToken: string) => api.post('/auth/facebook', { accessToken }),
+  appleLogin: (idToken: string, user?: any) => api.post('/auth/apple', { idToken, user }),
   getProfile: () => api.get('/auth/profile'),
+
   updateProfile: (data: any) => api.patch('/auth/profile', data),
+};
+
+export const uploadAPI = {
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/uploads/file', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/uploads/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  uploadFiles: (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return api.post('/uploads', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+};
+
+
+export const locationsAPI = {
+  getDistricts: () => api.get('/locations/districts'),
+  getKhoroos: (district?: string) => api.get('/locations/khoroos', { params: { district } }),
+  getAll: () => api.get('/locations'),
 };
 
 export const listingsAPI = {
@@ -27,6 +54,8 @@ export const listingsAPI = {
   remove: (id: string) => api.delete(`/listings/${id}`),
   renew: (id: string) => api.patch(`/listings/${id}/renew`),
   publish: (id: string) => api.patch(`/listings/${id}/publish`),
+  promote: (id: string) => api.patch(`/listings/${id}/promote`),
+  share: (id: string) => api.post(`/listings/${id}/share`),
 };
 
 export default api;

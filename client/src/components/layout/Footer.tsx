@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const FacebookIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -19,38 +20,42 @@ const TwitterIcon = () => (
 );
 
 const Footer = () => (
-  <footer className="bg-[#1a1a2e]/50 backdrop-blur-md border-t border-white/5 pt-12 pb-8 mt-20">
+  <footer className="bg-cosmic/80 backdrop-blur-md border-t border-white/10 pt-12 pb-8 mt-20 transition-colors duration-300">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
       <div>
-        <h3 className="text-xl font-bold bg-gradient-to-r from-[#6c5ce7] to-[#22d3ee] bg-clip-text text-transparent mb-4">Vmax.mn</h3>
-        <p className="text-[#94a3b8] text-sm">Ирээдүйн үл хөдлөх хөрөнгийн платформ. Хамгийн хялбар, хамгийн хурдан.</p>
+        <Link to="/" className="inline-block text-3xl font-heading font-black bg-gradient-to-r from-plasma via-aurora to-nova bg-clip-text text-transparent mb-4 tracking-tight drop-shadow-md">
+          Vmax.mn
+        </Link>
+        <p className="text-nebula-text text-sm leading-relaxed">Ирээдүйн үл хөдлөх хөрөнгийн платформ. Хамгийн хялбар, хамгийн хурдан.</p>
       </div>
       <div>
-        <h4 className="text-white font-semibold mb-4">Холбоосууд</h4>
-        <ul className="space-y-2 text-sm text-[#94a3b8]">
-          <li><a href="#" className="hover:text-[#6c5ce7] transition-colors">Бидний тухай</a></li>
-          <li><a href="#" className="hover:text-[#6c5ce7] transition-colors">Үйлчилгээний нөхцөл</a></li>
+        <h4 className="text-starlight font-semibold mb-4">Холбоосууд</h4>
+        <ul className="space-y-2.5 text-sm text-nebula-text">
+          <li><Link to="/about" className="hover:text-plasma transition-colors">Бидний тухай</Link></li>
+          <li><Link to="/terms" className="hover:text-plasma transition-colors">Үйлчилгээний нөхцөл</Link></li>
         </ul>
       </div>
+
       <div>
-        <h4 className="text-white font-semibold mb-4">Холбоо барих</h4>
-        <ul className="space-y-2 text-sm text-[#94a3b8]">
+        <h4 className="text-starlight font-semibold mb-4">Холбоо барих</h4>
+        <ul className="space-y-2.5 text-sm text-nebula-text">
           <li>Утас: +976 8888-8888</li>
           <li>Имэйл: info@vmax.mn</li>
         </ul>
       </div>
       <div>
-        <h4 className="text-white font-semibold mb-4">Дагах</h4>
+        <h4 className="text-starlight font-semibold mb-4">Дагах</h4>
         <div className="flex space-x-4">
-          <a href="#" className="text-[#94a3b8] hover:text-[#6c5ce7] transition-colors"><FacebookIcon /></a>
-          <a href="#" className="text-[#94a3b8] hover:text-[#6c5ce7] transition-colors"><InstagramIcon /></a>
-          <a href="#" className="text-[#94a3b8] hover:text-[#6c5ce7] transition-colors"><TwitterIcon /></a>
+          <a href="#" aria-label="Facebook" className="text-nebula-text hover:text-plasma transition-colors p-2 bg-void/40 rounded-lg hover:bg-void/70"><FacebookIcon /></a>
+          <a href="#" aria-label="Instagram" className="text-nebula-text hover:text-plasma transition-colors p-2 bg-void/40 rounded-lg hover:bg-void/70"><InstagramIcon /></a>
+          <a href="#" aria-label="Twitter" className="text-nebula-text hover:text-plasma transition-colors p-2 bg-void/40 rounded-lg hover:bg-void/70"><TwitterIcon /></a>
         </div>
       </div>
     </div>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-white/5 text-center text-sm text-[#94a3b8]">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-white/10 text-center text-sm text-nebula-text">
       &copy; {new Date().getFullYear()} Vmax.mn. Бүх эрх хуулиар хамгаалагдсан.
     </div>
   </footer>
 );
+
 export default Footer;

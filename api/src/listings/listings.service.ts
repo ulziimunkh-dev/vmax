@@ -1,32 +1,86 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Listing } from './listing.entity';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { QueryListingDto } from './dto/query-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { User } from '../users/user.entity';
-import { ListingStatus } from './enums/listing.enums';
+import { ListingStatus, PromotionTier } from './enums/listing.enums';
+import { SubscriptionTier, SUBSCRIPTION_LIMITS } from '../users/enums/user.enums';
+
+import { ListingContactLog } from './listing-contact-log.entity';
+import { SavedSearchesService } from '../saved-searches/saved-searches.service';
 
 @Injectable()
 export class ListingsService {
   constructor(
     @InjectRepository(Listing)
     private listingsRepository: Repository<Listing>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+    @InjectRepository(ListingContactLog)
+    private contactLogsRepository: Repository<ListingContactLog>,
+    private savedSearchesService: SavedSearchesService,
   ) {}
 
+
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleExpiredAndPromotedListings() {
+    const now = new Date();
+
+    // Auto-expire listings past their expiration date
+    await this.listingsRepository
+      .createQueryBuilder()
+      .update(Listing)
+      .set({ status: ListingStatus.EXPIRED })
+      .where('expiresAt <= :now AND status = :activeStatus', {
+        now,
+        activeStatus: ListingStatus.ACTIVE,
+      })
+      .execute();
+
+    // Auto-unpromote listings past their promotion period
+    await this.listingsRepository
+      .createQueryBuilder()
+      .update(Listing)
+      .set({ isPromoted: false, promotionTier: PromotionTier.STANDARD })
+      .where('promotedUntil <= :now AND isPromoted = true', { now })
+      .execute();
+  }
+
+  private async checkUserQuota(user: User) {
+    const freshUser = await this.usersRepository.findOne({ where: { id: user.id } });
+    const tier = freshUser?.subscriptionTier || SubscriptionTier.FREE;
+    const limit = SUBSCRIPTION_LIMITS[tier] || 3;
+
+    const activeCount = await this.listingsRepository.count({
+      where: { userId: user.id, status: ListingStatus.ACTIVE },
+    });
+
+    if (activeCount >= limit) {
+      throw new ForbiddenException(
+        `Зарын хязгаар хэтэрсэн байна. Таны (${tier}) багцын зөвшөөрөгдөх идэвхтэй зарын хязгаар ${limit} байна. Та багцаа ахиулна уу.`
+      );
+    }
+  }
+
   async findAll(query: QueryListingDto) {
-    const { type, category, location, priceMin, priceMax, areaMin, areaMax } = query;
+    const { type, category, location, priceMin, priceMax, areaMin, areaMax, sortBy } = query;
     const page = query.page ?? 1;
     const limit = query.limit ?? 12;
 
     const queryBuilder = this.listingsRepository.createQueryBuilder('listing');
+    queryBuilder.leftJoinAndSelect('listing.user', 'user');
 
     queryBuilder.where('listing.status = :status', { status: ListingStatus.ACTIVE });
 
     if (type) queryBuilder.andWhere('listing.type = :type', { type });
     if (category) queryBuilder.andWhere('listing.category = :category', { category });
-    if (location) queryBuilder.andWhere('listing.location ILIKE :location', { location: `%${location}%` });
+    if (location) queryBuilder.andWhere('(listing.location ILIKE :location OR listing.district ILIKE :location OR listing.khoroo ILIKE :location)', { location: `%${location}%` });
+    if (query.khoroo) queryBuilder.andWhere('listing.khoroo ILIKE :khoroo', { khoroo: `%${query.khoroo}%` });
 
     if (priceMin !== undefined) queryBuilder.andWhere('listing.price >= :priceMin', { priceMin });
     if (priceMax !== undefined) queryBuilder.andWhere('listing.price <= :priceMax', { priceMax });
@@ -34,7 +88,42 @@ export class ListingsService {
     if (areaMin !== undefined) queryBuilder.andWhere('listing.areaSqm >= :areaMin', { areaMin });
     if (areaMax !== undefined) queryBuilder.andWhere('listing.areaSqm <= :areaMax', { areaMax });
 
-    queryBuilder.orderBy('listing.createdAt', 'DESC');
+    if (query.bedrooms !== undefined) {
+      queryBuilder.andWhere("CAST(listing.attributes->>'bedrooms' AS INTEGER) >= :bedrooms", { bedrooms: query.bedrooms });
+    }
+    if (query.bathrooms !== undefined) {
+      queryBuilder.andWhere("CAST(listing.attributes->>'bathrooms' AS INTEGER) >= :bathrooms", { bathrooms: query.bathrooms });
+    }
+    if (query.yearBuiltMin !== undefined) {
+      queryBuilder.andWhere("CAST(listing.attributes->>'yearBuilt' AS INTEGER) >= :yearBuiltMin", { yearBuiltMin: query.yearBuiltMin });
+    }
+    if (query.constructionType) {
+      queryBuilder.andWhere("listing.attributes->>'constructionType' ILIKE :constructionType", { constructionType: `%${query.constructionType}%` });
+    }
+
+
+    // Order by Promotion tier (TOP_URGENT > VIP > STANDARD)
+    queryBuilder.addOrderBy(
+      `CASE 
+        WHEN listing.promotionTier = '${PromotionTier.TOP_URGENT}' THEN 3 
+        WHEN listing.promotionTier = '${PromotionTier.VIP}' THEN 2 
+        WHEN listing.isPromoted = true THEN 1 
+        ELSE 0 
+      END`,
+      'DESC'
+    );
+
+    if (sortBy === 'views') {
+      queryBuilder.addOrderBy('listing.viewsCount', 'DESC');
+    } else if (sortBy === 'mostShared') {
+      queryBuilder.addOrderBy('listing.sharesCount', 'DESC');
+    } else if (sortBy === 'priceAsc') {
+      queryBuilder.addOrderBy('listing.price', 'ASC');
+    } else if (sortBy === 'priceDesc') {
+      queryBuilder.addOrderBy('listing.price', 'DESC');
+    } else {
+      queryBuilder.addOrderBy('listing.createdAt', 'DESC');
+    }
 
     const [items, total] = await queryBuilder
       .skip((page - 1) * limit)
@@ -52,12 +141,68 @@ export class ListingsService {
     if (!listing) {
       throw new NotFoundException('Listing not found');
     }
+    listing.viewsCount = (listing.viewsCount || 0) + 1;
+    await this.listingsRepository.save(listing);
     return listing;
   }
 
+  async incrementShares(id: string) {
+    const listing = await this.listingsRepository.findOne({ where: { id } });
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+    listing.sharesCount = (listing.sharesCount || 0) + 1;
+    return this.listingsRepository.save(listing);
+  }
+
+  async revealPhoneContact(id: string, viewerUser?: any, reqIp?: string, userAgent?: string) {
+    const listing = await this.listingsRepository.findOne({
+      where: { id },
+      relations: { user: true },
+    });
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    listing.phoneRevealsCount = (listing.phoneRevealsCount || 0) + 1;
+    await this.listingsRepository.save(listing);
+
+    // Save audit log
+    const log = this.contactLogsRepository.create({
+      listingId: id,
+      viewerUserId: viewerUser?.id,
+      viewerIp: reqIp || '127.0.0.1',
+      userAgent,
+    });
+    await this.contactLogsRepository.save(log);
+
+    return {
+      phone: listing.user?.phone || '99110000',
+      ownerName: listing.user?.name || 'Зар байршуулагч',
+      revealsCount: listing.phoneRevealsCount,
+    };
+  }
+
+
+  async getContactAuditLogs(id: string, currentUser: any) {
+    const listing = await this.findOne(id);
+    if (listing.userId !== currentUser.id) {
+      throw new ForbiddenException('You can only view audit logs for your own listing');
+    }
+
+    return this.contactLogsRepository.find({
+      where: { listingId: id },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+  }
+
+
   async create(createListingDto: CreateListingDto, user: User) {
+    await this.checkUserQuota(user);
+
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days default listing duration
 
     const listing = this.listingsRepository.create({
       ...createListingDto,
@@ -65,8 +210,11 @@ export class ListingsService {
       expiresAt,
     });
 
-    return this.listingsRepository.save(listing);
+    const savedListing = await this.listingsRepository.save(listing);
+    this.savedSearchesService.checkAndNotifyMatchingSearches(savedListing);
+    return savedListing;
   }
+
 
   async close(id: string, user: User) {
     const listing = await this.findOne(id);
@@ -108,7 +256,7 @@ export class ListingsService {
     }
     listing.status = ListingStatus.ACTIVE;
     listing.expiresAt = new Date();
-    listing.expiresAt.setDate(listing.expiresAt.getDate() + 7);
+    listing.expiresAt.setDate(listing.expiresAt.getDate() + 30);
     return this.listingsRepository.save(listing);
   }
 
@@ -120,10 +268,25 @@ export class ListingsService {
     if (listing.status === ListingStatus.ACTIVE) {
       listing.status = ListingStatus.CLOSED;
     } else {
+      await this.checkUserQuota(user);
       listing.status = ListingStatus.ACTIVE;
       listing.expiresAt = new Date();
-      listing.expiresAt.setDate(listing.expiresAt.getDate() + 7);
+      listing.expiresAt.setDate(listing.expiresAt.getDate() + 30);
     }
     return this.listingsRepository.save(listing);
   }
+
+  async promote(id: string, user: User, tier: PromotionTier = PromotionTier.VIP, durationDays: number = 7) {
+    const listing = await this.findOne(id);
+    if (listing.userId !== user.id) {
+      throw new ForbiddenException('You can only promote your own listings');
+    }
+    listing.isPromoted = tier !== PromotionTier.STANDARD;
+    listing.promotionTier = tier;
+    const promotedUntil = new Date();
+    promotedUntil.setDate(promotedUntil.getDate() + durationDays);
+    listing.promotedUntil = promotedUntil;
+    return this.listingsRepository.save(listing);
+  }
 }
+

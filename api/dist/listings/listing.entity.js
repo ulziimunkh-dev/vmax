@@ -22,12 +22,21 @@ let Listing = class Listing {
     price;
     location;
     district;
+    khoroo;
+    latitude;
+    longitude;
     areaSqm;
     attributes;
     images;
     status;
     user;
     userId;
+    viewsCount;
+    sharesCount;
+    phoneRevealsCount;
+    isPromoted;
+    promotionTier;
+    promotedUntil;
     createdAt;
     expiresAt;
 };
@@ -71,6 +80,18 @@ __decorate([
     __metadata("design:type", String)
 ], Listing.prototype, "district", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Listing.prototype, "khoroo", void 0);
+__decorate([
+    (0, typeorm_1.Column)('float', { nullable: true }),
+    __metadata("design:type", Number)
+], Listing.prototype, "latitude", void 0);
+__decorate([
+    (0, typeorm_1.Column)('float', { nullable: true }),
+    __metadata("design:type", Number)
+], Listing.prototype, "longitude", void 0);
+__decorate([
     (0, typeorm_1.Column)('float'),
     __metadata("design:type", Number)
 ], Listing.prototype, "areaSqm", void 0);
@@ -98,6 +119,34 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Listing.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], Listing.prototype, "viewsCount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], Listing.prototype, "sharesCount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: 0 }),
+    __metadata("design:type", Number)
+], Listing.prototype, "phoneRevealsCount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Listing.prototype, "isPromoted", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: listing_enums_1.PromotionTier,
+        default: listing_enums_1.PromotionTier.STANDARD,
+    }),
+    __metadata("design:type", String)
+], Listing.prototype, "promotionTier", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], Listing.prototype, "promotedUntil", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

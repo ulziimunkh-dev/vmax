@@ -1,6 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
 import { AuthProvider } from '../common/enums/auth-provider.enum';
+import { SubscriptionTier } from './enums/user.enums';
 import { Listing } from '../listings/listing.entity';
+
 
 @Entity('users')
 export class User {
@@ -35,6 +37,20 @@ export class User {
   @OneToMany(() => Listing, listing => listing.user)
   listings: Listing[];
 
+  @Column({
+    type: 'enum',
+    enum: SubscriptionTier,
+    default: SubscriptionTier.FREE,
+  })
+  subscriptionTier: SubscriptionTier;
+
+  @Column({ nullable: true })
+  subscriptionExpiresAt?: Date;
+
+  @Column({ default: false })
+  isVerifiedAgent: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }
+

@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @theme {
-  --font-sans: "Inter", sans-serif;
-  --font-heading: "Space Grotesk", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-heading: "Outfit", "Plus Jakarta Sans", "Inter", sans-serif;
 
   --color-void: #0a0a0f;
   --color-nebula: #12121f;
@@ -19,16 +20,120 @@
   --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* Light Theme Variable Overrides */
+html.light {
+  --color-void: #f8fafc;
+  --color-nebula: #ffffff;
+  --color-cosmic: #f1f5f9;
+  
+  --color-plasma: #6c5ce7;
+  --color-nova: #8b5cf6;
+  --color-aurora: #0284c7;
+  
+  --color-starlight: #0f172a;
+  --color-nebula-text: #475569;
+}
+
+html.light body {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.light footer {
+  background-color: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
+}
+
+html.light footer .border-t {
+  border-top-color: #e2e8f0 !important;
+}
+
+/* Global Light Mode Contrast Overrides */
+html.light .text-white {
+  color: #0f172a;
+}
+
+/* Buttons with vibrant gradients or solid plasma background MUST keep crisp white text */
+html.light button.bg-gradient-to-r,
+html.light .bg-gradient-to-r,
+html.light button.bg-plasma,
+html.light .bg-plasma.text-white,
+html.light .text-white-force {
+  color: #ffffff !important;
+}
+
+/* Light Mode Input, Select, Textarea styling */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Light Mode Container & Secondary Button Backdrops */
+html.light .bg-void\/50,
+html.light .bg-void\/40,
+html.light .bg-void\/60,
+html.light .bg-void\/80,
+html.light .bg-void\/90 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a;
+}
+
+html.light .bg-cosmic {
+  background-color: #ffffff !important;
+  color: #0f172a;
+}
+
+html.light .border-white\/10,
+html.light .border-white\/5,
+html.light .border-white\/20 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .text-starlight {
+  color: #0f172a !important;
+}
+
+html.light .text-nebula-text {
+  color: #475569 !important;
+}
+
 @layer utilities {
   .glass-card {
     @apply bg-nebula/60 backdrop-blur-md border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
   }
+  html.light .glass-card {
+    @apply bg-white/95 backdrop-blur-md border border-slate-200 shadow-[0_8px_30px_rgba(108,92,231,0.08)];
+  }
+
   .glass-card-hover {
     @apply hover:bg-nebula/80 hover:border-plasma/50 transition-all duration-300;
   }
+  html.light .glass-card-hover {
+    @apply hover:bg-white hover:border-plasma/60 hover:shadow-[0_12px_32px_rgba(108,92,231,0.15)] transition-all duration-300;
+  }
+
   .text-glow { text-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
+  html.light .text-glow { text-shadow: none; color: #0f172a; }
+
   .text-glow-aurora { text-shadow: 0 0 20px rgba(34, 211, 238, 0.5); }
+  html.light .text-glow-aurora { text-shadow: none; color: #0284c7; }
+
   .border-glow { box-shadow: 0 0 15px rgba(108, 92, 231, 0.3), inset 0 0 20px rgba(168, 85, 247, 0.1); }
+  html.light .border-glow { box-shadow: 0 4px 25px rgba(108, 92, 231, 0.1), inset 0 0 20px rgba(108, 92, 231, 0.02); }
 }
 
 @keyframes float {
@@ -44,17 +149,28 @@
 .starfield {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   z-index: -1; background-color: var(--color-void); overflow: hidden;
+  transition: background-color 0.4s ease;
 }
+html.light .starfield {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
+}
+
 .star {
   position: absolute; background: white; border-radius: 50%;
   animation: twinkle var(--duration, 4s) infinite ease-in-out alternate;
 }
+html.light .star {
+  background: #6c5ce7;
+  opacity: 0.15 !important;
+}
+
 @keyframes twinkle {
   0% { opacity: 0.2; transform: scale(0.8); }
   100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px white; }
 }
 
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #0a0a0f; }
+::-webkit-scrollbar-track { background: var(--color-void); }
 ::-webkit-scrollbar-thumb { background: #2d2d44; border-radius: 4px; }
+html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 ::-webkit-scrollbar-thumb:hover { background: #6c5ce7; }

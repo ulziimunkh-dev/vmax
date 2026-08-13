@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
 const auth_provider_enum_1 = require("../common/enums/auth-provider.enum");
+const user_enums_1 = require("./enums/user.enums");
 const listing_entity_1 = require("../listings/listing.entity");
 let User = class User {
     id;
@@ -23,6 +24,9 @@ let User = class User {
     authProvider;
     providerId;
     listings;
+    subscriptionTier;
+    subscriptionExpiresAt;
+    isVerifiedAgent;
     createdAt;
 };
 exports.User = User;
@@ -66,6 +70,22 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => listing_entity_1.Listing, listing => listing.user),
     __metadata("design:type", Array)
 ], User.prototype, "listings", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: user_enums_1.SubscriptionTier,
+        default: user_enums_1.SubscriptionTier.FREE,
+    }),
+    __metadata("design:type", String)
+], User.prototype, "subscriptionTier", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Date)
+], User.prototype, "subscriptionExpiresAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isVerifiedAgent", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

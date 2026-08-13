@@ -6,7 +6,7 @@ services:
     container_name: vmax-postgres
     restart: unless-stopped
     ports:
-      - '5432:5432'
+      - '5434:5432'
     environment:
       POSTGRES_DB: vmax
       POSTGRES_USER: postgres
@@ -19,5 +19,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: vmax-redis
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    volumes:
+      - vmax_redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   vmax_pgdata:
+  vmax_redisdata:

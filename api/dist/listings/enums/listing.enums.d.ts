@@ -5,11 +5,15 @@ export declare enum ListingType {
 export declare enum ListingCategory {
     APARTMENT = "APARTMENT",
     HOUSE = "HOUSE",
-    LAND = "LAND",
     COMMERCIAL = "COMMERCIAL"
 }
 export declare enum ListingStatus {
     ACTIVE = "ACTIVE",
     EXPIRED = "EXPIRED",
     CLOSED = "CLOSED"
+}
+export declare enum PromotionTier {
+    STANDARD = "STANDARD",
+    VIP = "VIP",
+    TOP_URGENT = "TOP_URGENT"
 }

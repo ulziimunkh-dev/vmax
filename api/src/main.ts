@@ -8,8 +8,10 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
+  app.setGlobalPrefix('api');
+  
   app.enableCors({
-    origin: ['http://localhost:5173', 'https://vmax.mn'],
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'https://vmax.mn'],
     credentials: true,
   });
 
@@ -32,7 +34,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 5000;
   await app.listen(port);
   console.log(`Application is running on port ${port}`);
 }

@@ -9,6 +9,8 @@ export class UpdateListingDto {
   @IsOptional() @IsNumber() price?: number;
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsString() district?: string;
+  @IsOptional() @IsNumber() latitude?: number;
+  @IsOptional() @IsNumber() longitude?: number;
   @IsOptional() @IsNumber() areaSqm?: number;
   @IsOptional() @IsObject() attributes?: Record<string, any>;
 }

@@ -6,5 +6,6 @@ var AuthProvider;
     AuthProvider["LOCAL"] = "LOCAL";
     AuthProvider["GOOGLE"] = "GOOGLE";
     AuthProvider["FACEBOOK"] = "FACEBOOK";
+    AuthProvider["APPLE"] = "APPLE";
 })(AuthProvider || (exports.AuthProvider = AuthProvider = {}));
 //# sourceMappingURL=auth-provider.enum.js.map

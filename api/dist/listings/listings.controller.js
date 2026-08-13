@@ -15,7 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ListingsController = void 0;
 const common_1 = require("@nestjs/common");
 const listings_service_1 = require("./listings.service");
-const create_listing_dto_1 = require("./dto/create-listing.dto");
 const query_listing_dto_1 = require("./dto/query-listing.dto");
 const update_listing_dto_1 = require("./dto/update-listing.dto");
 const jwt_auth_guard_1 = require("../common/guards/jwt-auth.guard");
@@ -35,8 +34,39 @@ let ListingsController = class ListingsController {
     findOne(id) {
         return this.listingsService.findOne(id);
     }
-    create(createListingDto, user) {
-        return this.listingsService.create(createListingDto, user);
+    share(id) {
+        return this.listingsService.incrementShares(id);
+    }
+    revealContact(id, body) {
+        return this.listingsService.revealPhoneContact(id, body?.user, body?.ip, body?.userAgent);
+    }
+    getContactAuditLogs(id, user) {
+        return this.listingsService.getContactAuditLogs(id, user);
+    }
+    create(dto, user) {
+        if (typeof dto.images === 'string') {
+            try {
+                dto.images = JSON.parse(dto.images);
+            }
+            catch {
+                dto.images = [dto.images];
+            }
+        }
+        if (typeof dto.attributes === 'string') {
+            try {
+                dto.attributes = JSON.parse(dto.attributes);
+            }
+            catch { }
+        }
+        if (dto.price)
+            dto.price = Number(dto.price);
+        if (dto.areaSqm)
+            dto.areaSqm = Number(dto.areaSqm);
+        if (dto.latitude)
+            dto.latitude = Number(dto.latitude);
+        if (dto.longitude)
+            dto.longitude = Number(dto.longitude);
+        return this.listingsService.create(dto, user);
     }
     update(id, updateListingDto, user) {
         return this.listingsService.update(id, updateListingDto, user);
@@ -52,6 +82,9 @@ let ListingsController = class ListingsController {
     }
     publish(id, user) {
         return this.listingsService.publish(id, user);
+    }
+    promote(id, body, user) {
+        return this.listingsService.promote(id, user, body?.tier, body?.durationDays);
     }
 };
 exports.ListingsController = ListingsController;
@@ -78,12 +111,36 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ListingsController.prototype, "findOne", null);
 __decorate([
+    (0, common_1.Post)(':id/share'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], ListingsController.prototype, "share", null);
+__decorate([
+    (0, common_1.Post)(':id/reveal-contact'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], ListingsController.prototype, "revealContact", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)(':id/contact-audit-logs'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, user_entity_1.User]),
+    __metadata("design:returntype", void 0)
+], ListingsController.prototype, "getContactAuditLogs", null);
+__decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_listing_dto_1.CreateListingDto, user_entity_1.User]),
+    __metadata("design:paramtypes", [Object, user_entity_1.User]),
     __metadata("design:returntype", void 0)
 ], ListingsController.prototype, "create", null);
 __decorate([
@@ -132,6 +189,16 @@ __decorate([
     __metadata("design:paramtypes", [String, user_entity_1.User]),
     __metadata("design:returntype", void 0)
 ], ListingsController.prototype, "publish", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Patch)(':id/promote'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, user_entity_1.User]),
+    __metadata("design:returntype", void 0)
+], ListingsController.prototype, "promote", null);
 exports.ListingsController = ListingsController = __decorate([
     (0, common_1.Controller)('listings'),
     __metadata("design:paramtypes", [listings_service_1.ListingsService])

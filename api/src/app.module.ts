@@ -7,6 +7,11 @@ import { AuthModule } from './auth/auth.module';
 import { ListingsModule } from './listings/listings.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MailModule } from './mail/mail.module';
+import { FavoritesModule } from './favorites/favorites.module';
+import { InquiriesModule } from './inquiries/inquiries.module';
+import { LocationsModule } from './locations/locations.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -35,6 +40,13 @@ import configuration from './config/configuration';
     ListingsModule,
     UploadsModule,
     MailModule,
+    FavoritesModule,
+    InquiriesModule,
+    LocationsModule,
+    SubscriptionsModule,
+    SavedSearchesModule,
   ],
 })
 export class AppModule {}
+
+

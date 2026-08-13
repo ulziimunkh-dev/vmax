@@ -7,6 +7,9 @@ export declare class CreateListingDto {
     price: number;
     location: string;
     district: string;
+    khoroo?: string;
+    latitude?: number;
+    longitude?: number;
     areaSqm: number;
     attributes?: Record<string, any>;
     images?: string[];

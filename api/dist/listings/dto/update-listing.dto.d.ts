@@ -7,6 +7,8 @@ export declare class UpdateListingDto {
     price?: number;
     location?: string;
     district?: string;
+    latitude?: number;
+    longitude?: number;
     areaSqm?: number;
     attributes?: Record<string, any>;
 }

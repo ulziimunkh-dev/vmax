@@ -20,6 +20,9 @@ class CreateListingDto {
     price;
     location;
     district;
+    khoroo;
+    latitude;
+    longitude;
     areaSqm;
     attributes;
     images;
@@ -53,6 +56,21 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateListingDto.prototype, "district", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateListingDto.prototype, "khoroo", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateListingDto.prototype, "latitude", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateListingDto.prototype, "longitude", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)

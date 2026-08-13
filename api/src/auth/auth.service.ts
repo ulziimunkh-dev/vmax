@@ -116,8 +116,59 @@ export class AuthService {
     }
   }
 
+  async appleLogin(idToken: string, userPayload?: { name?: { firstName?: string; lastName?: string }; email?: string }) {
+    try {
+      // Decode JWT token payload (Apple ID Token is a signed base64 JWT)
+      const parts = idToken.split('.');
+      if (parts.length !== 3) {
+        throw new UnauthorizedException('Invalid Apple token structure');
+      }
+
+      const decoded = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8')) as {
+        sub: string;
+        email?: string;
+        email_verified?: boolean;
+      };
+
+      const email = decoded.email || userPayload?.email;
+      if (!email) {
+        throw new UnauthorizedException('Apple ID Token does not contain email');
+      }
+
+      let user = await this.usersService.findByEmail(email);
+      if (!user) {
+        const firstName = userPayload?.name?.firstName || '';
+        const lastName = userPayload?.name?.lastName || '';
+        const fullName = `${firstName} ${lastName}`.trim() || 'Apple User';
+
+        user = await this.usersService.create({
+          email,
+          name: fullName,
+          authProvider: AuthProvider.APPLE,
+          providerId: decoded.sub,
+        });
+      }
+
+      return this.generateToken(user);
+    } catch {
+      throw new UnauthorizedException('Invalid Apple authentication token');
+    }
+  }
+
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    return this.usersService.update(userId, dto);
+    const updateData: any = { ...dto };
+    if (dto.avatar && !dto.avatarUrl) {
+      updateData.avatarUrl = dto.avatar;
+    }
+    delete updateData.avatar;
+
+    const updatedUser = await this.usersService.update(userId, updateData);
+    const { password, ...result } = updatedUser;
+    return {
+      ...result,
+      avatar: updatedUser.avatarUrl,
+    };
   }
 
   private generateToken(user: { id: string; name: string; email: string; avatarUrl?: string | null }) {
@@ -128,6 +179,7 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatar: user.avatarUrl,
         avatarUrl: user.avatarUrl,
       },
     };

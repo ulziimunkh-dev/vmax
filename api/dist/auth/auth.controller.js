@@ -39,6 +39,9 @@ let AuthController = class AuthController {
     facebookLogin(facebookAuthDto) {
         return this.authService.facebookLogin(facebookAuthDto.accessToken);
     }
+    appleLogin(body) {
+        return this.authService.appleLogin(body.idToken, body.user);
+    }
     getProfile(user) {
         return user;
     }
@@ -75,6 +78,13 @@ __decorate([
     __metadata("design:paramtypes", [facebook_auth_dto_1.FacebookAuthDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "facebookLogin", null);
+__decorate([
+    (0, common_1.Post)('apple'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "appleLogin", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Get)('profile'),

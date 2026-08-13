@@ -16,6 +16,14 @@ export class QueryListingDto {
   location?: string;
 
   @IsOptional()
+  @IsString()
+  khoroo?: string;
+
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   priceMin?: number;
@@ -33,7 +41,29 @@ export class QueryListingDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
   areaMax?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  bedrooms?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  bathrooms?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  yearBuiltMin?: number;
+
+  @IsOptional()
+  @IsString()
+  constructionType?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -45,3 +75,4 @@ export class QueryListingDto {
   @IsNumber()
   limit?: number = 10;
 }
+

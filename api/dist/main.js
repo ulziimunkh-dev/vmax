@@ -7,8 +7,9 @@ const swagger_1 = require("@nestjs/swagger");
 const path_1 = require("path");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    app.setGlobalPrefix('api');
     app.enableCors({
-        origin: ['http://localhost:5173', 'https://vmax.mn'],
+        origin: ['http://localhost:3000', 'http://localhost:5173', 'https://vmax.mn'],
         credentials: true,
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
@@ -26,7 +27,7 @@ async function bootstrap() {
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, config);
     swagger_1.SwaggerModule.setup('api/docs', app, document);
-    const port = process.env.PORT || 3001;
+    const port = process.env.PORT || 5000;
     await app.listen(port);
     console.log(`Application is running on port ${port}`);
 }

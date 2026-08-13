@@ -19,6 +19,11 @@ const auth_module_1 = require("./auth/auth.module");
 const listings_module_1 = require("./listings/listings.module");
 const uploads_module_1 = require("./uploads/uploads.module");
 const mail_module_1 = require("./mail/mail.module");
+const favorites_module_1 = require("./favorites/favorites.module");
+const inquiries_module_1 = require("./inquiries/inquiries.module");
+const locations_module_1 = require("./locations/locations.module");
+const subscriptions_module_1 = require("./subscriptions/subscriptions.module");
+const saved_searches_module_1 = require("./saved-searches/saved-searches.module");
 const configuration_1 = __importDefault(require("./config/configuration"));
 let AppModule = class AppModule {
 };
@@ -50,6 +55,11 @@ exports.AppModule = AppModule = __decorate([
             listings_module_1.ListingsModule,
             uploads_module_1.UploadsModule,
             mail_module_1.MailModule,
+            favorites_module_1.FavoritesModule,
+            inquiries_module_1.InquiriesModule,
+            locations_module_1.LocationsModule,
+            subscriptions_module_1.SubscriptionsModule,
+            saved_searches_module_1.SavedSearchesModule,
         ],
     })
 ], AppModule);

@@ -10,9 +10,8 @@ exports.UploadsModule = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const multer_1 = require("multer");
-const uuid_1 = require("uuid");
-const path_1 = require("path");
 const uploads_controller_1 = require("./uploads.controller");
+const uploads_service_1 = require("./uploads.service");
 let UploadsModule = class UploadsModule {
 };
 exports.UploadsModule = UploadsModule;
@@ -20,16 +19,12 @@ exports.UploadsModule = UploadsModule = __decorate([
     (0, common_1.Module)({
         imports: [
             platform_express_1.MulterModule.register({
-                storage: (0, multer_1.diskStorage)({
-                    destination: './uploads',
-                    filename: (req, file, cb) => {
-                        const uniqueSuffix = (0, uuid_1.v4)() + (0, path_1.extname)(file.originalname);
-                        cb(null, uniqueSuffix);
-                    },
-                }),
+                storage: (0, multer_1.memoryStorage)(),
             }),
         ],
         controllers: [uploads_controller_1.UploadsController],
+        providers: [uploads_service_1.UploadsService],
+        exports: [uploads_service_1.UploadsService],
     })
 ], UploadsModule);
 //# sourceMappingURL=uploads.module.js.map

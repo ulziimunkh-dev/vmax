@@ -1,12 +1,57 @@
-export interface User { id: string; email: string; name: string; phone?: string; avatar?: string; }
+export type SubscriptionTier = 'FREE' | 'PRO_AGENT' | 'AGENCY';
+export type PromotionTier = 'STANDARD' | 'VIP' | 'TOP_URGENT';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  avatar?: string;
+  avatarUrl?: string;
+  subscriptionTier?: SubscriptionTier;
+  subscriptionExpiresAt?: string;
+  isVerifiedAgent?: boolean;
+}
+
 export interface Listing {
-  id: string; title: string; description: string; type: 'sale' | 'rent';
-  category: 'apartment' | 'house' | 'land' | 'commercial';
-  price: number; location: string; district: string; areaSqm: number;
-  attributes: Record<string, any>; images: string[]; status: 'active' | 'expired' | 'closed';
-  userId: string; createdAt: string; updatedAt: string;
+  id: string;
+  title: string;
+  description: string;
+  type: 'sale' | 'rent';
+  category: 'apartment' | 'house' /* | 'land' */ | 'commercial' /* | 'resort' */ | string;
+
+  price: number;
+  location: string;
+  district: string;
+  khoroo?: string;
+  areaSqm: number;
+  latitude?: number;
+  longitude?: number;
+  attributes: Record<string, any>;
+  images: string[];
+  status: 'active' | 'expired' | 'closed';
+  userId: string;
+  user?: User;
+  createdAt: string;
+  updatedAt?: string;
+  viewsCount?: number;
+  sharesCount?: number;
+  phoneRevealsCount?: number;
+  isPromoted?: boolean;
+
+  promotionTier?: PromotionTier;
+  promotedUntil?: string;
 }
+
 export interface FilterState {
-  type?: string; category?: string; location?: string; priceMin?: number;
-  priceMax?: number; areaMin?: number; areaMax?: number; page?: number; limit?: number;
+  type?: string;
+  category?: string;
+  location?: string;
+  priceMin?: number;
+  priceMax?: number;
+  areaMin?: number;
+  areaMax?: number;
+  page?: number;
+  limit?: number;
 }
+

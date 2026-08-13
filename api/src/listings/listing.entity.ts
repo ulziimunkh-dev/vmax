@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
 import { User } from '../users/user.entity';
-import { ListingType, ListingCategory, ListingStatus } from './enums/listing.enums';
+import { ListingType, ListingCategory, ListingStatus, PromotionTier } from './enums/listing.enums';
 
 @Entity('listings')
 export class Listing {
@@ -34,6 +34,15 @@ export class Listing {
   @Column()
   district: string;
 
+  @Column({ nullable: true })
+  khoroo: string;
+
+  @Column('float', { nullable: true })
+  latitude: number;
+
+  @Column('float', { nullable: true })
+  longitude: number;
+
   @Column('float')
   areaSqm: number;
 
@@ -55,6 +64,30 @@ export class Listing {
 
   @Column()
   userId: string;
+
+  @Column({ default: 0 })
+  viewsCount: number;
+
+  @Column({ default: 0 })
+  sharesCount: number;
+
+  @Column({ default: 0 })
+  phoneRevealsCount: number;
+
+  @Column({ default: false })
+  isPromoted: boolean;
+
+
+  @Column({
+    type: 'enum',
+    enum: PromotionTier,
+    default: PromotionTier.STANDARD,
+  })
+  promotionTier: PromotionTier;
+
+  @Column({ nullable: true })
+  promotedUntil: Date;
+
 
   @CreateDateColumn()
   createdAt: Date;

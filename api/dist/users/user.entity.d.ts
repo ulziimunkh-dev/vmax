@@ -1,4 +1,5 @@
 import { AuthProvider } from '../common/enums/auth-provider.enum';
+import { SubscriptionTier } from './enums/user.enums';
 import { Listing } from '../listings/listing.entity';
 export declare class User {
     id: string;
@@ -10,5 +11,8 @@ export declare class User {
     authProvider: AuthProvider;
     providerId?: string;
     listings: Listing[];
+    subscriptionTier: SubscriptionTier;
+    subscriptionExpiresAt?: Date;
+    isVerifiedAgent: boolean;
     createdAt: Date;
 }

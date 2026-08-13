@@ -20,6 +20,8 @@ class UpdateListingDto {
     price;
     location;
     district;
+    latitude;
+    longitude;
     areaSqm;
     attributes;
 }
@@ -59,6 +61,16 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateListingDto.prototype, "district", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateListingDto.prototype, "latitude", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateListingDto.prototype, "longitude", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),

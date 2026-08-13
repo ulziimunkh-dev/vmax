@@ -1,5 +1,6 @@
 export declare enum AuthProvider {
     LOCAL = "LOCAL",
     GOOGLE = "GOOGLE",
-    FACEBOOK = "FACEBOOK"
+    FACEBOOK = "FACEBOOK",
+    APPLE = "APPLE"
 }

@@ -137,8 +137,47 @@ let AuthService = class AuthService {
             throw new common_1.UnauthorizedException('Invalid Facebook token');
         }
     }
+    async appleLogin(idToken, userPayload) {
+        try {
+            const parts = idToken.split('.');
+            if (parts.length !== 3) {
+                throw new common_1.UnauthorizedException('Invalid Apple token structure');
+            }
+            const decoded = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+            const email = decoded.email || userPayload?.email;
+            if (!email) {
+                throw new common_1.UnauthorizedException('Apple ID Token does not contain email');
+            }
+            let user = await this.usersService.findByEmail(email);
+            if (!user) {
+                const firstName = userPayload?.name?.firstName || '';
+                const lastName = userPayload?.name?.lastName || '';
+                const fullName = `${firstName} ${lastName}`.trim() || 'Apple User';
+                user = await this.usersService.create({
+                    email,
+                    name: fullName,
+                    authProvider: auth_provider_enum_1.AuthProvider.APPLE,
+                    providerId: decoded.sub,
+                });
+            }
+            return this.generateToken(user);
+        }
+        catch {
+            throw new common_1.UnauthorizedException('Invalid Apple authentication token');
+        }
+    }
     async updateProfile(userId, dto) {
-        return this.usersService.update(userId, dto);
+        const updateData = { ...dto };
+        if (dto.avatar && !dto.avatarUrl) {
+            updateData.avatarUrl = dto.avatar;
+        }
+        delete updateData.avatar;
+        const updatedUser = await this.usersService.update(userId, updateData);
+        const { password, ...result } = updatedUser;
+        return {
+            ...result,
+            avatar: updatedUser.avatarUrl,
+        };
     }
     generateToken(user) {
         const payload = { email: user.email, sub: user.id };
@@ -148,6 +187,7 @@ let AuthService = class AuthService {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                avatar: user.avatarUrl,
                 avatarUrl: user.avatarUrl,
             },
         };

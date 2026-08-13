@@ -13,6 +13,7 @@ export declare class AuthController {
             id: string;
             name: string;
             email: string;
+            avatar: string | null | undefined;
             avatarUrl: string | null | undefined;
         };
     }>;
@@ -22,6 +23,7 @@ export declare class AuthController {
             id: string;
             name: string;
             email: string;
+            avatar: string | null | undefined;
             avatarUrl: string | null | undefined;
         };
     }>;
@@ -31,6 +33,7 @@ export declare class AuthController {
             id: string;
             name: string;
             email: string;
+            avatar: string | null | undefined;
             avatarUrl: string | null | undefined;
         };
     }>;
@@ -40,9 +43,37 @@ export declare class AuthController {
             id: string;
             name: string;
             email: string;
+            avatar: string | null | undefined;
+            avatarUrl: string | null | undefined;
+        };
+    }>;
+    appleLogin(body: {
+        idToken: string;
+        user?: any;
+    }): Promise<{
+        access_token: string;
+        user: {
+            id: string;
+            name: string;
+            email: string;
+            avatar: string | null | undefined;
             avatarUrl: string | null | undefined;
         };
     }>;
     getProfile(user: any): any;
-    updateProfile(user: any, updateProfileDto: UpdateProfileDto): Promise<import("../users/user.entity").User>;
+    updateProfile(user: any, updateProfileDto: UpdateProfileDto): Promise<{
+        avatar: string | undefined;
+        id: string;
+        name: string;
+        email: string;
+        phone?: string;
+        avatarUrl?: string;
+        authProvider: import("../common/enums/auth-provider.enum").AuthProvider;
+        providerId?: string;
+        listings: import("../listings/listing.entity").Listing[];
+        subscriptionTier: import("../users/enums/user.enums").SubscriptionTier;
+        subscriptionExpiresAt?: Date;
+        isVerifiedAgent: boolean;
+        createdAt: Date;
+    }>;
 }

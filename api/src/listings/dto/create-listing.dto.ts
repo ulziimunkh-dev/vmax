@@ -23,6 +23,18 @@ export class CreateListingDto {
   @IsString()
   district: string;
 
+  @IsOptional()
+  @IsString()
+  khoroo?: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
   @IsNumber()
   areaSqm: number;
 

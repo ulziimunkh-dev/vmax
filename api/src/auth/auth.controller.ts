@@ -32,6 +32,12 @@ export class AuthController {
     return this.authService.facebookLogin(facebookAuthDto.accessToken);
   }
 
+  @Post('apple')
+  appleLogin(@Body() body: { idToken: string; user?: any }) {
+    return this.authService.appleLogin(body.idToken, body.user);
+  }
+
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@CurrentUser() user: any) {
