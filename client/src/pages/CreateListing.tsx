@@ -877,52 +877,52 @@ const CreateListing = () => {
                               type="button"
                               onClick={() => handleMakeMain(idx)}
                               title={isMain ? 'Нүүр зураг' : 'Нүүр зураг болгох'}
-                              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 backdrop-blur-md transition-all ${
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force ${
                                 isMain
-                                  ? 'bg-plasma text-white shadow-lg shadow-plasma/50 ring-1 ring-white/40'
-                                  : 'bg-black/70 text-white hover:bg-plasma ring-1 ring-white/20'
+                                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white/50 font-bold'
+                                  : 'bg-black/80 hover:bg-plasma text-white-force ring-1 ring-white/30 shadow'
                               }`}
                             >
-                              <Star size={12} className={isMain ? 'fill-white' : ''} />
-                              <span>{isMain ? 'Нүүр зураг' : 'Нүүр болгох'}</span>
+                              <Star size={13} className={isMain ? 'fill-white text-white' : 'text-amber-300 fill-amber-300'} />
+                              <span className="text-white-force">{isMain ? 'Нүүр зураг' : 'Нүүр болгох'}</span>
                             </button>
 
                             {/* Delete Button */}
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(idx)}
-                              className="p-1.5 bg-black/70 hover:bg-red-500 text-white rounded-lg transition-colors ring-1 ring-white/20 shadow"
+                              className="p-1.5 bg-black/80 hover:bg-red-500 text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md"
                               title="Устгах"
                             >
-                              <X size={14} />
+                              <X size={14} className="text-white-force" />
                             </button>
                           </div>
 
                           {/* Reorder Arrows & Drag Handle */}
-                          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10 opacity-90">
+                          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
                             <div className="flex items-center space-x-1">
                               <button
                                 type="button"
                                 disabled={idx === 0}
                                 onClick={() => reorderImage(idx, idx - 1)}
-                                className="p-1 bg-black/70 text-white hover:bg-plasma rounded disabled:opacity-30 ring-1 ring-white/20 shadow"
+                                className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors"
                                 title="Зүүн тийш зөөх"
                               >
-                                <ArrowLeft size={12} />
+                                <ArrowLeft size={12} className="text-white-force" />
                               </button>
                               <button
                                 type="button"
                                 disabled={idx === imagePreviews.length - 1}
                                 onClick={() => reorderImage(idx, idx + 1)}
-                                className="p-1 bg-black/70 text-white hover:bg-plasma rounded disabled:opacity-30 ring-1 ring-white/20 shadow"
+                                className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors"
                                 title="Баруун тийш зөөх"
                               >
-                                <ArrowRight size={12} />
+                                <ArrowRight size={12} className="text-white-force" />
                               </button>
                             </div>
-                            <div className="flex items-center space-x-1 text-[10px] text-white bg-black/70 px-1.5 py-0.5 rounded backdrop-blur-sm cursor-grab ring-1 ring-white/20 shadow">
-                              <GripVertical size={12} />
-                              <span>#{idx + 1}</span>
+                            <div className="flex items-center space-x-1 text-[11px] text-white-force font-semibold bg-black/80 px-2 py-1 rounded-lg backdrop-blur-md ring-1 ring-white/30 shadow">
+                              <GripVertical size={12} className="text-white-force opacity-80" />
+                              <span className="text-white-force">#{idx + 1}</span>
                             </div>
                           </div>
                         </div>

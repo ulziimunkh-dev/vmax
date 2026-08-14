@@ -39,7 +39,7 @@ export default () => ({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? '',
     region: process.env.AWS_REGION ?? 'us-east-1',
     s3BucketName: process.env.AWS_S3_BUCKET_NAME ?? 'vmax-property-images',
-    folder: process.env.AWS_S3_FOLDER ?? (process.env.NODE_ENV === 'production' ? 'production' : 'development'),
+    folder: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   },
 });
 

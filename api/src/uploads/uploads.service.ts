@@ -40,10 +40,8 @@ export class UploadsService {
     const envFolder = this.configService.get<string>('aws.folder') || 'development';
     const region = this.configService.get<string>('aws.region') || 'us-east-1';
 
-    // Key format: e.g. listings/{listingId}/{uuid}.jpg or development/listings/{listingId}/{uuid}.jpg
-    const s3Key = subfolder.startsWith('listings/')
-      ? `${subfolder}/${uuidv4()}${fileExt}`
-      : `${envFolder}/${subfolder}/${uuidv4()}${fileExt}`;
+    // Key format: e.g. production/listings/{listingId}/{uuid}.jpg or development/uploads/{uuid}.jpg
+    const s3Key = `${envFolder}/${subfolder.replace(/^\//, '')}/${uuidv4()}${fileExt}`;
 
     // If AWS S3 credentials are provided, upload to Amazon S3
     if (this.s3Client) {
