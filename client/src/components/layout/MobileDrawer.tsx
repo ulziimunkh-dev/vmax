@@ -135,10 +135,18 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
             <div className="p-4 border-b border-white/10 bg-white/[0.02]">
               {isAuthenticated && user ? (
                 <div className="flex items-center space-x-3 p-3 rounded-2xl bg-cosmic/60 border border-white/10">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-plasma via-nova to-aurora p-0.5 flex-shrink-0">
-                    <div className="w-full h-full bg-void rounded-[10px] flex items-center justify-center font-bold text-starlight text-base">
-                      {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                    </div>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-plasma via-nova to-aurora p-0.5 flex-shrink-0 overflow-hidden">
+                    {user.avatar || user.avatarUrl ? (
+                      <img
+                        src={user.avatar || user.avatarUrl}
+                        alt={user.name || 'Profile'}
+                        className="w-full h-full object-cover rounded-[10px]"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-void rounded-[10px] flex items-center justify-center font-bold text-starlight text-base">
+                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-bold text-starlight truncate">{user.name || 'Хэрэглэгч'}</h4>

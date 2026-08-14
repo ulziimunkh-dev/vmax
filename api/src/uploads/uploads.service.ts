@@ -59,7 +59,7 @@ export class UploadsService {
     }
 
     // Local Storage Fallback
-    const uploadDir = path.join(process.cwd(), subfolder);
+    const uploadDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -68,7 +68,7 @@ export class UploadsService {
     const filePath = path.join(uploadDir, localFileName);
     fs.writeFileSync(filePath, file.buffer || fs.readFileSync(file.path));
 
-    return `/${subfolder}/${localFileName}`;
+    return `/uploads/${localFileName}`;
   }
 
   async uploadMultipleFiles(files: Express.Multer.File[], subfolder: string = 'uploads'): Promise<string[]> {

@@ -20,7 +20,12 @@ async function bootstrap() {
     transform: true,
   }));
 
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  const uploadsDir = join(process.cwd(), 'uploads');
+  const fs = require('fs');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.useStaticAssets(uploadsDir, {
     prefix: '/uploads/',
   });
 

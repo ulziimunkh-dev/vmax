@@ -47,6 +47,7 @@ const Home = () => {
         yearBuiltMin: filters.yearBuiltMin ? Number(filters.yearBuiltMin) : undefined,
         constructionType: filters.constructionType || undefined,
         sortBy: activeSort,
+        limit: 50,
       });
 
       if (res.data?.items) {

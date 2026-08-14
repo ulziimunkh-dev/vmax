@@ -189,10 +189,18 @@ const Navbar: React.FC = () => {
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center space-x-2.5 p-1.5 pr-3 rounded-xl bg-void/60 hover:bg-white/10 border border-white/10 transition-all group"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-plasma to-aurora p-0.5 flex-shrink-0">
-                      <div className="w-full h-full bg-void rounded-[6px] flex items-center justify-center font-bold text-xs text-starlight">
-                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                      </div>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-plasma to-aurora p-0.5 flex-shrink-0 overflow-hidden">
+                      {user.avatar || user.avatarUrl ? (
+                        <img
+                          src={user.avatar || user.avatarUrl}
+                          alt={user.name || 'Profile'}
+                          className="w-full h-full object-cover rounded-[6px]"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-void rounded-[6px] flex items-center justify-center font-bold text-xs text-starlight">
+                          {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                      )}
                     </div>
                     <div className="text-left hidden lg:block">
                       <p className="text-xs font-bold text-starlight leading-tight truncate max-w-[100px]">
@@ -225,9 +233,24 @@ const Navbar: React.FC = () => {
                         className="absolute right-0 mt-2 w-56 bg-void/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 space-y-1 z-50 overflow-hidden"
                       >
                         {/* Header Info */}
-                        <div className="p-2.5 bg-white/[0.03] rounded-xl border border-white/5 mb-1">
-                          <p className="text-xs font-bold text-starlight truncate">{user.name || 'Хэрэглэгч'}</p>
-                          <p className="text-[11px] text-nebula-text truncate">{user.email}</p>
+                        <div className="p-2.5 bg-white/[0.03] rounded-xl border border-white/5 mb-1 flex items-center space-x-2.5">
+                          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-plasma to-aurora p-0.5 flex-shrink-0 overflow-hidden">
+                            {user.avatar || user.avatarUrl ? (
+                              <img
+                                src={user.avatar || user.avatarUrl}
+                                alt={user.name || 'Profile'}
+                                className="w-full h-full object-cover rounded-[6px]"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-void rounded-[6px] flex items-center justify-center font-bold text-xs text-starlight">
+                                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                              </div>
+                            )}
+                          </div>
+                          <div className="overflow-hidden">
+                            <p className="text-xs font-bold text-starlight truncate">{user.name || 'Хэрэглэгч'}</p>
+                            <p className="text-[11px] text-nebula-text truncate">{user.email}</p>
+                          </div>
                         </div>
 
                         <Link
