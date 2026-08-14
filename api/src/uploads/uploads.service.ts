@@ -14,7 +14,7 @@ export class UploadsService {
   constructor(private configService: ConfigService) {
     const accessKeyId = this.configService.get<string>('aws.accessKeyId');
     const secretAccessKey = this.configService.get<string>('aws.secretAccessKey');
-    const region = this.configService.get<string>('aws.region') || 'ap-northeast-1';
+    const region = this.configService.get<string>('aws.region') || 'us-east-1';
     this.bucketName = this.configService.get<string>('aws.s3BucketName') || 'vmax-property-images';
 
     if (accessKeyId && secretAccessKey) {
@@ -25,7 +25,7 @@ export class UploadsService {
           secretAccessKey,
         },
       });
-      this.logger.log(`☁️ AWS S3 Upload Service initialized for bucket: ${this.bucketName}`);
+      this.logger.log(`☁️ AWS S3 Upload Service initialized for bucket: ${this.bucketName} in region: ${region}`);
     } else {
       this.logger.warn(`⚠️ AWS credentials not set. Falling back to local file upload storage.`);
     }
@@ -34,7 +34,7 @@ export class UploadsService {
   async uploadFile(file: Express.Multer.File, subfolder: string = 'uploads'): Promise<string> {
     const fileExt = path.extname(file.originalname);
     const folder = this.configService.get<string>('aws.folder') || 'development';
-    const region = this.configService.get<string>('aws.region') || 'ap-southeast-1';
+    const region = this.configService.get<string>('aws.region') || 'us-east-1';
     const s3Key = `${folder}/${subfolder}/${uuidv4()}${fileExt}`;
 
     // If AWS S3 credentials are provided, upload to Amazon S3
