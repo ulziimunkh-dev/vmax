@@ -1,13 +1,19 @@
 import axios from 'axios';
 
-let rawBaseURL = (import.meta.env.VITE_API_URL || '/api').trim();
-if (rawBaseURL.endsWith('/')) {
-  rawBaseURL = rawBaseURL.slice(0, -1);
+let raw = (import.meta.env.VITE_API_URL || '/api').trim();
+if (raw.endsWith('/')) {
+  raw = raw.slice(0, -1);
 }
+
+// Auto-prefix https:// if user provided domain without protocol (e.g. api-production-e009.up.railway.app)
+if (raw && !raw.startsWith('http://') && !raw.startsWith('https://') && !raw.startsWith('/')) {
+  raw = `https://${raw}`;
+}
+
 const baseURL =
-  rawBaseURL.startsWith('http') && !rawBaseURL.endsWith('/api')
-    ? `${rawBaseURL}/api`
-    : rawBaseURL;
+  raw.startsWith('http') && !raw.endsWith('/api')
+    ? `${raw}/api`
+    : raw;
 
 const api = axios.create({ baseURL });
 
