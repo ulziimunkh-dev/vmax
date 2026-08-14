@@ -23,16 +23,28 @@ import configuration from './config/configuration';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('database.host'),
-        port: configService.get<number>('database.port'),
-        username: configService.get<string>('database.username'),
-        password: configService.get<string>('database.password'),
-        database: configService.get<string>('database.name'),
-        autoLoadEntities: true,
-        synchronize: true, // Auto sync for dev
-      }),
+      useFactory: (configService: ConfigService) => {
+        const databaseUrl = process.env.DATABASE_URL;
+        return {
+          type: 'postgres',
+          ...(databaseUrl
+            ? {
+                url: databaseUrl,
+                ssl: process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true'
+                  ? { rejectUnauthorized: false }
+                  : undefined,
+              }
+            : {
+                host: configService.get<string>('database.host'),
+                port: configService.get<number>('database.port'),
+                username: configService.get<string>('database.username'),
+                password: configService.get<string>('database.password'),
+                database: configService.get<string>('database.name'),
+              }),
+          autoLoadEntities: true,
+          synchronize: true, // Auto sync for dev/demo
+        };
+      },
     }),
     ScheduleModule.forRoot(),
     UsersModule,
