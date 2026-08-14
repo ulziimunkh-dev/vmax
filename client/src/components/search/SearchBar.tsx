@@ -157,6 +157,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             </div>
             <input
               type="text"
+              id="search-keyword"
+              name="keyword"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -180,6 +182,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <Home className="h-5 w-5" />
             </div>
             <select
+              id="search-category"
+              name="category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="block w-full pl-11 pr-8 py-3 bg-void/50 border border-white/10 rounded-xl text-starlight focus:outline-none focus:border-plasma appearance-none text-sm cursor-pointer"
@@ -199,6 +203,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <MapPin className="h-5 w-5" />
             </div>
             <select
+              id="search-district"
+              name="district"
               value={district}
               onChange={(e) => setDistrict(e.target.value)}
               className="block w-full pl-11 pr-8 py-3 bg-void/50 border border-white/10 rounded-xl text-starlight focus:outline-none focus:border-plasma appearance-none text-sm cursor-pointer"
