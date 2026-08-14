@@ -149,7 +149,15 @@ const CreateListing = () => {
   const [balcony, setBalcony] = useState('');
   const [garage, setGarage] = useState('');
   const [elevator, setElevator] = useState('');
-  const [paymentTerms, setPaymentTerms] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState<string[]>([]);
+  const [amenities, setAmenities] = useState<string[]>([]);
+
+  const toggleChip = <T extends string>(arr: T[], val: T, setFn: React.Dispatch<React.SetStateAction<T[]>>) => {
+    setFn(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
+  };
+  const toggleSingle = (current: string, val: string, setFn: React.Dispatch<React.SetStateAction<string>>) => {
+    setFn(current === val ? '' : val);
+  };
 
   // Image Upload State & Drag Reorder
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -201,7 +209,8 @@ const CreateListing = () => {
             if (attr.balcony) setBalcony(String(attr.balcony));
             if (attr.garage) setGarage(String(attr.garage));
             if (attr.elevator) setElevator(String(attr.elevator));
-            if (attr.paymentTerms) setPaymentTerms(String(attr.paymentTerms));
+            if (attr.paymentTerms) setPaymentTerms(Array.isArray(attr.paymentTerms) ? attr.paymentTerms : [String(attr.paymentTerms)]);
+            if (attr.amenities) setAmenities(Array.isArray(attr.amenities) ? attr.amenities : []);
           }
         }
       })
@@ -384,7 +393,8 @@ const CreateListing = () => {
       if (balcony) attrPayload.balcony = balcony;
       if (garage) attrPayload.garage = garage;
       if (elevator) attrPayload.elevator = elevator;
-      if (paymentTerms) attrPayload.paymentTerms = paymentTerms;
+      if (paymentTerms.length > 0) attrPayload.paymentTerms = paymentTerms;
+      if (amenities.length > 0) attrPayload.amenities = amenities;
 
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
 
@@ -694,53 +704,207 @@ const CreateListing = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center">
-                    <Building size={12} className="mr-1 text-plasma" />
-                    <span>{t.assetAttributes.constructionType}</span>
-                  </label>
-                  <select value={constructionType} onChange={(e) => setConstructionType(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma">
-                    <option value="Бүрэн цутгамал">Бүрэн цутгамал (Cast Concrete)</option>
-                    <option value="Төмөр бетонон">Төмөр бетонон (Reinforced Concrete)</option>
-                    <option value="Тоосгон">Тоосгон (Brick Building)</option>
-                    <option value="Панелан">Панелан (Panel Building)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center">
-                    <Wrench size={12} className="mr-1 text-plasma" />
-                    <span>{t.assetAttributes.condition}</span>
-                  </label>
-                  <select value={condition} onChange={(e) => setCondition(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma">
-                    <option value="Шинэ (Оршин сууж байгаагүй)">Шинэ (Оршин сууж байгаагүй)</option>
-                    <option value="Бүрэн засварласан">Бүрэн засварласан (Fully Renovated)</option>
-                    <option value="Дунд зэрэг">Дунд зэрэг (Good Condition)</option>
-                    <option value="Засвар шаардлагатай">Засвар шаардлагатай (Needs Renovation)</option>
-                  </select>
+              {/* Construction Type — Single Chip */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-2 flex items-center">
+                  <Building size={12} className="mr-1 text-plasma" />
+                  <span>{t.assetAttributes.constructionType}</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Бүрэн цутгамал', 'Төмөр бетонон', 'Тоосгон', 'Панелан', 'Модон', 'Металл каркасан'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => toggleSingle(constructionType, opt, setConstructionType)}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                        constructionType === opt
+                          ? 'bg-plasma/30 border-plasma text-plasma'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center">
-                    <Compass size={12} className="mr-1 text-plasma" />
-                    <span>{t.assetAttributes.windowDirections}</span>
-                  </label>
-                  <input type="text" value={windowDirections} onChange={(e) => setWindowDirections(e.target.value)} placeholder="Өмнө, Зүүн (Наран талтай)" className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma" />
+              {/* Condition — Single Chip */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-2 flex items-center">
+                  <Wrench size={12} className="mr-1 text-plasma" />
+                  <span>{t.assetAttributes.condition}</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['🆕 Шинэ (Оршин сууж байгаагүй)', '✅ Бүрэн засварласан', '🟡 Дунд зэрэг', '🔧 Засвар шаардлагатай', '🏗️ Засварын явцтай'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => toggleSingle(condition, opt, setCondition)}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                        condition === opt
+                          ? 'bg-aurora/30 border-aurora text-aurora'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
+              {/* Window Directions — Multi Chip */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-2 flex items-center">
+                  <Compass size={12} className="mr-1 text-plasma" />
+                  <span>{t.assetAttributes.windowDirections}</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Урагшаа (Өмнө)', 'Зүүн', 'Баруун', 'Хойшоо', 'Зүүн урагшаа', 'Баруун урагшаа', 'Зүүн хойшоо', 'Баруун хойшоо'].map((dir) => (
+                    <button
+                      key={dir}
+                      type="button"
+                      onClick={() => {
+                        const parts = windowDirections ? windowDirections.split(', ').filter(Boolean) : [];
+                        const newParts = parts.includes(dir) ? parts.filter((p) => p !== dir) : [...parts, dir];
+                        setWindowDirections(newParts.join(', '));
+                      }}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                        windowDirections.includes(dir)
+                          ? 'bg-plasma/30 border-plasma text-plasma'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                      }`}
+                    >
+                      {dir}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Garage — Single Chip */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-2 flex items-center">
+                  <Car size={12} className="mr-1 text-plasma" />
+                  <span>{t.assetAttributes.garage}</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['Дулаан гарааштай', 'Гадна зогсоолтой', 'Газар доорх гараажтай', 'Зогсоолгүй'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => toggleSingle(garage, opt, setGarage)}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                        garage === opt
+                          ? 'bg-plasma/30 border-plasma text-plasma'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Elevator + Balcony — Single Chips side by side */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center">
-                    <Car size={12} className="mr-1 text-plasma" />
-                    <span>{t.assetAttributes.garage}</span>
-                  </label>
-                  <select value={garage} onChange={(e) => setGarage(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma">
-                    <option value="Дулаан гарааштай">Дулаан гарааштай (Heated Garage)</option>
-                    <option value="Гадна зогсоолтой">Гадна зогсоолтой (Outdoor Parking)</option>
-                    <option value="Зогсоолгүй">Зогсоолгүй (No Garage)</option>
-                  </select>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">🛗 Лифт</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Лифттэй', '2+ хурдан лифттэй', 'Лифтгүй'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(elevator, opt, setElevator)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          elevator === opt
+                            ? 'bg-aurora/30 border-aurora text-aurora'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">🪟 Тагт</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['1 тагттай', '2 тагттай', '3+ тагттай', 'Шилэн вакум тагттай', 'Тагтгүй'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(balcony, opt, setBalcony)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          balcony === opt
+                            ? 'bg-aurora/30 border-aurora text-aurora'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Terms — Multi Chip */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-2">💳 Төлбөрийн нөхцөл</label>
+                <div className="flex flex-wrap gap-2">
+                  {(type === 'RENT'
+                    ? ['1+1 сар', '3+1 сар', '6+1 сар', '12 сар урьдчилан', '2 сарын барьцаатай', 'Уян хатан нөхцөлтэй']
+                    : ['Бэлэн төлбөр', '6%-ийн ипотек зээл', '8%-ийн ипотек зээл', 'Хувааж төлөх боломжтой', 'Бартер авна (машин, ҮХХ)', 'Үнэ тохиролцоно']
+                  ).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => toggleChip(paymentTerms, opt, setPaymentTerms)}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                        paymentTerms.includes(opt)
+                          ? 'bg-nova/30 border-nova text-nova'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Amenities — Multi Chip Tags */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-2">✨ Давуу тал / Тоноглол (Amenities)</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    '🛡️ 24/7 харуул хамгаалалт',
+                    '🚗 Дулаан зогсоол',
+                    '☀️ Наран талтай',
+                    '🌳 Хүүхдийн тоглоомын талбай',
+                    '🏫 Сургууль, цэцэрлэгт ойр',
+                    '🛋️ Тавилгатай үлдэнэ',
+                    '⚡ Ухаалаг систем (Smart Home)',
+                    '💧 Төвийн шугам бүрэн',
+                    '📜 Гэрчилгээ бэлэн',
+                    '🏊 Усан бассейн',
+                    '🏋️ Фитнесс заал',
+                    '🔐 Хаалттай хотхон',
+                    '🛗 Хурдан лифт',
+                    '🪟 Шилэн вакум тагт',
+                    '🔥 Шалны дулаалга',
+                    '🌐 Хурдан интернет',
+                  ].map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleChip(amenities, tag, setAmenities)}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                        amenities.includes(tag)
+                          ? 'bg-gold/20 border-gold/70 text-gold'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-gold/40'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

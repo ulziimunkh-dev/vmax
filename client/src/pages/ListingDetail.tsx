@@ -583,13 +583,48 @@ const ListingDetail = () => {
                         <span className="text-sm font-bold text-starlight">{listing.attributes.capacity} хүн</span>
                       </div>
                     )}
-                    {listing.attributes.paymentTerms && (
+                    {listing.attributes.elevator && (
                       <div className="bg-void/40 p-3 rounded-xl border border-white/5">
-                        <span className="text-xs text-nebula-text block mb-1">{t.assetAttributes.paymentTerms}</span>
-                        <span className="text-sm font-bold text-starlight">{listing.attributes.paymentTerms}</span>
+                        <span className="text-xs text-nebula-text block mb-1">🛗 Лифт</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.elevator}</span>
                       </div>
                     )}
                   </div>
+
+                  {/* Payment Terms Chips */}
+                  {listing.attributes.paymentTerms && (Array.isArray(listing.attributes.paymentTerms) ? listing.attributes.paymentTerms.length > 0 : !!listing.attributes.paymentTerms) && (
+                    <div className="pt-4">
+                      <h4 className="text-sm font-bold text-nebula-text mb-2 flex items-center gap-2">
+                        <span>💳</span> {t.assetAttributes.paymentTerms}
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(Array.isArray(listing.attributes.paymentTerms)
+                          ? listing.attributes.paymentTerms
+                          : [listing.attributes.paymentTerms]
+                        ).map((term: string) => (
+                          <span key={term} className="text-xs px-3 py-1.5 rounded-full bg-nova/15 border border-nova/40 text-nova font-medium">
+                            {term}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Amenities Tag Cloud */}
+                  {listing.attributes.amenities && Array.isArray(listing.attributes.amenities) && listing.attributes.amenities.length > 0 && (
+                    <div className="pt-4">
+                      <h4 className="text-sm font-bold text-nebula-text mb-2 flex items-center gap-2">
+                        <span>✨</span> Давуу тал / Тоноглол
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {listing.attributes.amenities.map((tag: string) => (
+                          <span key={tag} className="text-xs px-3 py-1.5 rounded-full bg-gold/10 border border-gold/40 text-gold font-medium">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
