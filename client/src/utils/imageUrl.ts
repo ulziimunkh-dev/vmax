@@ -30,7 +30,12 @@ export const getImageUrl = (url?: string): string => {
     return url;
   }
 
-  // External and CDN URLs (AWS S3, CloudFront, Unsplash, etc.)
+  // AWS S3 images - route through authenticated backend proxy for 100% reliable 200 OK delivery
+  if (url.includes('.amazonaws.com') || url.includes('.s3.')) {
+    return `${apiUrl}/api/uploads/s3?url=${encodeURIComponent(url)}`;
+  }
+
+  // Other external URLs (Unsplash, external CDNs)
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
