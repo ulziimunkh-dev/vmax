@@ -99,12 +99,19 @@ export class UploadsService {
     if (!this.s3Client) return null;
     try {
       let key = s3UrlOrKey;
+      let targetBucket = this.bucketName;
+
       if (s3UrlOrKey.startsWith('http://') || s3UrlOrKey.startsWith('https://')) {
         const urlObj = new URL(s3UrlOrKey);
+        const hostParts = urlObj.hostname.split('.');
+        if (hostParts.length > 0 && hostParts[0] !== 's3') {
+          targetBucket = hostParts[0];
+        }
         key = decodeURIComponent(urlObj.pathname.replace(/^\//, ''));
       }
+
       const command = new GetObjectCommand({
-        Bucket: this.bucketName,
+        Bucket: targetBucket,
         Key: key,
       });
       const response = await this.s3Client.send(command);

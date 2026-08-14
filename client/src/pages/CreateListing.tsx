@@ -352,7 +352,7 @@ const CreateListing = () => {
   const handleSimulateVerifyInCreate = async () => {
     try {
       await authAPI.verifyPhone(undefined, contactPhone);
-    } catch {}
+    } catch { }
     setIsPhoneSuccess(true);
     setVerifiedPhones((prev) => new Set([...prev, contactPhone]));
     if (user) {
@@ -605,7 +605,7 @@ const CreateListing = () => {
               onClick={handleNextStep1}
               className="w-full bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all mt-4"
             >
-              Дараах ({t.createListing.next})
+              {t.createListing.next}
             </button>
           </div>
         )}
@@ -853,11 +853,10 @@ const CreateListing = () => {
                         onDragStart={() => handleDragStartThumbnail(idx)}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={() => handleDropThumbnail(idx)}
-                        className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${
-                          isMain
+                        className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
                             ? 'border-plasma ring-2 ring-plasma/50 shadow-plasma/30'
                             : 'border-white/10 hover:border-plasma/40'
-                        }`}
+                          }`}
                       >
                         <div className="h-32 w-full overflow-hidden relative">
                           <img
@@ -877,11 +876,10 @@ const CreateListing = () => {
                               type="button"
                               onClick={() => handleMakeMain(idx)}
                               title={isMain ? 'Нүүр зураг' : 'Нүүр зураг болгох'}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force ${
-                                isMain
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force ${isMain
                                   ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white/50 font-bold'
                                   : 'bg-black/80 hover:bg-plasma text-white-force ring-1 ring-white/30 shadow'
-                              }`}
+                                }`}
                             >
                               <Star size={13} className={isMain ? 'fill-white text-white' : 'text-amber-300 fill-amber-300'} />
                               <span className="text-white-force">{isMain ? 'Нүүр зураг' : 'Нүүр болгох'}</span>
