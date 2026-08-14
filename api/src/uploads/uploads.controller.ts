@@ -1,6 +1,5 @@
-import { Controller, Post, Get, Query, Res, UseInterceptors, UploadedFiles, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Query, Res, UseInterceptors, UploadedFiles, UploadedFile, UseGuards } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
-import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UploadsService } from './uploads.service';
 
@@ -22,9 +21,24 @@ export class UploadsController {
     return res.send(s3Data.buffer);
   }
 
+  /**
+   * Upload listing photos grouped under parent listing folder in S3:
+   * Key: listings/{listingId}/{uuid}.jpg
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('listings/:listingId')
+  @UseInterceptors(FilesInterceptor('files', 20))
+  async uploadListingPhotos(
+    @Param('listingId') listingId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const urls = await this.uploadsService.uploadListingImages(listingId, files);
+    return { listingId, urls };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post()
-  @UseInterceptors(FilesInterceptor('files', 10))
+  @UseInterceptors(FilesInterceptor('files', 20))
   async uploadFiles(@UploadedFiles() files: Express.Multer.File[]) {
     const urls = await this.uploadsService.uploadMultipleFiles(files);
     return { urls };
@@ -46,5 +60,3 @@ export class UploadsController {
     return { url };
   }
 }
-
-

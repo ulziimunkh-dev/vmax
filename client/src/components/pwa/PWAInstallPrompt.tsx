@@ -173,21 +173,54 @@ export const PWAInstallPrompt: React.FC = () => {
                 </button>
               </div>
 
-              {/* iOS Guide Modal / Dropdown */}
+              {/* iOS Guide Detailed Dropdown */}
               {showIOSPrompt && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-3 pt-3 border-t border-white/10 text-xs text-nebula-text space-y-1.5"
+                  className="mt-3 pt-3 border-t border-white/10 text-xs text-nebula-text space-y-2.5"
                 >
-                  <p className="font-semibold text-starlight">iOS Safari дээр суулгах:</p>
-                  <div className="flex items-center space-x-1.5 text-[11px]">
-                    <span>1. Доорх</span>
-                    <span className="p-1 bg-white/10 rounded inline-flex items-center text-plasma"><Share2 size={12} /></span>
-                    <span>(Share) товчийг дарна</span>
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-starlight text-xs">📲 iPhone / Safari дээр суулгах:</p>
+                    <button
+                      onClick={() => setShowIOSPrompt(false)}
+                      className="text-[11px] text-plasma hover:underline"
+                    >
+                      Хаах
+                    </button>
                   </div>
-                  <div className="text-[11px]">
-                    2. Цэснээс <strong className="text-plasma">"Add to Home Screen"</strong> (Үндсэн дэлгэцэнд нэмэх) сонгоно.
+
+                  <div className="space-y-2 bg-void/60 p-2.5 rounded-xl border border-white/5 text-[11px]">
+                    <div className="flex items-start space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-plasma/20 text-plasma font-bold flex items-center justify-center flex-shrink-0 text-[10px]">
+                        1
+                      </span>
+                      <span>
+                        Safari хөтчийн доод талын <strong>Share (Хуваалцах)</strong>{' '}
+                        <span className="inline-flex p-1 bg-white/10 rounded text-plasma align-middle">
+                          <Share2 size={11} />
+                        </span>{' '}
+                        товчийг дарна.
+                      </span>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-plasma/20 text-plasma font-bold flex items-center justify-center flex-shrink-0 text-[10px]">
+                        2
+                      </span>
+                      <span>
+                        Цэснээс доош гүйлгээд <strong className="text-plasma">"Add to Home Screen"</strong> (Дэлгэцэнд нэмэх ➕) гэснийг сонгоно.
+                      </span>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-plasma/20 text-plasma font-bold flex items-center justify-center flex-shrink-0 text-[10px]">
+                        3
+                      </span>
+                      <span>
+                        Баруун дээд буланд байрлах <strong className="text-aurora">"Add" (Нэмэх)</strong> товчийг дарснаар таны утсан дээр апп бүрэн суух болно.
+                      </span>
+                    </div>
                   </div>
                 </motion.div>
               )}

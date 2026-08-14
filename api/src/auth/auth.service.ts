@@ -71,11 +71,24 @@ export class AuthService {
 
   async googleLogin(token: string) {
     try {
-      const ticket = await this.googleClient.verifyIdToken({
-        idToken: token,
-        audience: this.configService.get<string>('oauth.google.clientId') ?? '',
-      });
-      const payload = ticket.getPayload();
+      let payload: any = null;
+
+      // 1. Attempt ID Token Verification
+      try {
+        const ticket = await this.googleClient.verifyIdToken({
+          idToken: token,
+          audience: this.configService.get<string>('oauth.google.clientId') ?? '',
+        });
+        payload = ticket.getPayload();
+      } catch {
+        // 2. Fallback to Google OAuth2 UserInfo API (for access tokens from iOS Safari / initTokenClient)
+        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (userInfoRes.ok) {
+          payload = await userInfoRes.json();
+        }
+      }
 
       if (!payload || !payload.email) {
         throw new UnauthorizedException('Invalid Google token');
@@ -88,7 +101,7 @@ export class AuthService {
           name: payload.name ?? 'Google User',
           avatarUrl: payload.picture,
           authProvider: AuthProvider.GOOGLE,
-          providerId: payload.sub,
+          providerId: payload.sub || payload.id,
           isEmailVerified: true,
         });
       }

@@ -34,7 +34,8 @@ const Login = () => {
 
   const handleGoogleAuth = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (typeof window === 'undefined' || !(window as any).google?.accounts?.id) {
+
+    if (typeof window === 'undefined' || (!(window as any).google?.accounts?.id && !(window as any).google?.accounts?.oauth2)) {
       setError('Google Identity Services ачаалагдаж байна. Түр хүлээнэ үү эсвэл хуудсаа дахин ачаална уу.');
       return;
     }
@@ -45,6 +46,33 @@ const Login = () => {
     }
 
     try {
+      // 1. iOS Safari & Mobile Compatible OAuth2 Token Client
+      if ((window as any).google?.accounts?.oauth2) {
+        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.access_token) {
+              setLoading(true);
+              setError('');
+              try {
+                const res = await authAPI.googleLogin(tokenResponse.access_token);
+                const { user, access_token } = res.data;
+                loginStore(user, access_token);
+                navigate('/');
+              } catch (err: any) {
+                setError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+              } finally {
+                setLoading(false);
+              }
+            }
+          },
+        });
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+        return;
+      }
+
+      // 2. ID Token Prompt Fallback
       (window as any).google.accounts.id.initialize({
         client_id: clientId,
         callback: async (response: any) => {
@@ -65,7 +93,7 @@ const Login = () => {
       });
 
       (window as any).google.accounts.id.prompt();
-    } catch (err: any) {
+    } catch {
       setError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа.');
     }
   };

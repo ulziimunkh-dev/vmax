@@ -22,6 +22,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import api from '@/services/api';
 
+import { ScrollToTop } from '@/components/common/ScrollToTop';
+
 const App = () => {
   const { token, setUser, logout } = useAuthStore();
   const { mode } = useThemeStore();
@@ -43,6 +45,7 @@ const App = () => {
   return (
     <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
       <BrowserRouter>
+        <ScrollToTop />
         <Starfield />
         <div className="min-h-screen flex flex-col font-sans relative z-0 transition-colors duration-300">
           <Navbar />

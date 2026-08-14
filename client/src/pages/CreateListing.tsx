@@ -215,6 +215,8 @@ const CreateListing = () => {
       });
   }, [id, navigate]);
 
+  const draftIdRef = useRef<string>(id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `draft-${Date.now()}`));
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
     if (selected.length === 0) return;
@@ -224,8 +226,10 @@ const CreateListing = () => {
     setImageFiles((prev) => [...prev, ...selected]);
     setImagePreviews((prev) => [...prev, ...newPreviews]);
 
+    const targetListingId = id || draftIdRef.current;
+
     try {
-      const uploadRes = await uploadAPI.uploadFiles(selected);
+      const uploadRes = await uploadAPI.uploadListingFiles(targetListingId, selected);
       if (uploadRes.data?.urls) {
         setUploadedUrls((prev) => [...prev, ...uploadRes.data.urls]);
       } else {

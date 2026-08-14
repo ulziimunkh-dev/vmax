@@ -31,11 +31,19 @@ export class UploadsService {
     }
   }
 
+  /**
+   * Upload single file to S3 (or local fallback) with specified subfolder.
+   * For listing photos: subfolder = `listings/${listingId}`
+   */
   async uploadFile(file: Express.Multer.File, subfolder: string = 'uploads'): Promise<string> {
     const fileExt = path.extname(file.originalname);
-    const folder = this.configService.get<string>('aws.folder') || 'development';
+    const envFolder = this.configService.get<string>('aws.folder') || 'development';
     const region = this.configService.get<string>('aws.region') || 'us-east-1';
-    const s3Key = `${folder}/${subfolder}/${uuidv4()}${fileExt}`;
+
+    // Key format: e.g. listings/{listingId}/{uuid}.jpg or development/listings/{listingId}/{uuid}.jpg
+    const s3Key = subfolder.startsWith('listings/')
+      ? `${subfolder}/${uuidv4()}${fileExt}`
+      : `${envFolder}/${subfolder}/${uuidv4()}${fileExt}`;
 
     // If AWS S3 credentials are provided, upload to Amazon S3
     if (this.s3Client) {
@@ -43,32 +51,45 @@ export class UploadsService {
         const command = new PutObjectCommand({
           Bucket: this.bucketName,
           Key: s3Key,
-          Body: file.buffer,
+          Body: file.buffer || (file.path ? fs.readFileSync(file.path) : undefined),
           ContentType: file.mimetype,
         });
 
         await this.s3Client.send(command);
 
         const s3Url = `https://${this.bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
-        this.logger.log(`✅ File uploaded successfully to S3: ${s3Url}`);
+        this.logger.log(`✅ File uploaded successfully to S3 bucket [${this.bucketName}]: ${s3Url}`);
         return s3Url;
-      } catch (error) {
+      } catch (error: any) {
         this.logger.error(`❌ Failed to upload file to S3: ${error.message}`);
         // Fallback to local storage on S3 failure
       }
     }
 
-    // Local Storage Fallback
-    const uploadDir = path.join(process.cwd(), 'uploads');
+    // Local Storage Fallback with grouped parent directory
+    const targetSubDir = subfolder.replace(/\//g, path.sep);
+    const uploadDir = path.join(process.cwd(), 'uploads', targetSubDir);
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
     const localFileName = `${uuidv4()}${fileExt}`;
     const filePath = path.join(uploadDir, localFileName);
-    fs.writeFileSync(filePath, file.buffer || fs.readFileSync(file.path));
+    fs.writeFileSync(filePath, file.buffer || (file.path ? fs.readFileSync(file.path) : Buffer.from([])));
 
-    return `/uploads/${localFileName}`;
+    const relativeUrl = `/uploads/${subfolder}/${localFileName}`.replace(/\\/g, '/');
+    this.logger.log(`📂 Saved file locally: ${relativeUrl}`);
+    return relativeUrl;
+  }
+
+  /**
+   * Upload listing photos grouped under listing ID as parent folder in S3:
+   * S3 Key format: listings/{listingId}/{uuid}{fileExt}
+   */
+  async uploadListingImages(listingId: string, files: Express.Multer.File[]): Promise<string[]> {
+    if (!files || files.length === 0) return [];
+    this.logger.log(`📸 Uploading ${files.length} images grouped under parent listing folder: listings/${listingId}/`);
+    return Promise.all(files.map((file) => this.uploadFile(file, `listings/${listingId}`)));
   }
 
   async uploadMultipleFiles(files: Express.Multer.File[], subfolder: string = 'uploads'): Promise<string[]> {
