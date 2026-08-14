@@ -744,7 +744,7 @@ const Profile = () => {
                 <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
                   <Phone size={18} />
                 </div>
-                <h3 className="text-base font-bold text-starlight">Verify.MN Утас баталгаажуулах</h3>
+                <h3 className="text-base font-bold text-starlight">Утасны дугаар баталгаажуулах</h3>
               </div>
               <button
                 onClick={() => setShowPhoneOtpModal(false)}
