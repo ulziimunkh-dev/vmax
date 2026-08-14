@@ -1,8 +1,15 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
-});
+let rawBaseURL = (import.meta.env.VITE_API_URL || '/api').trim();
+if (rawBaseURL.endsWith('/')) {
+  rawBaseURL = rawBaseURL.slice(0, -1);
+}
+const baseURL =
+  rawBaseURL.startsWith('http') && !rawBaseURL.endsWith('/api')
+    ? `${rawBaseURL}/api`
+    : rawBaseURL;
+
+const api = axios.create({ baseURL });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('vmax_token');

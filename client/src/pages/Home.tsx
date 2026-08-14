@@ -50,10 +50,9 @@ const Home = () => {
         limit: 50,
       });
 
-      if (res.data?.items) {
-        setListings(res.data.items);
-        setFilteredListings(res.data.items);
-      }
+      const items = res.data?.items || (Array.isArray(res.data) ? res.data : []);
+      setListings(items);
+      setFilteredListings(items);
     } catch (err) {
       console.error('Failed to load listings from database:', err);
     } finally {
