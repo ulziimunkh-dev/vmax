@@ -49,4 +49,22 @@ export class AuthController {
   updateProfile(@CurrentUser() user: any, @Body() updateProfileDto: UpdateProfileDto) {
     return this.authService.updateProfile(user.id, updateProfileDto);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('verify-phone')
+  verifyPhone(@CurrentUser() user: any) {
+    return this.authService.verifyPhone(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('verify-email')
+  verifyEmail(@CurrentUser() user: any) {
+    return this.authService.verifyEmail(user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('request-agent-verification')
+  requestAgentVerification(@CurrentUser() user: any, @Body() body: { agencyName?: string; agentLicenseNo?: string }) {
+    return this.authService.requestAgentVerification(user.id, body);
+  }
 }

@@ -11,6 +11,11 @@ export interface User {
   subscriptionTier?: SubscriptionTier;
   subscriptionExpiresAt?: string;
   isVerifiedAgent?: boolean;
+  isEmailVerified?: boolean;
+  isPhoneVerified?: boolean;
+  agentVerificationStatus?: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+  agencyName?: string;
+  agentLicenseNo?: string;
 }
 
 export interface Listing {

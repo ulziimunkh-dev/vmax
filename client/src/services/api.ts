@@ -19,6 +19,10 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
 
   updateProfile: (data: any) => api.patch('/auth/profile', data),
+  verifyPhone: () => api.post('/auth/verify-phone'),
+  verifyEmail: () => api.post('/auth/verify-email'),
+  requestAgentVerification: (data: { agencyName?: string; agentLicenseNo?: string }) =>
+    api.post('/auth/request-agent-verification', data),
 };
 
 export const uploadAPI = {

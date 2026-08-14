@@ -43,6 +43,10 @@ import configuration from './config/configuration';
               }),
           autoLoadEntities: true,
           synchronize: true, // Auto sync for dev/demo
+          extra: {
+            max: 20,
+            connectionTimeoutMillis: 5000,
+          },
         };
       },
     }),

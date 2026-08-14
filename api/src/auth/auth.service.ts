@@ -24,7 +24,14 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const existingUser = await this.usersService.findByEmail(registerDto.email);
     if (existingUser) {
-      throw new BadRequestException('Email already in use');
+      throw new BadRequestException('Энэ имэйл хаяг бүртгэлтэй байна. Өөр имэйл ашиглана уу.');
+    }
+
+    if (registerDto.phone) {
+      const existingPhone = await this.usersService.findByPhone(registerDto.phone);
+      if (existingPhone) {
+        throw new BadRequestException('Энэ утасны дугаар бүртгэлтэй байна. Өөр дугаар оруулна уу.');
+      }
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
@@ -32,6 +39,10 @@ export class AuthService {
       ...registerDto,
       password: hashedPassword,
       authProvider: AuthProvider.LOCAL,
+      isEmailVerified: false,
+      isPhoneVerified: false,
+      isVerifiedAgent: false,
+      agentVerificationStatus: 'NONE',
     });
 
     return this.generateToken(user);
@@ -40,16 +51,16 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.usersService.findByEmail(loginDto.email);
     if (!user || user.authProvider !== AuthProvider.LOCAL) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна.');
     }
 
     if (!user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна.');
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна.');
     }
 
     return this.generateToken(user);
@@ -75,6 +86,7 @@ export class AuthService {
           avatarUrl: payload.picture,
           authProvider: AuthProvider.GOOGLE,
           providerId: payload.sub,
+          isEmailVerified: true,
         });
       }
 
@@ -107,6 +119,7 @@ export class AuthService {
           avatarUrl: data.picture?.data?.url,
           authProvider: AuthProvider.FACEBOOK,
           providerId: data.id,
+          isEmailVerified: true,
         });
       }
 
@@ -146,6 +159,7 @@ export class AuthService {
           name: fullName,
           authProvider: AuthProvider.APPLE,
           providerId: decoded.sub,
+          isEmailVerified: true,
         });
       }
 
@@ -157,6 +171,13 @@ export class AuthService {
 
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    if (dto.phone) {
+      const existingPhone = await this.usersService.findByPhone(dto.phone);
+      if (existingPhone && existingPhone.id !== userId) {
+        throw new BadRequestException('Энэ утасны дугаар өөр хэрэглэгчид бүртгэлтэй байна.');
+      }
+    }
+
     const updateData: any = { ...dto };
     if (dto.avatar && !dto.avatarUrl) {
       updateData.avatarUrl = dto.avatar;
@@ -171,7 +192,58 @@ export class AuthService {
     };
   }
 
-  private generateToken(user: { id: string; name: string; email: string; avatarUrl?: string | null }) {
+  async verifyPhone(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.phone) {
+      throw new BadRequestException('Утасны дугаараа эхлээд оруулна уу.');
+    }
+    const updated = await this.usersService.update(userId, { isPhoneVerified: true });
+    return {
+      success: true,
+      message: 'Утасны дугаар амжилттай баталгаажлаа.',
+      isPhoneVerified: updated.isPhoneVerified,
+    };
+  }
+
+  async verifyEmail(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.email) {
+      throw new BadRequestException('Имэйл хаяг олдсонгүй.');
+    }
+    const updated = await this.usersService.update(userId, { isEmailVerified: true });
+    return {
+      success: true,
+      message: 'Имэйл хаяг амжилттай баталгаажлаа.',
+      isEmailVerified: updated.isEmailVerified,
+    };
+  }
+
+  async requestAgentVerification(userId: string, data: { agencyName?: string; agentLicenseNo?: string }) {
+    const updated = await this.usersService.update(userId, {
+      agencyName: data.agencyName,
+      agentLicenseNo: data.agentLicenseNo,
+      agentVerificationStatus: 'PENDING',
+    });
+    return {
+      success: true,
+      message: 'Агент баталгаажуулах хүсэлт амжилттай илгээгдлээ. Админ шалгаж баталгаажуулна.',
+      status: updated.agentVerificationStatus,
+    };
+  }
+
+  async approveAgentVerification(userId: string) {
+    const updated = await this.usersService.update(userId, {
+      isVerifiedAgent: true,
+      agentVerificationStatus: 'VERIFIED',
+    });
+    return {
+      success: true,
+      message: 'Агент амжилттай баталгаажлаа.',
+      isVerifiedAgent: updated.isVerifiedAgent,
+    };
+  }
+
+  private generateToken(user: any) {
     const payload = { email: user.email, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
@@ -179,8 +251,16 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         avatar: user.avatarUrl,
         avatarUrl: user.avatarUrl,
+        subscriptionTier: user.subscriptionTier,
+        isVerifiedAgent: user.isVerifiedAgent,
+        isEmailVerified: user.isEmailVerified,
+        isPhoneVerified: user.isPhoneVerified,
+        agentVerificationStatus: user.agentVerificationStatus,
+        agencyName: user.agencyName,
+        agentLicenseNo: user.agentLicenseNo,
       },
     };
   }

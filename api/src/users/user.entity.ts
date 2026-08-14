@@ -48,7 +48,22 @@ export class User {
   subscriptionExpiresAt?: Date;
 
   @Column({ default: false })
+  isEmailVerified: boolean;
+
+  @Column({ default: false })
+  isPhoneVerified: boolean;
+
+  @Column({ default: false })
   isVerifiedAgent: boolean;
+
+  @Column({ nullable: true })
+  agencyName?: string;
+
+  @Column({ nullable: true })
+  agentLicenseNo?: string;
+
+  @Column({ default: 'NONE' })
+  agentVerificationStatus: string;
 
   @CreateDateColumn()
   createdAt: Date;

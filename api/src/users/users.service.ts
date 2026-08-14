@@ -15,6 +15,12 @@ export class UsersService {
     return user ?? undefined;
   }
 
+  async findByPhone(phone: string): Promise<User | undefined> {
+    if (!phone) return undefined;
+    const user = await this.usersRepository.findOne({ where: { phone } });
+    return user ?? undefined;
+  }
+
   async findById(id: string): Promise<User | undefined> {
     const user = await this.usersRepository.findOne({ where: { id } });
     return user ?? undefined;
