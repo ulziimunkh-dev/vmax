@@ -51,7 +51,7 @@ const ListingDetail = () => {
       setIsPhoneRevealed(true);
     } catch {
       // Fallback
-      const defaultPhone = listing?.user?.phone || '9911-8888';
+      const defaultPhone = listing?.user?.phone || null;
       setRevealedPhone(defaultPhone);
       setPhoneRevealsCount((prev) => prev + 1);
       setIsPhoneRevealed(true);
@@ -197,11 +197,10 @@ const ListingDetail = () => {
 
             <button
               onClick={() => toggleFavorite(listing)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-all text-sm font-medium ${
-                favorite
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-all text-sm font-medium ${favorite
                   ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-lg shadow-red-500/20'
                   : 'bg-cosmic text-white border-white/10 hover:border-white/20'
-              }`}
+                }`}
             >
               <Heart size={18} className={favorite ? 'fill-current text-red-500' : ''} />
               <span>{favorite ? t.dashboard.saved : t.share.favorites}</span>
@@ -242,11 +241,10 @@ const ListingDetail = () => {
                     key={idx}
                     type="button"
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-24 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${
-                      activeImageIndex === idx
+                    className={`relative w-24 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${activeImageIndex === idx
                         ? 'border-plasma ring-2 ring-plasma/50 scale-105 shadow-lg shadow-plasma/30'
                         : 'border-white/10 opacity-70 hover:opacity-100'
-                    }`}
+                      }`}
                   >
                     <img src={getImageUrl(imgUrl)} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
@@ -439,11 +437,11 @@ const ListingDetail = () => {
               <div className="space-y-3 mb-4">
                 {isPhoneRevealed || isOwner ? (
                   <a
-                    href={`tel:${revealedPhone || listing?.user?.phone || '9911-8888'}`}
+                    href={`tel:${revealedPhone || listing?.user?.phone || '8976-7700'}`}
                     className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-aurora via-plasma to-nova text-white font-bold py-3.5 rounded-xl shadow-lg shadow-aurora/30 transition-all"
                   >
                     <Phone size={18} />
-                    <span>Залгах: {revealedPhone || listing?.user?.phone || '9911-8888'}</span>
+                    <span>Залгах: {revealedPhone || listing?.user?.phone || '8976-7700'}</span>
                   </a>
                 ) : (
                   <button
@@ -452,7 +450,7 @@ const ListingDetail = () => {
                   >
                     <Lock size={18} className="group-hover:hidden text-amber-300" />
                     <Unlock size={18} className="hidden group-hover:block text-amber-300" />
-                    <span>Дугаар харах: 9911-****</span>
+                    <span>Дугаар харах: 8976-****</span>
                   </button>
                 )}
               </div>

@@ -170,13 +170,13 @@ export class ListingsService {
     });
     await this.contactLogsRepository.save(log);
 
+    const contactPhone = listing.contactPhone || listing.user?.phone;
     return {
-      phone: listing.user?.phone || '99110000',
+      phone: contactPhone || 'Утас оруулаагүй',
       ownerName: listing.user?.name || 'Зар байршуулагч',
       revealsCount: listing.phoneRevealsCount,
     };
   }
-
 
   async getContactAuditLogs(id: string, currentUser: any) {
     const listing = await this.findOne(id);
@@ -191,15 +191,25 @@ export class ListingsService {
     });
   }
 
-
   async create(createListingDto: CreateListingDto, user: User) {
     await this.checkUserQuota(user);
+
+    const contactPhone = (createListingDto.contactPhone || user.phone || '').trim();
+    if (!contactPhone) {
+      throw new BadRequestException('Утасны дугааргүй зар оруулах боломжгүй. Холбоо барих утасны дугаараа оруулна уу.');
+    }
+
+    // If user didn't have phone in profile, automatically save this phone
+    if (!user.phone && contactPhone) {
+      await this.usersRepository.update(user.id, { phone: contactPhone });
+    }
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // 30 days default listing duration
 
     const listing = this.listingsRepository.create({
       ...createListingDto,
+      contactPhone,
       user,
       expiresAt,
     });

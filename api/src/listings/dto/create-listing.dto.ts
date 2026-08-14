@@ -43,6 +43,10 @@ export class CreateListingDto {
   attributes?: Record<string, any>;
 
   @IsOptional()
+  @IsString()
+  contactPhone?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   images?: string[];

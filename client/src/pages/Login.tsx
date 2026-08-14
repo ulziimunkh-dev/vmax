@@ -32,6 +32,44 @@ const Login = () => {
 
   const isAppleDevice = typeof window !== 'undefined' && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 
+  const handleGoogleAuth = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (typeof window === 'undefined' || !(window as any).google?.accounts?.id) {
+      setError('Google Identity Services ачаалагдаж байна. Түр хүлээнэ үү эсвэл хуудсаа дахин ачаална уу.');
+      return;
+    }
+
+    if (!clientId) {
+      setError('Google Client ID тохируулагдаагүй байна. .env файлд VITE_GOOGLE_CLIENT_ID-г оруулна уу.');
+      return;
+    }
+
+    try {
+      (window as any).google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response: any) => {
+          if (!response?.credential) return;
+          try {
+            setLoading(true);
+            setError('');
+            const res = await authAPI.googleLogin(response.credential);
+            const { user, access_token } = res.data;
+            loginStore(user, access_token);
+            navigate('/');
+          } catch (err: any) {
+            setError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+
+      (window as any).google.accounts.id.prompt();
+    } catch (err: any) {
+      setError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа.');
+    }
+  };
+
   const handleAppleAuth = async () => {
     setError('');
     setLoading(true);
@@ -94,27 +132,35 @@ const Login = () => {
         )}
 
         <div className="space-y-3">
-          {/* Apple Sign-In Button (Optimized for iPhone / iOS / Mac users) */}
+          {/* Apple Sign-In Button (Temporarily commented out until Apple Service ID setup)
           {(isAppleDevice || true) && (
             <button
               type="button"
               onClick={handleAppleAuth}
-              className="w-full bg-black text-white font-semibold py-3 rounded-xl flex items-center justify-center space-x-2 border border-white/20 hover:bg-slate-900 transition-all shadow-md active:scale-95"
+              className="w-full bg-black text-white text-white-force font-semibold py-3 rounded-xl flex items-center justify-center space-x-2 border border-white/20 hover:bg-slate-900 transition-all shadow-md active:scale-95"
             >
               <AppleIcon />
-              <span>Apple-аар нэвтрэх</span>
+              <span className="text-white text-white-force">Apple-аар нэвтрэх</span>
             </button>
           )}
+          */}
 
-          <button type="button" className="w-full bg-white text-gray-900 border border-slate-200 font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors shadow-sm">
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            className="w-full bg-white text-gray-900 border border-slate-200 font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors shadow-sm active:scale-95 cursor-pointer"
+          >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            <span className="text-slate-800">{t.auth.continueGoogle}</span>
+            <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
           </button>
 
+          {/* Facebook Sign-In Button (Temporarily commented out until Facebook App Review)
           <button type="button" className="w-full bg-[#1877F2] text-white-force font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-[#0c66db] transition-colors shadow-sm">
             <FacebookIcon />
             <span>{t.auth.continueFacebook}</span>
           </button>
+          */}
 
 
           <div className="flex items-center py-4">

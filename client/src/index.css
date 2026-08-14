@@ -54,17 +54,22 @@ html.light .text-white {
   color: #0f172a;
 }
 
-/* Buttons with vibrant gradients or solid plasma background MUST keep crisp white text and icon stroke */
+/* Buttons with vibrant gradients or solid plasma/black background MUST keep crisp white text and icon stroke */
 html.light button.bg-gradient-to-r,
 html.light button.bg-gradient-to-r *,
 html.light a.bg-gradient-to-r,
 html.light a.bg-gradient-to-r *,
 html.light button.bg-plasma,
 html.light button.bg-plasma *,
+html.light button.bg-black,
+html.light button.bg-black *,
+html.light button.bg-black span,
+html.light button.bg-black svg,
 html.light .bg-plasma.text-white,
 html.light .text-white-force,
 html.light .text-white-force * {
   color: #ffffff !important;
+  fill: #ffffff !important;
   stroke: #ffffff !important;
 }
 

@@ -78,10 +78,10 @@ const Footer: React.FC = () => {
 
             {/* Direct Contact Cards */}
             <div className="space-y-2 pt-2 text-xs text-nebula-text">
-              <div className="flex items-center space-x-2.5">
+              <a href="tel:+97689767700" className="flex items-center space-x-2.5 hover:text-plasma transition-colors">
                 <Phone size={14} className="text-plasma flex-shrink-0" />
-                <span>+976 7711-8888, +976 9911-8888</span>
-              </div>
+                <span className="font-semibold">+976 8976-7700</span>
+              </a>
               <div className="flex items-center space-x-2.5">
                 <Mail size={14} className="text-aurora flex-shrink-0" />
                 <span>contact@vmax.mn, info@vmax.mn</span>

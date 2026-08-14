@@ -52,6 +52,9 @@ export class Listing {
   @Column('simple-array', { nullable: true })
   images: string[];
 
+  @Column({ nullable: true })
+  contactPhone?: string;
+
   @Column({
     type: 'enum',
     enum: ListingStatus,

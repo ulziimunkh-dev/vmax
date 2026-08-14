@@ -4,12 +4,31 @@ import LocationPicker from '@/components/map/LocationPicker';
 import { useI18n } from '@/i18n';
 import { useNavigate } from 'react-router-dom';
 import { listingsAPI, uploadAPI, locationsAPI } from '@/services/api';
-import { Image as ImageIcon, X, Upload, Plus, Star, GripVertical, ArrowLeft, ArrowRight, Layers, Building, Calendar, Wrench, Compass, Car, CheckCircle } from 'lucide-react';
+import {
+  Image as ImageIcon,
+  X,
+  Upload,
+  Plus,
+  Star,
+  GripVertical,
+  ArrowLeft,
+  ArrowRight,
+  Layers,
+  Building,
+  Calendar,
+  Wrench,
+  Compass,
+  Car,
+  CheckCircle,
+  Phone,
+} from 'lucide-react';
 import { PriceInput } from '@/components/common/PriceInput';
+import { useAuthStore } from '@/store/useAuthStore';
 
 
 const CreateListing = () => {
   const { t } = useI18n();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -21,6 +40,14 @@ const CreateListing = () => {
   const [type, setType] = useState('SALE');
   const [category, setCategory] = useState('APARTMENT');
   const [title, setTitle] = useState('');
+  const [contactPhone, setContactPhone] = useState(user?.phone || '');
+  const [step1Error, setStep1Error] = useState('');
+
+  useEffect(() => {
+    if (user?.phone && !contactPhone) {
+      setContactPhone(user.phone);
+    }
+  }, [user?.phone]);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [areaSqm, setAreaSqm] = useState('');
@@ -146,6 +173,20 @@ const CreateListing = () => {
     }
   };
 
+  const handleNextStep1 = () => {
+    if (!title.trim()) {
+      setStep1Error('Зарын гарчгийг оруулна уу.');
+      return;
+    }
+    const cleanPhone = (contactPhone || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setStep1Error('Утасны дугааргүй зар оруулах боломжгүй! 8 оронтой холбоо барих дугаар заавал оруулна уу.');
+      return;
+    }
+    setStep1Error('');
+    setStep(2);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -161,6 +202,7 @@ const CreateListing = () => {
       formData.append('district', district);
       formData.append('khoroo', khoroo);
       formData.append('location', location);
+      formData.append('contactPhone', contactPhone);
       // Only include user-specified attributes without fake hardcoded fallbacks
       const attrPayload: Record<string, any> = {};
       if (rooms) { attrPayload.rooms = Number(rooms); attrPayload.bedrooms = Number(rooms); }
@@ -231,9 +273,62 @@ const CreateListing = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-nebula-text mb-1">Зарын гарчиг</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Жишээ: King Tower, 137мкв 3 өрөө байр зарна" className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma" />
+              <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (step1Error) setStep1Error(''); }} placeholder="Жишээ: King Tower, 137мкв 3 өрөө байр зарна" className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma" />
             </div>
-            <button onClick={() => setStep(2)} className="w-full bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all mt-4">
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-starlight flex items-center space-x-1">
+                  <span>Холбоо барих утасны дугаар</span>
+                  <span className="text-red-400">*</span>
+                </label>
+                {user?.phone && (
+                  <span className="text-[11px] text-aurora font-medium bg-aurora/10 px-2 py-0.5 rounded-full border border-aurora/20">
+                    Бүртгэлтэй дугаар: {user.phone}
+                  </span>
+                )}
+              </div>
+
+              <div className="relative">
+                <Phone size={18} className="absolute left-3.5 top-3.5 text-plasma" />
+                <input
+                  type="tel"
+                  required
+                  value={contactPhone}
+                  onChange={(e) => {
+                    setContactPhone(e.target.value);
+                    if (step1Error) setStep1Error('');
+                  }}
+                  placeholder={user?.phone ? `Жишээ: ${user.phone}` : 'Жишээ: 89767700 эсвэл 99118888'}
+                  maxLength={12}
+                  className="w-full bg-void/50 border border-white/10 rounded-xl pl-11 pr-24 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma"
+                />
+                {user?.phone && contactPhone !== user.phone && (
+                  <button
+                    type="button"
+                    onClick={() => { setContactPhone(user.phone || ''); if (step1Error) setStep1Error(''); }}
+                    className="absolute right-2.5 top-2.5 text-[11px] bg-plasma/20 hover:bg-plasma/40 text-plasma px-2.5 py-1 rounded-lg border border-plasma/30 transition-all font-medium"
+                  >
+                    Үндсэн дугаар
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-nebula-text">
+                💡 Та өөрийн бүртгэлтэй үндсэн дугаараа ашиглах эсвэл энэхүү зард зориулан өөр дугаар оруулж болно.
+              </p>
+            </div>
+
+            {step1Error && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-xs font-semibold">
+                ⚠️ {step1Error}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleNextStep1}
+              className="w-full bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all mt-4"
+            >
               Дараах ({t.createListing.next})
             </button>
           </div>
