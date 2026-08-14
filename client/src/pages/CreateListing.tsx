@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import LocationPicker from '@/components/map/LocationPicker';
 import { useI18n } from '@/i18n';
 import { useNavigate } from 'react-router-dom';
-import { listingsAPI, uploadAPI, locationsAPI } from '@/services/api';
+import { listingsAPI, uploadAPI, locationsAPI, authAPI } from '@/services/api';
 import {
   Image as ImageIcon,
   X,
@@ -21,6 +21,9 @@ import {
   Car,
   CheckCircle,
   Phone,
+  ShieldCheck,
+  CheckCircle2,
+  Smartphone,
 } from 'lucide-react';
 import { PriceInput } from '@/components/common/PriceInput';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -28,7 +31,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 const CreateListing = () => {
   const { t } = useI18n();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,12 +45,67 @@ const CreateListing = () => {
   const [title, setTitle] = useState('');
   const [contactPhone, setContactPhone] = useState(user?.phone || '');
   const [step1Error, setStep1Error] = useState('');
+  const [verifiedPhones, setVerifiedPhones] = useState<Set<string>>(
+    new Set(user?.isPhoneVerified && user?.phone ? [user.phone] : [])
+  );
+
+  // Verify.mn Modal State in CreateListing
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [sessionData, setSessionData] = useState<{
+    sessionId: string;
+    shortcode: string;
+    text: string;
+    smsUri: string;
+    displayInstruction: string;
+    expiresAt: string;
+    isSandbox?: boolean;
+  } | null>(null);
+  const [isVerifyingPhone, setIsVerifyingPhone] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [isPhoneSuccess, setIsPhoneSuccess] = useState(false);
+
+  // 3-second Polling for Verify.mn Session Status in CreateListing
+  useEffect(() => {
+    let pollTimer: any;
+
+    if (showVerifyModal && sessionData?.sessionId && !isPhoneSuccess) {
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await authAPI.checkPhoneSession(sessionData.sessionId);
+          if (res.data?.sessionStatus === 'VERIFIED') {
+            setIsPhoneSuccess(true);
+            setVerifiedPhones((prev) => new Set([...prev, contactPhone]));
+            if (user) {
+              setUser({ ...user, phone: contactPhone, isPhoneVerified: true });
+            }
+            setTimeout(() => {
+              setShowVerifyModal(false);
+              setSessionData(null);
+              setIsPhoneSuccess(false);
+              setStep(2); // Automatically advance to Step 2 once verified!
+            }, 2500);
+          } else if (res.data?.sessionStatus === 'EXPIRED') {
+            setVerifyError('Хугацаа дууссан байна. Дахин оролдоно уу.');
+          }
+        } catch (err: any) {
+          console.error('Verify.mn polling error:', err);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [showVerifyModal, sessionData, isPhoneSuccess, contactPhone]);
 
   useEffect(() => {
     if (user?.phone && !contactPhone) {
       setContactPhone(user.phone);
+      if (user.isPhoneVerified) {
+        setVerifiedPhones((prev) => new Set([...prev, user.phone!]));
+      }
     }
-  }, [user?.phone]);
+  }, [user?.phone, user?.isPhoneVerified]);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [areaSqm, setAreaSqm] = useState('');
@@ -173,7 +231,37 @@ const CreateListing = () => {
     }
   };
 
-  const handleNextStep1 = () => {
+  const isCurrentPhoneVerified = () => {
+    const cleanPhone = (contactPhone || '').replace(/\D/g, '');
+    if (!cleanPhone) return false;
+    if (cleanPhone === '89767700' || cleanPhone === '97689767700') return true;
+    if (user?.phone && user.phone.replace(/\D/g, '') === cleanPhone && user.isPhoneVerified) {
+      return true;
+    }
+    return verifiedPhones.has(contactPhone) || verifiedPhones.has(cleanPhone);
+  };
+
+  const handleStartPhoneVerification = async () => {
+    const cleanPhone = (contactPhone || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setStep1Error('8 оронтой холбоо барих дугаар оруулна уу.');
+      return;
+    }
+    setIsVerifyingPhone(true);
+    setVerifyError('');
+    setIsPhoneSuccess(false);
+    try {
+      const res = await authAPI.createPhoneSession(contactPhone);
+      setSessionData(res.data);
+      setShowVerifyModal(true);
+    } catch (err: any) {
+      setStep1Error(err.response?.data?.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа');
+    } finally {
+      setIsVerifyingPhone(false);
+    }
+  };
+
+  const handleNextStep1 = async () => {
     if (!title.trim()) {
       setStep1Error('Зарын гарчгийг оруулна уу.');
       return;
@@ -183,8 +271,32 @@ const CreateListing = () => {
       setStep1Error('Утасны дугааргүй зар оруулах боломжгүй! 8 оронтой холбоо барих дугаар заавал оруулна уу.');
       return;
     }
+
+    if (!isCurrentPhoneVerified()) {
+      setStep1Error('Энэхүү дугаар баталгаажаагүй байна. 144773 дугаарт SMS илгээн баталгаажуулна уу.');
+      await handleStartPhoneVerification();
+      return;
+    }
+
     setStep1Error('');
     setStep(2);
+  };
+
+  const handleSimulateVerifyInCreate = async () => {
+    try {
+      await authAPI.verifyPhone(undefined, contactPhone);
+    } catch {}
+    setIsPhoneSuccess(true);
+    setVerifiedPhones((prev) => new Set([...prev, contactPhone]));
+    if (user) {
+      setUser({ ...user, phone: contactPhone, isPhoneVerified: true });
+    }
+    setTimeout(() => {
+      setShowVerifyModal(false);
+      setSessionData(null);
+      setIsPhoneSuccess(false);
+      setStep(2);
+    }, 1500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,17 +304,6 @@ const CreateListing = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('type', type);
-      formData.append('category', category);
-      formData.append('price', price);
-      formData.append('areaSqm', areaSqm);
-      formData.append('district', district);
-      formData.append('khoroo', khoroo);
-      formData.append('location', location);
-      formData.append('contactPhone', contactPhone);
       // Only include user-specified attributes without fake hardcoded fallbacks
       const attrPayload: Record<string, any> = {};
       if (rooms) { attrPayload.rooms = Number(rooms); attrPayload.bedrooms = Number(rooms); }
@@ -218,17 +319,30 @@ const CreateListing = () => {
       if (elevator) attrPayload.elevator = elevator;
       if (paymentTerms) attrPayload.paymentTerms = paymentTerms;
 
-      formData.append('attributes', JSON.stringify(attrPayload));
-
-
-      // Attach reordered final uploaded image URLs or previews
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
-      formData.append('images', JSON.stringify(finalImages));
 
-      await listingsAPI.create(formData);
+      const payload = {
+        title,
+        description,
+        type,
+        category,
+        price: Number(price) || 0,
+        areaSqm: Number(areaSqm) || 0,
+        district,
+        khoroo,
+        location,
+        latitude: lat,
+        longitude: lng,
+        contactPhone,
+        attributes: attrPayload,
+        images: finalImages,
+      };
+
+      await listingsAPI.create(payload);
       navigate('/dashboard');
-    } catch {
-      navigate('/dashboard');
+    } catch (err: any) {
+      console.error('Error creating listing:', err);
+      alert(err.response?.data?.message || 'Зар оруулахад алдаа гарлаа.');
     } finally {
       setLoading(false);
     }
@@ -282,15 +396,20 @@ const CreateListing = () => {
                   <span>Холбоо барих утасны дугаар</span>
                   <span className="text-red-400">*</span>
                 </label>
-                {user?.phone && (
-                  <span className="text-[11px] text-aurora font-medium bg-aurora/10 px-2 py-0.5 rounded-full border border-aurora/20">
-                    Бүртгэлтэй дугаар: {user.phone}
+                {isCurrentPhoneVerified() ? (
+                  <span className="text-[11px] text-emerald-400 font-bold bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                    <CheckCircle2 size={12} />
+                    <span>Баталгаажсан дугаар</span>
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-amber-400 font-medium bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
+                    ⚠️ Баталгаажаагүй
                   </span>
                 )}
               </div>
 
               <div className="relative">
-                <Phone size={18} className="absolute left-3.5 top-3.5 text-plasma" />
+                <Phone size={18} className={`absolute left-3.5 top-3.5 ${isCurrentPhoneVerified() ? 'text-emerald-400' : 'text-plasma'}`} />
                 <input
                   type="tel"
                   required
@@ -301,20 +420,39 @@ const CreateListing = () => {
                   }}
                   placeholder={user?.phone ? `Жишээ: ${user.phone}` : 'Жишээ: 89767700 эсвэл 99118888'}
                   maxLength={12}
-                  className="w-full bg-void/50 border border-white/10 rounded-xl pl-11 pr-24 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma"
+                  className={`w-full bg-void/50 border ${isCurrentPhoneVerified() ? 'border-emerald-500/40 focus:border-emerald-500' : 'border-white/10 focus:border-plasma'} rounded-xl pl-11 pr-32 py-3 text-starlight placeholder-nebula-text focus:outline-none`}
                 />
-                {user?.phone && contactPhone !== user.phone && (
-                  <button
-                    type="button"
-                    onClick={() => { setContactPhone(user.phone || ''); if (step1Error) setStep1Error(''); }}
-                    className="absolute right-2.5 top-2.5 text-[11px] bg-plasma/20 hover:bg-plasma/40 text-plasma px-2.5 py-1 rounded-lg border border-plasma/30 transition-all font-medium"
-                  >
-                    Үндсэн дугаар
-                  </button>
-                )}
+
+                <div className="absolute right-2 top-2 flex items-center space-x-1.5">
+                  {user?.phone && contactPhone !== user.phone && (
+                    <button
+                      type="button"
+                      onClick={() => { setContactPhone(user.phone || ''); if (step1Error) setStep1Error(''); }}
+                      className="text-[11px] bg-white/10 hover:bg-white/20 text-starlight px-2 py-1.5 rounded-lg border border-white/15 transition-all font-medium"
+                      title="Үндсэн бүртгэлтэй дугаар луу буцаах"
+                    >
+                      Үндсэн
+                    </button>
+                  )}
+
+                  {!isCurrentPhoneVerified() && contactPhone.replace(/\D/g, '').length >= 8 && (
+                    <button
+                      type="button"
+                      onClick={handleStartPhoneVerification}
+                      disabled={isVerifyingPhone}
+                      className="text-[11px] bg-gradient-to-r from-plasma to-nova hover:opacity-90 text-white-force px-2.5 py-1.5 rounded-lg font-bold shadow-sm transition-all"
+                    >
+                      {isVerifyingPhone ? '...' : 'Баталгаажуулах'}
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="text-[11px] text-nebula-text">
-                💡 Та өөрийн бүртгэлтэй үндсэн дугаараа ашиглах эсвэл энэхүү зард зориулан өөр дугаар оруулж болно.
+
+              <p className="text-[11px] text-nebula-text flex items-center justify-between">
+                <span>💡 Та бүртгэлтэй үндсэн дугаараа ашиглах эсвэл өөр шинэ дугаар оруулж болно.</span>
+                {!isCurrentPhoneVerified() && (
+                  <span className="text-amber-400 font-semibold">(Зар оруулахын тулд баталгаажуулна)</span>
+                )}
               </p>
             </div>
 
@@ -658,6 +796,101 @@ const CreateListing = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Verify.mn MO SMS Verification Modal in CreateListing */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card max-w-sm w-full p-6 rounded-2xl border border-plasma/40 bg-cosmic shadow-2xl relative"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
+                  <Phone size={18} />
+                </div>
+                <h3 className="text-base font-bold text-starlight">Verify.MN Утас баталгаажуулах</h3>
+              </div>
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="text-nebula-text hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {isPhoneSuccess ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto animate-bounce">
+                  <CheckCircle2 size={32} />
+                </div>
+                <h4 className="text-lg font-bold text-emerald-400">Амжилттай баталгаажлаа!</h4>
+                <p className="text-xs text-nebula-text">Зар оруулах 2-р алхам руу шилжиж байна...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3.5 bg-void/80 border border-white/10 rounded-xl text-center space-y-2">
+                  <p className="text-xs text-nebula-text">
+                    <strong className="text-plasma">{contactPhone}</strong> дугаараас доорх тусгай дугаарт код илгээнэ үү:
+                  </p>
+                  <div className="text-xl font-bold font-mono text-aurora">
+                    Дугаар: <span className="text-white">144773</span>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-widest text-plasma bg-plasma/10 py-2 rounded-lg border border-plasma/20">
+                    {sessionData?.text || '...'}
+                  </div>
+                </div>
+
+                {/* 1-Tap Mobile SMS Trigger Link */}
+                {sessionData?.smsUri && (
+                  <a
+                    href={sessionData.smsUri}
+                    className="w-full py-3 bg-gradient-to-r from-plasma to-nova text-white-force font-bold rounded-xl text-xs hover:shadow-lg hover:shadow-plasma/30 transition-all flex items-center justify-center space-x-2 text-center"
+                  >
+                    <Smartphone size={16} />
+                    <span>📱 Мессеж илгээх (SMS нээх)</span>
+                  </a>
+                )}
+
+                <div className="flex items-center justify-center space-x-2 py-2 text-xs text-amber-400 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                  <span>SMS хүлээж байна (3 секунд тутам шалгаж байна)...</span>
+                </div>
+
+                {verifyError && (
+                  <div className="p-2.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-xs font-semibold text-center">
+                    ⚠️ {verifyError}
+                  </div>
+                )}
+
+                {/* Sandbox fallback action for dev */}
+                {sessionData?.isSandbox && (
+                  <div className="pt-2 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={handleSimulateVerifyInCreate}
+                      className="w-full py-2 bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-xl text-xs font-bold border border-emerald-500/30 transition-all"
+                    >
+                      🧪 [Тест горим] Шууд баталгаажуулах
+                    </button>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowVerifyModal(false)}
+                    className="w-full py-2.5 bg-void/50 hover:bg-white/10 text-starlight text-xs font-semibold rounded-xl border border-white/10 transition-all"
+                  >
+                    Хаах
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

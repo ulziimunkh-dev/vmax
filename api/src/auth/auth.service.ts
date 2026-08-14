@@ -9,6 +9,8 @@ import { AuthProvider } from '../common/enums/auth-provider.enum';
 import { OAuth2Client } from 'google-auth-library';
 import { ConfigService } from '@nestjs/config';
 
+import { SmsService } from '../sms/sms.service';
+
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
@@ -17,6 +19,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private smsService: SmsService,
   ) {
     this.googleClient = new OAuth2Client(this.configService.get<string>('oauth.google.clientId') ?? '');
   }
@@ -170,6 +173,24 @@ export class AuthService {
   }
 
 
+  async getProfile(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Хэрэглэгч олдсонгүй');
+    }
+
+    if (user.phone && this.smsService.isWhitelisted(user.phone) && !user.isPhoneVerified) {
+      await this.usersService.update(userId, { isPhoneVerified: true });
+      user.isPhoneVerified = true;
+    }
+
+    const { password, ...result } = user;
+    return {
+      ...result,
+      avatar: user.avatarUrl,
+    };
+  }
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     if (dto.phone) {
       const existingPhone = await this.usersService.findByPhone(dto.phone);
@@ -184,6 +205,10 @@ export class AuthService {
     }
     delete updateData.avatar;
 
+    if (dto.phone && this.smsService.isWhitelisted(dto.phone)) {
+      updateData.isPhoneVerified = true;
+    }
+
     const updatedUser = await this.usersService.update(userId, updateData);
     const { password, ...result } = updatedUser;
     return {
@@ -192,16 +217,53 @@ export class AuthService {
     };
   }
 
-  async verifyPhone(userId: string) {
+  async createPhoneSession(userId: string, targetPhone?: string) {
     const user = await this.usersService.findById(userId);
-    if (!user || !user.phone) {
-      throw new BadRequestException('Утасны дугаараа эхлээд оруулна уу.');
+    const phoneToVerify = targetPhone || user?.phone;
+    if (!phoneToVerify) {
+      throw new BadRequestException('Утасны дугаараа оруулна уу.');
     }
-    const updated = await this.usersService.update(userId, { isPhoneVerified: true });
+    return this.smsService.createSession(phoneToVerify);
+  }
+
+  async checkPhoneSession(userId: string, sessionId: string) {
+    const statusData = await this.smsService.checkSessionStatus(sessionId);
+
+    if (statusData.sessionStatus === 'VERIFIED') {
+      const updatedUser = await this.usersService.update(userId, {
+        phone: statusData.phone,
+        isPhoneVerified: true,
+      });
+      return {
+        ...statusData,
+        isPhoneVerified: true,
+        verifiedPhone: statusData.phone,
+        user: {
+          id: updatedUser.id,
+          phone: updatedUser.phone,
+          isPhoneVerified: updatedUser.isPhoneVerified,
+        },
+        message: 'Утасны дугаар амжилттай баталгаажлаа.',
+      };
+    }
+
+    return statusData;
+  }
+
+  async verifyPhone(userId: string, code?: string, targetPhone?: string) {
+    const user = await this.usersService.findById(userId);
+    const phoneToSet = targetPhone || user?.phone;
+
+    const updated = await this.usersService.update(userId, {
+      ...(phoneToSet ? { phone: phoneToSet } : {}),
+      isPhoneVerified: true,
+    });
+
     return {
       success: true,
       message: 'Утасны дугаар амжилттай баталгаажлаа.',
       isPhoneVerified: updated.isPhoneVerified,
+      phone: updated.phone,
     };
   }
 

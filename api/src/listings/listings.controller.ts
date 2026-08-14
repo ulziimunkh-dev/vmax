@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Delete, UseInterceptors } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { QueryListingDto } from './dto/query-listing.dto';
@@ -45,33 +46,50 @@ export class ListingsController {
 
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
   @Post()
   create(@Body() dto: any, @CurrentUser() user: User) {
-    if (typeof dto.images === 'string') {
+    const payload = dto || {};
+    if (typeof payload.images === 'string') {
       try {
-        dto.images = JSON.parse(dto.images);
+        payload.images = JSON.parse(payload.images);
       } catch {
-        dto.images = [dto.images];
+        payload.images = [payload.images];
       }
     }
-    if (typeof dto.attributes === 'string') {
+    if (typeof payload.attributes === 'string') {
       try {
-        dto.attributes = JSON.parse(dto.attributes);
+        payload.attributes = JSON.parse(payload.attributes);
       } catch {}
     }
-    if (dto.price) dto.price = Number(dto.price);
-    if (dto.areaSqm) dto.areaSqm = Number(dto.areaSqm);
-    if (dto.latitude) dto.latitude = Number(dto.latitude);
-    if (dto.longitude) dto.longitude = Number(dto.longitude);
+    if (payload.price) payload.price = Number(payload.price);
+    if (payload.areaSqm) payload.areaSqm = Number(payload.areaSqm);
+    if (payload.latitude) payload.latitude = Number(payload.latitude);
+    if (payload.longitude) payload.longitude = Number(payload.longitude);
 
-    return this.listingsService.create(dto as CreateListingDto, user);
+    return this.listingsService.create(payload as CreateListingDto, user);
   }
 
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(AnyFilesInterceptor())
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateListingDto: UpdateListingDto, @CurrentUser() user: User) {
-    return this.listingsService.update(id, updateListingDto, user);
+  update(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: User) {
+    const payload = dto || {};
+    if (typeof payload.images === 'string') {
+      try {
+        payload.images = JSON.parse(payload.images);
+      } catch {
+        payload.images = [payload.images];
+      }
+    }
+    if (typeof payload.attributes === 'string') {
+      try {
+        payload.attributes = JSON.parse(payload.attributes);
+      } catch {}
+    }
+    return this.listingsService.update(id, payload as UpdateListingDto, user);
   }
+
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')

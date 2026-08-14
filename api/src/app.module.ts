@@ -12,6 +12,7 @@ import { InquiriesModule } from './inquiries/inquiries.module';
 import { LocationsModule } from './locations/locations.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
+import { SmsModule } from './sms/sms.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -61,6 +62,7 @@ import configuration from './config/configuration';
     LocationsModule,
     SubscriptionsModule,
     SavedSearchesModule,
+    SmsModule,
   ],
 })
 export class AppModule {}

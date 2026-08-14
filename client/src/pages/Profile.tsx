@@ -18,6 +18,7 @@ import {
   BadgeCheck,
   Sparkles,
   Building2,
+  Smartphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { authAPI, listingsAPI, uploadAPI } from '@/services/api';
@@ -48,21 +49,89 @@ const Profile = () => {
   const [submittingAgentReq, setSubmittingAgentReq] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
 
-  const handleVerifyPhone = async () => {
+  // Verify.mn MO SMS Verification State
+  const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
+  const [sessionData, setSessionData] = useState<{
+    sessionId: string;
+    shortcode: string;
+    text: string;
+    smsUri: string;
+    displayInstruction: string;
+    expiresAt: string;
+    isSandbox?: boolean;
+  } | null>(null);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [isVerifiedSuccess, setIsVerifiedSuccess] = useState(false);
+
+  // 3-second Polling for Verify.mn Session Status
+  useEffect(() => {
+    let pollTimer: any;
+
+    if (showPhoneOtpModal && sessionData?.sessionId && !isVerifiedSuccess) {
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await authAPI.checkPhoneSession(sessionData.sessionId);
+          if (res.data?.sessionStatus === 'VERIFIED') {
+            setIsVerifiedSuccess(true);
+            setUser({ ...user!, isPhoneVerified: true });
+            setMessage('🎉 Утасны дугаар амжилттай баталгаажлаа!');
+            setTimeout(() => {
+              setShowPhoneOtpModal(false);
+              setSessionData(null);
+              setIsVerifiedSuccess(false);
+            }, 3000);
+          } else if (res.data?.sessionStatus === 'EXPIRED') {
+            setOtpError('Хугацаа дууссан байна. Дахин оролдоно уу.');
+          }
+        } catch (err: any) {
+          console.error('Verify.mn polling error:', err);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [showPhoneOtpModal, sessionData, isVerifiedSuccess, user]);
+
+  const handleStartPhoneOtp = async () => {
     if (!user?.phone) {
       setMessage('Эхлээд профайл дээрээ утасны дугаараа хадгална уу.');
       return;
     }
     setVerifyingPhone(true);
+    setOtpError('');
+    setIsVerifiedSuccess(false);
     try {
-      const res = await authAPI.verifyPhone();
-      setUser({ ...user, isPhoneVerified: true });
-      setMessage(res.data?.message || 'Утасны дугаар амжилттай баталгаажлаа.');
-      setTimeout(() => setMessage(''), 4000);
+      const res = await authAPI.createPhoneSession();
+      setSessionData(res.data);
+      setShowPhoneOtpModal(true);
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Баталгаажуулахад алдаа гарлаа');
+      setMessage(err.response?.data?.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа');
     } finally {
       setVerifyingPhone(false);
+    }
+  };
+
+  const handleSimulateVerify = async () => {
+    setOtpLoading(true);
+    try {
+      await authAPI.verifyPhone(undefined, user?.phone);
+      setIsVerifiedSuccess(true);
+      if (user) {
+        setUser({ ...user, isPhoneVerified: true });
+      }
+      setMessage('🎉 Утасны дугаар амжилттай баталгаажлаа!');
+      setTimeout(() => {
+        setShowPhoneOtpModal(false);
+        setSessionData(null);
+        setIsVerifiedSuccess(false);
+      }, 2000);
+    } catch (err: any) {
+      setOtpError('Баталгаажуулахад алдаа гарлаа');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -122,6 +191,18 @@ const Profile = () => {
   }, [user, reset]);
 
   useEffect(() => {
+    const fetchFreshProfile = async () => {
+      try {
+        const res = await authAPI.getProfile();
+        if (res.data) {
+          setUser(res.data);
+        }
+      } catch (err) {
+        console.error('Error refreshing profile:', err);
+      }
+    };
+    fetchFreshProfile();
+
     const fetchListings = async () => {
       try {
         const res = await listingsAPI.getMy();
@@ -131,7 +212,7 @@ const Profile = () => {
       }
     };
     fetchListings();
-  }, []);
+  }, [setUser]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -330,7 +411,7 @@ const Profile = () => {
                       ) : (
                         <button
                           type="button"
-                          onClick={handleVerifyPhone}
+                          onClick={handleStartPhoneOtp}
                           disabled={verifyingPhone}
                           className="px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-white text-[11px] font-bold transition-all border border-amber-500/40 flex-shrink-0"
                         >
@@ -601,6 +682,90 @@ const Profile = () => {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Verify.mn MO SMS Verification Modal */}
+      {showPhoneOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card max-w-sm w-full p-6 rounded-2xl border border-plasma/40 bg-cosmic shadow-2xl relative"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
+                  <Phone size={18} />
+                </div>
+                <h3 className="text-base font-bold text-starlight">Verify.MN Утас баталгаажуулах</h3>
+              </div>
+              <button
+                onClick={() => setShowPhoneOtpModal(false)}
+                className="text-nebula-text hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {isVerifiedSuccess ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto animate-bounce">
+                  <CheckCircle2 size={32} />
+                </div>
+                <h4 className="text-lg font-bold text-emerald-400">Амжилттай баталгаажлаа!</h4>
+                <p className="text-xs text-nebula-text">Таны {user?.phone} дугаар баталгаажлаа.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3.5 bg-void/80 border border-white/10 rounded-xl text-center space-y-2">
+                  <p className="text-xs text-nebula-text">Доорх тусгай дугаарт код илгээнэ үү:</p>
+                  <div className="text-xl font-bold font-mono text-aurora">
+                    Дугаар: <span className="text-white">144773</span>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-widest text-plasma bg-plasma/10 py-2 rounded-lg border border-plasma/20">
+                    {sessionData?.text || '...'}
+                  </div>
+                </div>
+
+                {/* 1-Tap Mobile SMS Trigger Link */}
+                {sessionData?.smsUri && (
+                  <a
+                    href={sessionData.smsUri}
+                    className="w-full py-3 bg-gradient-to-r from-plasma to-nova text-white-force font-bold rounded-xl text-xs hover:shadow-lg hover:shadow-plasma/30 transition-all flex items-center justify-center space-x-2 text-center"
+                  >
+                    <Smartphone size={16} />
+                    <span>📱 Мессеж илгээх (SMS нээх)</span>
+                  </a>
+                )}
+
+                <div className="flex items-center justify-center space-x-2 py-2 text-xs text-amber-400 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                  <span>SMS хүлээж байна (3 секунд тутам шалгаж байна)...</span>
+                </div>
+
+                {otpError && (
+                  <div className="p-2.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-xs font-semibold text-center">
+                    ⚠️ {otpError}
+                  </div>
+                )}
+
+                {/* Sandbox fallback action for dev */}
+                {sessionData?.isSandbox && (
+                  <div className="pt-2 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={handleSimulateVerify}
+                      disabled={otpLoading}
+                      className="w-full py-2 bg-emerald-500/20 hover:bg-emerald-500 text-emerald-300 hover:text-white rounded-xl text-xs font-bold border border-emerald-500/30 transition-all"
+                    >
+                      {otpLoading ? '...' : '🧪 [Тест горим] Шууд баталгаажуулах'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       )}

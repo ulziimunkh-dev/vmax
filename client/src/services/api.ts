@@ -32,7 +32,9 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
 
   updateProfile: (data: any) => api.patch('/auth/profile', data),
-  verifyPhone: () => api.post('/auth/verify-phone'),
+  createPhoneSession: (phone?: string) => api.post('/auth/phone-session', { phone }),
+  checkPhoneSession: (sessionId: string) => api.get(`/auth/phone-session/${sessionId}`),
+  verifyPhone: (code?: string, phone?: string) => api.post('/auth/verify-phone', { code, phone }),
   verifyEmail: () => api.post('/auth/verify-email'),
   requestAgentVerification: (data: { agencyName?: string; agentLicenseNo?: string }) =>
     api.post('/auth/request-agent-verification', data),
@@ -67,7 +69,7 @@ export const listingsAPI = {
   getAll: (params: any) => api.get('/listings', { params }),
   getOne: (id: string) => api.get(`/listings/${id}`),
   getMy: () => api.get('/listings/my'),
-  create: (data: FormData) => api.post('/listings', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  create: (data: any) => api.post('/listings', data),
   close: (id: string) => api.patch(`/listings/${id}/close`),
   update: (id: string, data: any) => api.patch(`/listings/${id}`, data),
   remove: (id: string) => api.delete(`/listings/${id}`),

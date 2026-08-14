@@ -41,7 +41,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@CurrentUser() user: any) {
-    return user;
+    return this.authService.getProfile(user.id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -51,9 +51,22 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('phone-session')
+  createPhoneSession(@CurrentUser() user: any, @Body() body?: { phone?: string }) {
+    return this.authService.createPhoneSession(user.id, body?.phone);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('phone-session/:sessionId')
+  checkPhoneSession(@CurrentUser() user: any, @Req() req: any) {
+    const sessionId = req.params.sessionId;
+    return this.authService.checkPhoneSession(user.id, sessionId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('verify-phone')
-  verifyPhone(@CurrentUser() user: any) {
-    return this.authService.verifyPhone(user.id);
+  verifyPhone(@CurrentUser() user: any, @Body() body?: { code?: string; phone?: string }) {
+    return this.authService.verifyPhone(user.id, body?.code, body?.phone);
   }
 
   @UseGuards(JwtAuthGuard)
