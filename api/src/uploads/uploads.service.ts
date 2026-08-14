@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -76,4 +76,32 @@ export class UploadsService {
     return Promise.all(files.map((file) => this.uploadFile(file, subfolder)));
   }
 
+  async getS3Object(s3UrlOrKey: string): Promise<{ buffer: Buffer; contentType: string } | null> {
+    if (!this.s3Client) return null;
+    try {
+      let key = s3UrlOrKey;
+      if (s3UrlOrKey.startsWith('http://') || s3UrlOrKey.startsWith('https://')) {
+        const urlObj = new URL(s3UrlOrKey);
+        key = decodeURIComponent(urlObj.pathname.replace(/^\//, ''));
+      }
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+      const response = await this.s3Client.send(command);
+      const streamToBuffer = async (stream: any): Promise<Buffer> => {
+        const chunks: any[] = [];
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+        }
+        return Buffer.concat(chunks);
+      };
+      const buffer = await streamToBuffer(response.Body);
+      const contentType = response.ContentType || 'image/jpeg';
+      return { buffer, contentType };
+    } catch (err: any) {
+      this.logger.error(`Error fetching S3 object: ${err.message}`);
+      return null;
+    }
+  }
 }

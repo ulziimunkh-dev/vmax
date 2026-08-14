@@ -204,8 +204,15 @@ export class ListingsService {
       await this.usersRepository.update(user.id, { phone: contactPhone });
     }
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days default listing duration
+    const now = new Date();
+    const expiresAt = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 30,  // 30 days from today in UTC
+      now.getUTCHours(),
+      now.getUTCMinutes(),
+      now.getUTCSeconds()
+    ));
 
     const listing = this.listingsRepository.create({
       ...createListingDto,

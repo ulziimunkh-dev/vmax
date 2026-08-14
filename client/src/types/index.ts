@@ -22,8 +22,8 @@ export interface Listing {
   id: string;
   title: string;
   description: string;
-  type: 'sale' | 'rent';
-  category: 'apartment' | 'house' /* | 'land' */ | 'commercial' /* | 'resort' */ | string;
+  type: 'sale' | 'rent' | 'SALE' | 'RENT' | string;
+  category: 'apartment' | 'house' | 'commercial' | 'APARTMENT' | 'HOUSE' | 'COMMERCIAL' | string;
 
   price: number;
   location: string;
@@ -34,7 +34,7 @@ export interface Listing {
   longitude?: number;
   attributes: Record<string, any>;
   images: string[];
-  status: 'active' | 'expired' | 'closed';
+  status: 'active' | 'expired' | 'closed' | 'ACTIVE' | 'EXPIRED' | 'CLOSED' | string;
   userId: string;
   user?: User;
   createdAt: string;

@@ -19,13 +19,17 @@ import {
   Sparkles,
   Building2,
   Smartphone,
+  LayoutDashboard,
+  Plus,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/useAuthStore';
 import { authAPI, listingsAPI, uploadAPI } from '@/services/api';
 import { useI18n } from '@/i18n';
 import ListingCard from '@/components/listings/ListingCard';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useRecentVisits } from '@/hooks/useRecentVisits';
+import { getImageUrl } from '@/utils/imageUrl';
 
 const Profile = () => {
   const { user, setUser } = useAuthStore();
@@ -222,34 +226,45 @@ const Profile = () => {
     setMessage('');
 
     try {
-      // Local preview
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarPreview(previewUrl);
-
-      // Upload to API
-      let uploadedUrl = previewUrl;
+      // 1. Upload to API
+      let finalAvatarUrl = '';
       try {
         const uploadRes = await uploadAPI.uploadAvatar(file);
         if (uploadRes.data?.url) {
-          uploadedUrl = uploadRes.data.url;
+          finalAvatarUrl = uploadRes.data.url;
         }
-      } catch {
-        console.log('Using local preview for profile avatar test');
+      } catch (uploadErr) {
+        console.warn('API avatar upload failed, falling back to preview', uploadErr);
       }
 
+      if (!finalAvatarUrl) {
+        finalAvatarUrl = URL.createObjectURL(file);
+      }
 
-      // Update User Profile
+      setAvatarPreview(finalAvatarUrl);
+
+      // 2. Update User Profile on Backend
       const updateRes = await authAPI.updateProfile({
         name: user?.name,
         phone: user?.phone,
-        avatar: uploadedUrl,
-        avatarUrl: uploadedUrl,
+        avatar: finalAvatarUrl,
+        avatarUrl: finalAvatarUrl,
       });
 
       if (updateRes.data) {
-        setUser({ ...user, ...updateRes.data, avatar: uploadedUrl, avatarUrl: uploadedUrl });
+        const updated = updateRes.data;
+        setUser({
+          ...user,
+          ...updated,
+          avatar: updated.avatar || updated.avatarUrl || finalAvatarUrl,
+          avatarUrl: updated.avatarUrl || updated.avatar || finalAvatarUrl,
+        });
       } else {
-        setUser({ ...user!, avatar: uploadedUrl, avatarUrl: uploadedUrl });
+        setUser({
+          ...user!,
+          avatar: finalAvatarUrl,
+          avatarUrl: finalAvatarUrl,
+        });
       }
 
       setMessage(t.profile.updated);
@@ -292,7 +307,7 @@ const Profile = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  const currentAvatar = avatarPreview || user?.avatar || user?.avatarUrl;
+  const currentAvatar = getImageUrl(avatarPreview || user?.avatar || user?.avatarUrl);
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 max-w-7xl mx-auto">
@@ -554,18 +569,48 @@ const Profile = () => {
 
             <div className="glass-card p-6 rounded-2xl border border-white/10 backdrop-blur-md min-h-[500px]">
               {activeTab === 'myAds' && (
-                listings.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {listings.map((listing, idx) => (
-                      <ListingCard key={listing.id || listing._id || idx} listing={listing} index={idx} />
-                    ))}
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
+                    <div className="text-xs text-nebula-text">
+                      Нийт <span className="text-starlight font-bold">{listings.length}</span> зар оруулсан байна.
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Link
+                        to="/dashboard"
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-plasma/20 hover:bg-plasma/30 text-plasma text-xs font-bold transition-all border border-plasma/30"
+                      >
+                        <LayoutDashboard size={14} />
+                        <span>Хянах самбар (Удирдах)</span>
+                      </Link>
+                      <Link
+                        to="/create-listing"
+                        className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-starlight text-xs font-semibold transition-all border border-white/10"
+                      >
+                        <Plus size={14} />
+                        <span>Шинэ зар</span>
+                      </Link>
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64 text-nebula-text">
-                    <ImageIcon size={48} className="mb-4 opacity-50" />
-                    <p>{t.dashboard.noListings}</p>
-                  </div>
-                )
+
+                  {listings.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {listings.map((listing, idx) => (
+                        <ListingCard key={listing.id || listing._id || idx} listing={listing} index={idx} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-64 text-nebula-text space-y-3">
+                      <ImageIcon size={48} className="opacity-50" />
+                      <p>{t.dashboard.noListings}</p>
+                      <Link
+                        to="/create-listing"
+                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-plasma to-nova text-white text-xs font-bold shadow-md"
+                      >
+                        + Анхны зараа нийтлэх
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
 
               {activeTab === 'favorites' && (

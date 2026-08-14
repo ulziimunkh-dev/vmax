@@ -1,5 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Delete, UseInterceptors } from '@nestjs/common';
-import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Delete } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { QueryListingDto } from './dto/query-listing.dto';
@@ -46,46 +45,31 @@ export class ListingsController {
 
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AnyFilesInterceptor())
   @Post()
   create(@Body() dto: any, @CurrentUser() user: User) {
     const payload = dto || {};
     if (typeof payload.images === 'string') {
-      try {
-        payload.images = JSON.parse(payload.images);
-      } catch {
-        payload.images = [payload.images];
-      }
+      try { payload.images = JSON.parse(payload.images); } catch { payload.images = [payload.images]; }
     }
     if (typeof payload.attributes === 'string') {
-      try {
-        payload.attributes = JSON.parse(payload.attributes);
-      } catch {}
+      try { payload.attributes = JSON.parse(payload.attributes); } catch {}
     }
-    if (payload.price) payload.price = Number(payload.price);
-    if (payload.areaSqm) payload.areaSqm = Number(payload.areaSqm);
-    if (payload.latitude) payload.latitude = Number(payload.latitude);
-    if (payload.longitude) payload.longitude = Number(payload.longitude);
-
+    if (payload.price !== undefined) payload.price = Number(payload.price);
+    if (payload.areaSqm !== undefined) payload.areaSqm = Number(payload.areaSqm);
+    if (payload.latitude !== undefined) payload.latitude = Number(payload.latitude);
+    if (payload.longitude !== undefined) payload.longitude = Number(payload.longitude);
     return this.listingsService.create(payload as CreateListingDto, user);
   }
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(AnyFilesInterceptor())
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: User) {
     const payload = dto || {};
     if (typeof payload.images === 'string') {
-      try {
-        payload.images = JSON.parse(payload.images);
-      } catch {
-        payload.images = [payload.images];
-      }
+      try { payload.images = JSON.parse(payload.images); } catch { payload.images = [payload.images]; }
     }
     if (typeof payload.attributes === 'string') {
-      try {
-        payload.attributes = JSON.parse(payload.attributes);
-      } catch {}
+      try { payload.attributes = JSON.parse(payload.attributes); } catch {}
     }
     return this.listingsService.update(id, payload as UpdateListingDto, user);
   }

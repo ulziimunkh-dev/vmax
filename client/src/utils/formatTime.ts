@@ -1,11 +1,26 @@
+/**
+ * Parse a date string as UTC.
+ * TypeORM/PostgreSQL may return "2026-08-14T06:13:22.123" without the 'Z' suffix.
+ * Without 'Z', new Date() interprets it as LOCAL time, causing wrong diffs.
+ * We force UTC by appending 'Z' if missing.
+ */
+const toUtcDate = (dateString: string): Date => {
+  const str = dateString.endsWith('Z') || dateString.includes('+') ? dateString : `${dateString}Z`;
+  return new Date(str);
+};
+
 export const formatRelativeTime = (dateString?: string, lang: 'mn' | 'en' = 'mn'): string => {
   if (!dateString) return lang === 'mn' ? 'Дөнгөж сая' : 'Just now';
 
-  const date = new Date(dateString);
+  const date = toUtcDate(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (isNaN(diffInSeconds) || diffInSeconds < 60) {
+  if (isNaN(diffInSeconds) || diffInSeconds < 0) {
+    return lang === 'mn' ? 'Дөнгөж сая' : 'Just now';
+  }
+
+  if (diffInSeconds < 60) {
     return lang === 'mn' ? 'Дөнгөж сая' : 'Just now';
   }
 
@@ -35,9 +50,10 @@ export const formatRelativeTime = (dateString?: string, lang: 'mn' | 'en' = 'mn'
 
 export const formatDateFull = (dateString?: string): string => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  const date = toUtcDate(dateString);
   if (isNaN(date.getTime())) return '';
-  
+
+  // Display in user's LOCAL time (so Mongolia users see +8)
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

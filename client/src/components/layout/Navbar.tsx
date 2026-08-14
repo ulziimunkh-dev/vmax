@@ -21,6 +21,7 @@ import { useI18n } from '@/i18n';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useCompareStore } from '@/store/useCompareStore';
 import { MobileDrawer } from './MobileDrawer';
+import { getImageUrl } from '@/utils/imageUrl';
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -192,7 +193,7 @@ const Navbar: React.FC = () => {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-plasma to-aurora p-0.5 flex-shrink-0 overflow-hidden">
                       {user.avatar || user.avatarUrl ? (
                         <img
-                          src={user.avatar || user.avatarUrl}
+                          src={getImageUrl(user.avatar || user.avatarUrl)}
                           alt={user.name || 'Profile'}
                           className="w-full h-full object-cover rounded-[6px]"
                         />
@@ -237,7 +238,7 @@ const Navbar: React.FC = () => {
                           <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-plasma to-aurora p-0.5 flex-shrink-0 overflow-hidden">
                             {user.avatar || user.avatarUrl ? (
                               <img
-                                src={user.avatar || user.avatarUrl}
+                                src={getImageUrl(user.avatar || user.avatarUrl)}
                                 alt={user.name || 'Profile'}
                                 className="w-full h-full object-cover rounded-[6px]"
                               />

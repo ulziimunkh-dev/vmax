@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import LocationPicker from '@/components/map/LocationPicker';
 import { useI18n } from '@/i18n';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { listingsAPI, uploadAPI, locationsAPI, authAPI } from '@/services/api';
 import {
   Image as ImageIcon,
@@ -24,20 +24,25 @@ import {
   ShieldCheck,
   CheckCircle2,
   Smartphone,
+  RefreshCw,
 } from 'lucide-react';
 import { PriceInput } from '@/components/common/PriceInput';
 import { useAuthStore } from '@/store/useAuthStore';
+import { getImageUrl } from '@/utils/imageUrl';
 
 
 const CreateListing = () => {
   const { t } = useI18n();
   const { user, setUser } = useAuthStore();
   const navigate = useNavigate();
+  const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [fetchingListing, setFetchingListing] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [successListingId, setSuccessListingId] = useState<string | null>(null);
 
   // Core Form State
   const [type, setType] = useState('SALE');
@@ -151,6 +156,64 @@ const CreateListing = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // ── Load Existing Listing for Edit Mode ──────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+
+    setFetchingListing(true);
+    listingsAPI
+      .getOne(id)
+      .then((res) => {
+        const d = res.data;
+        if (d) {
+          setType(d.type ? String(d.type).toUpperCase() : 'SALE');
+          setCategory(d.category ? String(d.category).toUpperCase() : 'APARTMENT');
+          setTitle(d.title || '');
+          setDescription(d.description || '');
+          setPrice(d.price !== undefined && d.price !== null ? String(d.price) : '');
+          setAreaSqm(d.areaSqm !== undefined && d.areaSqm !== null ? String(d.areaSqm) : '');
+          setDistrict(d.district || 'Хан-Уул');
+          setKhoroo(d.khoroo || '11-р хороо');
+          if (d.latitude) setLat(Number(d.latitude));
+          if (d.longitude) setLng(Number(d.longitude));
+
+          if (d.contactPhone) {
+            setContactPhone(d.contactPhone);
+            setVerifiedPhones((prev) => new Set([...prev, d.contactPhone]));
+          }
+
+          if (d.images && Array.isArray(d.images) && d.images.length > 0) {
+            setUploadedUrls(d.images);
+            setImagePreviews(d.images.map((img: string) => getImageUrl(img)));
+          }
+
+          if (d.attributes) {
+            const attr = d.attributes;
+            if (attr.rooms !== undefined && attr.rooms !== null) setRooms(String(attr.rooms));
+            if (attr.bathrooms !== undefined && attr.bathrooms !== null) setBathrooms(String(attr.bathrooms));
+            if (attr.floor !== undefined && attr.floor !== null) setFloor(String(attr.floor));
+            if (attr.totalFloors !== undefined && attr.totalFloors !== null) setTotalFloors(String(attr.totalFloors));
+            if (attr.yearBuilt !== undefined && attr.yearBuilt !== null) setYearBuilt(String(attr.yearBuilt));
+            if (attr.constructionType) setConstructionType(String(attr.constructionType));
+            if (attr.condition) setCondition(String(attr.condition));
+            if (attr.windowDirections) setWindowDirections(String(attr.windowDirections));
+            if (attr.balcony) setBalcony(String(attr.balcony));
+            if (attr.garage) setGarage(String(attr.garage));
+            if (attr.elevator) setElevator(String(attr.elevator));
+            if (attr.paymentTerms) setPaymentTerms(String(attr.paymentTerms));
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load listing for edit:', err);
+        alert('Зарын мэдээлэл ачаалахад алдаа гарлаа.');
+        navigate('/dashboard');
+      })
+      .finally(() => {
+        setFetchingListing(false);
+      });
+  }, [id, navigate]);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -338,8 +401,14 @@ const CreateListing = () => {
         images: finalImages,
       };
 
-      await listingsAPI.create(payload);
-      navigate('/dashboard');
+      let newId = id;
+      if (id) {
+        await listingsAPI.update(id, payload);
+      } else {
+        const res = await listingsAPI.create(payload);
+        newId = res.data?.id || res.data?.listing?.id || null;
+      }
+      setSuccessListingId(newId || 'new');
     } catch (err: any) {
       console.error('Error creating listing:', err);
       alert(err.response?.data?.message || 'Зар оруулахад алдаа гарлаа.');
@@ -348,10 +417,75 @@ const CreateListing = () => {
     }
   };
 
+  // ── Success Overlay ──────────────────────────────────────────────────────
+  if (successListingId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+          className="glass-card rounded-3xl p-10 border-glow max-w-md w-full text-center space-y-6"
+        >
+          {/* Animated check */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+            className="mx-auto w-20 h-20 rounded-full bg-gradient-to-tr from-plasma to-aurora flex items-center justify-center shadow-xl shadow-plasma/30"
+          >
+            <CheckCircle className="text-white" size={40} />
+          </motion.div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-heading font-bold text-starlight">{id ? 'Амжилттай засагдлаа!' : 'Амжилттай нийтлэгдлээ!'}</h2>
+            <p className="text-nebula-text text-sm">Таны зар амжилттай {id ? 'засагдаж' : 'нийтлэгдэж'}, хэрэглэгчдэд харагдаж байна.</p>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            {successListingId !== 'new' && (
+              <button
+                onClick={() => navigate(`/listings/${successListingId}`)}
+                className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-plasma to-aurora text-white font-bold text-sm shadow-lg shadow-plasma/30 hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <ArrowRight size={16} />
+                Зараа үзэх
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-full py-3 px-6 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-starlight font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              Миний зарууд руу очих
+            </button>
+            <button
+              onClick={() => {
+                setSuccessListingId(null);
+                setStep(1);
+              }}
+              className="w-full py-3 px-6 rounded-xl text-nebula-text hover:text-starlight text-sm transition-colors"
+            >
+              + Дахин зар оруулах
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (fetchingListing) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-4">
+        <RefreshCw className="animate-spin text-plasma mb-4" size={36} />
+        <p className="text-starlight font-bold text-base">Зарын мэдээллийг ачаалж байна...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-8 border-glow">
-        <h2 className="text-3xl font-heading font-bold text-glow mb-8 text-center">{t.createListing.title}</h2>
+        <h2 className="text-3xl font-heading font-bold text-glow mb-8 text-center">{id ? 'Зар засах' : t.createListing.title}</h2>
 
         <div className="flex justify-between mb-8 relative">
           <div className="absolute top-1/2 left-0 w-full h-1 bg-void -z-10 -translate-y-1/2">
@@ -722,7 +856,15 @@ const CreateListing = () => {
                         }`}
                       >
                         <div className="h-32 w-full overflow-hidden relative">
-                          <img src={src} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <img
+                            src={src}
+                            alt={`Зураг ${idx + 1}`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
 
                           {/* Top Controls Overlay */}
                           <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
@@ -733,8 +875,8 @@ const CreateListing = () => {
                               title={isMain ? 'Нүүр зураг' : 'Нүүр зураг болгох'}
                               className={`p-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 backdrop-blur-md transition-all ${
                                 isMain
-                                  ? 'bg-plasma text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white'
-                                  : 'bg-black/60 text-white hover:bg-plasma hover:text-white'
+                                  ? 'bg-plasma text-white shadow-lg shadow-plasma/50 ring-1 ring-white/40'
+                                  : 'bg-black/70 text-white hover:bg-plasma ring-1 ring-white/20'
                               }`}
                             >
                               <Star size={12} className={isMain ? 'fill-white' : ''} />
@@ -745,7 +887,7 @@ const CreateListing = () => {
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(idx)}
-                              className="p-1.5 bg-black/70 hover:bg-red-500 text-white rounded-lg transition-colors"
+                              className="p-1.5 bg-black/70 hover:bg-red-500 text-white rounded-lg transition-colors ring-1 ring-white/20 shadow"
                               title="Устгах"
                             >
                               <X size={14} />
@@ -759,7 +901,7 @@ const CreateListing = () => {
                                 type="button"
                                 disabled={idx === 0}
                                 onClick={() => reorderImage(idx, idx - 1)}
-                                className="p-1 bg-black/60 text-white hover:bg-plasma rounded disabled:opacity-30"
+                                className="p-1 bg-black/70 text-white hover:bg-plasma rounded disabled:opacity-30 ring-1 ring-white/20 shadow"
                                 title="Зүүн тийш зөөх"
                               >
                                 <ArrowLeft size={12} />
@@ -768,13 +910,13 @@ const CreateListing = () => {
                                 type="button"
                                 disabled={idx === imagePreviews.length - 1}
                                 onClick={() => reorderImage(idx, idx + 1)}
-                                className="p-1 bg-black/60 text-white hover:bg-plasma rounded disabled:opacity-30"
+                                className="p-1 bg-black/70 text-white hover:bg-plasma rounded disabled:opacity-30 ring-1 ring-white/20 shadow"
                                 title="Баруун тийш зөөх"
                               >
                                 <ArrowRight size={12} />
                               </button>
                             </div>
-                            <div className="flex items-center space-x-1 text-[10px] text-white/90 bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-sm cursor-grab">
+                            <div className="flex items-center space-x-1 text-[10px] text-white bg-black/70 px-1.5 py-0.5 rounded backdrop-blur-sm cursor-grab ring-1 ring-white/20 shadow">
                               <GripVertical size={12} />
                               <span>#{idx + 1}</span>
                             </div>
@@ -790,7 +932,7 @@ const CreateListing = () => {
             <div className="flex space-x-4 mt-8">
               <button onClick={() => setStep(2)} className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all">Буцах</button>
               <button onClick={handleSubmit} disabled={loading} className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all">
-                {loading ? t.common.loading : t.createListing.submit}
+                {loading ? 'Түр хүлээнэ үү...' : id ? 'Хадгалах' : 'Нийтлэх'}
               </button>
             </div>
           </div>

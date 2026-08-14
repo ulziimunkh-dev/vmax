@@ -92,7 +92,7 @@ export class Listing {
   promotedUntil: Date;
 
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
   @Column()

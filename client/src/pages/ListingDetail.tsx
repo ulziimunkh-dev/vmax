@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/i18n';
 import api, { listingsAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -35,6 +35,27 @@ const ListingDetail = () => {
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isAuditLoading, setIsAuditLoading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Keyboard navigation for carousel / lightbox
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const images = listing?.images || [];
+      const total = images.length;
+      if (total === 0) return;
+      if (e.key === 'Escape') { setLightboxOpen(false); return; }
+      if (lightboxOpen) {
+        if (e.key === 'ArrowLeft')  setLightboxIndex((i) => (i - 1 + total) % total);
+        if (e.key === 'ArrowRight') setLightboxIndex((i) => (i + 1) % total);
+      } else {
+        if (e.key === 'ArrowLeft')  setActiveImageIndex((i) => (i - 1 + total) % total);
+        if (e.key === 'ArrowRight') setActiveImageIndex((i) => (i + 1) % total);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxOpen, listing?.images]);
 
   const isOwner = Boolean(
     user &&
@@ -220,37 +241,207 @@ const ListingDetail = () => {
 
           {/* Main Details & Gallery */}
           <div className="md:col-span-2 space-y-6">
-            {/* Main Image Display */}
-            <div className="glass-card rounded-2xl overflow-hidden h-[420px] flex items-center justify-center bg-gradient-to-br from-void to-cosmic relative group">
-              {listing.images && listing.images.length > 0 ? (
-                <img
-                  src={getImageUrl(listing.images[activeImageIndex] || listing.images[0])}
-                  alt={listing.title}
-                  className="w-full h-full object-cover transition-all duration-300"
-                />
-              ) : (
-                <span className="text-plasma opacity-50 font-bold text-3xl">Vmax.mn Real Estate</span>
-              )}
-            </div>
+          {/* ── Image Carousel ─────────────────────────────────────────── */}
+          {(() => {
+            const images = listing.images && listing.images.length > 0 ? listing.images : [];
+            const total = images.length;
+            const prev = () => setActiveImageIndex((i) => (i - 1 + total) % total);
+            const next = () => setActiveImageIndex((i) => (i + 1) % total);
 
-            {/* Thumbnail Gallery Row */}
-            {listing.images && listing.images.length > 1 && (
-              <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-thin">
-                {listing.images.map((imgUrl, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-24 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${activeImageIndex === idx
-                        ? 'border-plasma ring-2 ring-plasma/50 scale-105 shadow-lg shadow-plasma/30'
-                        : 'border-white/10 opacity-70 hover:opacity-100'
-                      }`}
-                  >
-                    <img src={getImageUrl(imgUrl)} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
+            return (
+              <div className="space-y-3">
+                {/* Main viewer */}
+                <div className="relative glass-card rounded-2xl overflow-hidden h-[420px] bg-gradient-to-br from-void to-cosmic group select-none">
+                  {total > 0 ? (
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={activeImageIndex}
+                        src={getImageUrl(images[activeImageIndex])}
+                        alt={`${listing.title} — зураг ${activeImageIndex + 1}`}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                        }}
+                        initial={{ opacity: 0, x: 40 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -40 }}
+                        transition={{ duration: 0.25, ease: 'easeInOut' }}
+                        className="w-full h-full object-cover"
+                      />
+                    </AnimatePresence>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-plasma opacity-40 font-bold text-3xl">Vmax.mn</span>
+                    </div>
+                  )}
+
+                  {/* Gradient overlays */}
+                  {total > 0 && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+
+                      {/* Prev / Next arrows */}
+                      {total > 1 && (
+                        <>
+                          <button
+                            onClick={prev}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10"
+                            aria-label="Өмнөх зураг"
+                          >
+                            <ChevronLeft size={22} strokeWidth={2.5} />
+                          </button>
+                          <button
+                            onClick={next}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10"
+                            aria-label="Дараагийн зураг"
+                          >
+                            <ChevronRight size={22} strokeWidth={2.5} />
+                          </button>
+                        </>
+                      )}
+
+                      {/* Zoom / fullscreen button */}
+                      <button
+                        onClick={() => { setLightboxIndex(activeImageIndex); setLightboxOpen(true); }}
+                        className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10"
+                        aria-label="Том хэмжээгээр харах"
+                      >
+                        <ZoomIn size={17} strokeWidth={2.5} />
+                      </button>
+
+                      {/* Counter badge */}
+                      {total > 1 && (
+                        <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
+                          {activeImageIndex + 1} / {total}
+                        </div>
+                      )}
+
+                      {/* Dot indicators */}
+                      {total > 1 && total <= 12 && (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {images.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setActiveImageIndex(idx)}
+                              className={`rounded-full transition-all ${idx === activeImageIndex ? 'w-5 h-2 bg-plasma' : 'w-2 h-2 bg-white/50 hover:bg-white/80'}`}
+                              aria-label={`Зураг ${idx + 1}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Thumbnail strip */}
+                {total > 1 && (
+                  <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
+                    {images.map((imgUrl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`relative flex-shrink-0 w-[88px] h-[68px] rounded-xl overflow-hidden border-2 transition-all ${
+                          activeImageIndex === idx
+                            ? 'border-plasma ring-2 ring-plasma/40 scale-105 shadow-lg shadow-plasma/30'
+                            : 'border-gray-300 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-plasma/50'
+                        }`}
+                      >
+                        <img
+                          src={getImageUrl(imgUrl)}
+                          alt={`Thumbnail ${idx + 1}`}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                          }}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            );
+          })()}
+
+          {/* ── Fullscreen Lightbox ─────────────────────────────────────── */}
+          <AnimatePresence>
+            {lightboxOpen && listing.images && listing.images.length > 0 && (() => {
+              const imgs = listing.images;
+              const total = imgs.length;
+              const prev = () => setLightboxIndex((i) => (i - 1 + total) % total);
+              const next = () => setLightboxIndex((i) => (i + 1) % total);
+              return (
+                <motion.div
+                  key="lightbox"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[100] bg-black/92 backdrop-blur-md flex items-center justify-center"
+                  onClick={() => setLightboxOpen(false)}
+                >
+                  {/* Close */}
+                  <button
+                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10"
+                    onClick={() => setLightboxOpen(false)}
+                  >
+                    <X size={20} />
+                  </button>
+
+                  {/* Counter */}
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/10 text-white text-sm font-semibold">
+                    {lightboxIndex + 1} / {total}
+                  </div>
+
+                  {/* Image */}
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={lightboxIndex}
+                      src={getImageUrl(imgs[lightboxIndex])}
+                      alt={`${listing.title} ${lightboxIndex + 1}`}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="max-h-[85vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </AnimatePresence>
+
+                  {/* Prev/Next */}
+                  {total > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); prev(); }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                      >
+                        <ChevronLeft size={26} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); next(); }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                      >
+                        <ChevronRight size={26} />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Dot strip */}
+                  {total > 1 && total <= 12 && (
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                      {imgs.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+                          className={`rounded-full transition-all ${idx === lightboxIndex ? 'w-6 h-2.5 bg-plasma' : 'w-2.5 h-2.5 bg-white/40 hover:bg-white/70'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })()}
+          </AnimatePresence>
 
 
             <div className="glass-card p-6 rounded-2xl">

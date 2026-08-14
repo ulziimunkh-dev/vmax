@@ -1,3 +1,8 @@
+// ── Force UTC timezone for the entire Node.js process ──────────────────────
+// Must be set BEFORE any Date objects are created or modules imported.
+// Without this, Windows UTC+8 system timezone causes date math bugs.
+process.env.TZ = 'UTC';
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';

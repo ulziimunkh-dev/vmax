@@ -59,7 +59,15 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
         <Link to={`/listings/${listingId}`}>
           <div className="relative h-48 w-full overflow-hidden">
             {listing.images && listing.images.length > 0 ? (
-              <img src={getImageUrl(listing.images[0])} alt={listing.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <img
+                src={getImageUrl(listing.images[0])}
+                alt={listing.title}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                }}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              />
             ) : (
 
               <div className="w-full h-full bg-gradient-to-br from-void to-cosmic flex items-center justify-center">

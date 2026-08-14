@@ -200,8 +200,8 @@ export class AuthService {
     }
 
     const updateData: any = { ...dto };
-    if (dto.avatar && !dto.avatarUrl) {
-      updateData.avatarUrl = dto.avatar;
+    if (dto.avatar || dto.avatarUrl) {
+      updateData.avatarUrl = dto.avatarUrl || dto.avatar;
     }
     delete updateData.avatar;
 

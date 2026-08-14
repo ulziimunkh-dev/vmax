@@ -31,10 +31,6 @@ dist/
 api/.env*
 client/.env*
 
-# Local Uploads & Temporary Storage
-/uploads
-api/uploads
-
 # IDEs & OS files
 .DS_Store
 Thumbs.db

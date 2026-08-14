@@ -44,17 +44,17 @@ export const uploadAPI = {
   uploadFile: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/uploads/file', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return api.post('/uploads/file', formData);
   },
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/uploads/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return api.post('/uploads/avatar', formData);
   },
   uploadFiles: (files: File[]) => {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
-    return api.post('/uploads', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return api.post('/uploads', formData);
   },
 };
 
