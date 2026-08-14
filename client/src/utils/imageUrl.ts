@@ -1,8 +1,16 @@
 const getBaseApiUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+  let envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (envUrl) {
+    if (envUrl.endsWith('/')) {
+      envUrl = envUrl.slice(0, -1);
+    }
+    // Auto-prefix https:// if provided domain without protocol (e.g. api-production-e009.up.railway.app)
+    if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://') && !envUrl.startsWith('/')) {
+      envUrl = `https://${envUrl}`;
+    }
     return envUrl.replace(/\/api\/?$/, '');
   }
+
   if (typeof window !== 'undefined') {
     // If running in production browser on Railway/domain, use current origin
     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -22,12 +30,7 @@ export const getImageUrl = (url?: string): string => {
     return url;
   }
 
-  // AWS S3 private images - route through authenticated backend proxy
-  if (url.includes('.amazonaws.com') || url.includes('.s3.')) {
-    return `${apiUrl}/api/uploads/s3?url=${encodeURIComponent(url)}`;
-  }
-
-  // Other external URLs (Unsplash, external CDNs)
+  // External and CDN URLs (AWS S3, CloudFront, Unsplash, etc.)
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
