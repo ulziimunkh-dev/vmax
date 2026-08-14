@@ -43,7 +43,7 @@ const App = () => {
   }, [token]);
 
   return (
-    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '474155590838-p7h6dsl91e883rmdsu5naqg9seevtv5v.apps.googleusercontent.com'}>
       <BrowserRouter>
         <ScrollToTop />
         <Starfield />
