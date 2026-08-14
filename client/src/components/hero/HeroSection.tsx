@@ -63,7 +63,7 @@ const HeroSection = () => {
 
   return (
     <div
-      className="relative h-[82vh] min-h-[620px] max-h-[800px] w-full overflow-hidden flex flex-col justify-between pt-16 select-none"
+      className="relative h-[60vh] min-h-[420px] md:h-[82vh] md:min-h-[620px] max-h-[800px] w-full overflow-hidden flex flex-col justify-between pt-16 select-none"
       onMouseEnter={() => setIsAutoPlaying(false)}
       onMouseLeave={() => setIsAutoPlaying(true)}
     >
@@ -93,7 +93,7 @@ const HeroSection = () => {
       </div>
 
       {/* Hero Central Content with Text Animations */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center mt-12 md:mt-16 flex flex-col items-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center mt-6 sm:mt-12 md:mt-16 flex flex-col items-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide.id}
@@ -104,65 +104,61 @@ const HeroSection = () => {
             className="flex flex-col items-center"
           >
             {/* Animated Category Tag Badge */}
-            <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-plasma/20 border border-plasma/40 backdrop-blur-md text-plasma text-xs font-semibold uppercase tracking-wider mb-6 shadow-lg shadow-plasma/10">
-              <Sparkles size={14} className="animate-spin text-aurora" />
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-plasma/20 border border-plasma/40 backdrop-blur-md text-plasma text-[11px] sm:text-xs font-semibold uppercase tracking-wider mb-3 sm:mb-6 shadow-lg shadow-plasma/10">
+              <Sparkles size={13} className="animate-spin text-aurora" />
               <span>{currentSlide.badgeKey}</span>
             </div>
 
             {/* Hero Main Heading */}
-            <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[5rem] font-heading font-black tracking-tight text-starlight mb-6 leading-[1.1] max-w-4xl drop-shadow-2xl">
+            <h1 className="text-2xl sm:text-5xl md:text-7xl lg:text-[5rem] font-heading font-black tracking-tight text-starlight mb-3 sm:mb-6 leading-[1.15] max-w-4xl drop-shadow-2xl">
               <span className="bg-gradient-to-r from-starlight via-white to-plasma bg-clip-text text-transparent">
                 {currentSlide.titleKey}
               </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-base sm:text-lg md:text-xl text-nebula-text mb-8 max-w-2xl mx-auto leading-relaxed font-normal">
+            <p className="text-xs sm:text-base md:text-xl text-nebula-text mb-4 sm:mb-8 max-w-2xl mx-auto leading-relaxed font-normal line-clamp-2 sm:line-clamp-none">
               {currentSlide.descKey}
             </p>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Carousel Bottom Control Bar & Pagination Indicators */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 mb-24 flex items-center justify-between pointer-events-auto">
-        {/* Slide Counter Indicator */}
-        <div className="hidden sm:flex items-center space-x-2 text-xs font-mono text-starlight bg-void/60 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
-          <span className="text-plasma font-bold">0{currentSlide.id}</span>
-          <span className="text-nebula-text">/ 0{SLIDES.length}</span>
-        </div>
-
-        {/* Center Bullet Progress Indicators */}
-        <div className="flex items-center space-x-3 mx-auto sm:mx-0">
-          {SLIDES.map((slide, idx) => (
-            <button
-              key={slide.id}
-              onClick={() => setCurrentIndex(idx)}
-              className={`h-2.5 rounded-full transition-all duration-500 ${
-                currentIndex === idx
-                  ? 'w-10 bg-gradient-to-r from-plasma to-aurora shadow-lg shadow-plasma/50'
-                  : 'w-2.5 bg-white/20 hover:bg-white/40'
-              }`}
-              title={`Slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-
-        {/* Left & Right Arrow Controls */}
-        <div className="hidden sm:flex items-center space-x-2">
+      {/* Luxurious Glass Carousel Controller: [ < ] • • • [ > ] */}
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 mb-16 sm:mb-24 flex items-center justify-center pointer-events-auto">
+        <div className="flex items-center space-x-3 bg-void/80 backdrop-blur-2xl px-3.5 py-2 rounded-full border border-plasma/30 shadow-2xl shadow-plasma/15 ring-1 ring-white/10">
+          {/* Previous Circular Button */}
           <button
             onClick={handlePrev}
-            className="p-2.5 rounded-xl bg-void/60 backdrop-blur-md text-starlight border border-white/10 hover:border-plasma hover:text-plasma transition-all shadow-lg active:scale-95"
-            title="Previous Slide"
+            className="w-7 h-7 rounded-full bg-plasma/15 hover:bg-plasma text-plasma hover:text-white border border-plasma/30 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-90 shadow-sm"
+            title="Өмнөх слайд"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={15} className="stroke-[2.5]" />
           </button>
+
+          {/* Glowing Pill Indicators */}
+          <div className="flex items-center space-x-2 px-1.5">
+            {SLIDES.map((slide, idx) => (
+              <button
+                key={slide.id}
+                onClick={() => setCurrentIndex(idx)}
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  currentIndex === idx
+                    ? 'w-8 bg-gradient-to-r from-plasma via-nova to-aurora shadow-md shadow-plasma/50 ring-1 ring-white/40'
+                    : 'w-2 bg-plasma/25 hover:bg-plasma/50'
+                }`}
+                title={`Слайд ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Next Circular Button */}
           <button
             onClick={handleNext}
-            className="p-2.5 rounded-xl bg-void/60 backdrop-blur-md text-starlight border border-white/10 hover:border-plasma hover:text-plasma transition-all shadow-lg active:scale-95"
-            title="Next Slide"
+            className="w-7 h-7 rounded-full bg-plasma/15 hover:bg-plasma text-plasma hover:text-white border border-plasma/30 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-90 shadow-sm"
+            title="Дараах слайд"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={15} className="stroke-[2.5]" />
           </button>
         </div>
       </div>

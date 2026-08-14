@@ -10,6 +10,7 @@ import { useCompareStore } from '@/store/useCompareStore';
 import { SocialShareModal } from './SocialShareModal';
 import { formatRelativeTime } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
+import { formatPriceMongolianWords } from '@/utils/formatPrice';
 
 interface Props { listing: Listing; index: number; }
 
@@ -136,7 +137,7 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
           <div className="p-5">
             <h3 className="text-xl font-bold text-starlight mb-2 truncate group-hover:text-plasma transition-colors">{listing.title}</h3>
             <p className="text-2xl font-heading font-bold text-aurora text-glow-aurora mb-3">
-              {Number(listing.price).toLocaleString('mn-MN')} ₮
+              {formatPriceMongolianWords(listing.price)}
             </p>
 
             {/* Location & Published Relative Time */}

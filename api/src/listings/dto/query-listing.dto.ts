@@ -17,6 +17,10 @@ export class QueryListingDto {
 
   @IsOptional()
   @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsString()
   khoroo?: string;
 
   @IsOptional()

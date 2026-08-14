@@ -3,6 +3,7 @@ export declare class QueryListingDto {
     type?: ListingType;
     category?: ListingCategory;
     location?: string;
+    search?: string;
     khoroo?: string;
     sortBy?: string;
     priceMin?: number;

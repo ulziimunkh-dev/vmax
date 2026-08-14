@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n';
 import { useNavigate } from 'react-router-dom';
 import { listingsAPI, uploadAPI, locationsAPI } from '@/services/api';
 import { Image as ImageIcon, X, Upload, Plus, Star, GripVertical, ArrowLeft, ArrowRight, Layers, Building, Calendar, Wrench, Compass, Car, CheckCircle } from 'lucide-react';
+import { PriceInput } from '@/components/common/PriceInput';
 
 
 const CreateListing = () => {
@@ -383,14 +384,27 @@ const CreateListing = () => {
               }}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <PriceInput
+                value={price}
+                onChange={setPrice}
+                label="Үнэ (₮)"
+                placeholder="Жишээ: 850,000,000"
+                showQuickAmounts
+                mode={type === 'RENT' ? 'rent' : 'sale'}
+                required
+              />
               <div>
-                <label className="block text-xs font-semibold text-nebula-text mb-1">Үнэ (₮)</label>
-                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="850000000" className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-nebula-text mb-1">Талбай (м.кв)</label>
-                <input type="number" value={areaSqm} onChange={(e) => setAreaSqm(e.target.value)} placeholder="137" className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma" />
+                <label className="block text-xs font-semibold text-nebula-text mb-1.5 flex items-center justify-between">
+                  <span>Талбай (м.кв)</span>
+                </label>
+                <input
+                  type="number"
+                  value={areaSqm}
+                  onChange={(e) => setAreaSqm(e.target.value)}
+                  placeholder="137"
+                  className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma text-sm"
+                />
               </div>
             </div>
 

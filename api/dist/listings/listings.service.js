@@ -66,7 +66,7 @@ let ListingsService = class ListingsService {
     async findAll(query) {
         const { type, category, location, priceMin, priceMax, areaMin, areaMax, sortBy } = query;
         const page = query.page ?? 1;
-        const limit = query.limit ?? 12;
+        const limit = query.limit ?? 50;
         const queryBuilder = this.listingsRepository.createQueryBuilder('listing');
         queryBuilder.leftJoinAndSelect('listing.user', 'user');
         queryBuilder.where('listing.status = :status', { status: listing_enums_1.ListingStatus.ACTIVE });
@@ -98,25 +98,23 @@ let ListingsService = class ListingsService {
         if (query.constructionType) {
             queryBuilder.andWhere("listing.attributes->>'constructionType' ILIKE :constructionType", { constructionType: `%${query.constructionType}%` });
         }
-        queryBuilder.addOrderBy(`CASE 
-        WHEN listing.promotionTier = '${listing_enums_1.PromotionTier.TOP_URGENT}' THEN 3 
-        WHEN listing.promotionTier = '${listing_enums_1.PromotionTier.VIP}' THEN 2 
-        WHEN listing.isPromoted = true THEN 1 
-        ELSE 0 
-      END`, 'DESC');
+        if (query.search) {
+            queryBuilder.andWhere('(listing.title ILIKE :search OR listing.description ILIKE :search)', { search: `%${query.search}%` });
+        }
         if (sortBy === 'views') {
-            queryBuilder.addOrderBy('listing.viewsCount', 'DESC');
+            queryBuilder.orderBy('listing.viewsCount', 'DESC');
         }
         else if (sortBy === 'mostShared') {
-            queryBuilder.addOrderBy('listing.sharesCount', 'DESC');
+            queryBuilder.orderBy('listing.sharesCount', 'DESC');
         }
         else if (sortBy === 'priceAsc') {
-            queryBuilder.addOrderBy('listing.price', 'ASC');
+            queryBuilder.orderBy('listing.price', 'ASC');
         }
         else if (sortBy === 'priceDesc') {
-            queryBuilder.addOrderBy('listing.price', 'DESC');
+            queryBuilder.orderBy('listing.price', 'DESC');
         }
         else {
+            queryBuilder.orderBy('listing.isPromoted', 'DESC');
             queryBuilder.addOrderBy('listing.createdAt', 'DESC');
         }
         const [items, total] = await queryBuilder

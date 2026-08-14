@@ -13,6 +13,7 @@ import { RecentVisits } from '@/components/listings/RecentVisits';
 import PropertyMap from '@/components/map/PropertyMap';
 import { formatRelativeTime, formatDateFull } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
+import { formatPriceMongolianWords } from '@/utils/formatPrice';
 
 
 
@@ -34,6 +35,12 @@ const ListingDetail = () => {
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isAuditLoading, setIsAuditLoading] = useState(false);
+
+  const isOwner = Boolean(
+    user &&
+    listing &&
+    (String(user.id) === String(listing.userId) || (listing.user && String(user.id) === String(listing.user.id)))
+  );
 
   const handleRevealPhone = async () => {
     if (isPhoneRevealed) return;
@@ -249,8 +256,8 @@ const ListingDetail = () => {
 
 
             <div className="glass-card p-6 rounded-2xl">
-              <div className="flex justify-between items-start mb-4">
-                <div>
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                <div className="flex-1 min-w-0 w-full">
                   <div className="flex items-center space-x-2 mb-3">
                     <span className="px-3 py-1 bg-plasma/20 text-plasma rounded-full text-sm font-semibold border border-plasma/30">
                       {listing.type === 'sale' ? t.listings.sale : t.listings.rent}
@@ -263,22 +270,22 @@ const ListingDetail = () => {
                     </span>
                   </div>
 
-                  <h1 className="text-3xl font-heading font-bold text-white mb-2">{listing.title}</h1>
-                  <div className="flex items-center space-x-4 text-nebula-text text-sm">
+                  <h1 className="text-2xl sm:text-3xl font-heading font-bold text-white mb-2 break-words">{listing.title}</h1>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-nebula-text text-sm">
                     <div className="flex items-center">
-                      <MapPin size={18} className="mr-1 text-plasma" /> {listing.location}, {listing.district}{listing.khoroo ? `, ${listing.khoroo}` : ''}
+                      <MapPin size={18} className="mr-1 text-plasma flex-shrink-0" /> {listing.location}, {listing.district}{listing.khoroo ? `, ${listing.khoroo}` : ''}
                     </div>
                     <div className="flex items-center text-xs">
-                      <Calendar size={14} className="mr-1 text-aurora" /> {formatDateFull(listing.createdAt)}
+                      <Calendar size={14} className="mr-1 text-aurora flex-shrink-0" /> {formatDateFull(listing.createdAt)}
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora">
-                    {Number(listing.price).toLocaleString()} ₮
+                <div className="text-left sm:text-right flex flex-col items-start sm:items-end flex-shrink-0 whitespace-nowrap">
+                  <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora whitespace-nowrap tracking-wide">
+                    {formatPriceMongolianWords(listing.price)}
                   </div>
-                  <div className="text-nebula-text mt-1">
-                    {listing.areaSqm ? Math.round(Number(listing.price) / listing.areaSqm).toLocaleString() : 0} ₮ / м.кв
+                  <div className="text-nebula-text text-xs mt-1.5 whitespace-nowrap">
+                    {listing.areaSqm ? Math.round(Number(listing.price) / listing.areaSqm).toLocaleString('en-US') : 0} ₮ / м.кв
                   </div>
                 </div>
               </div>
@@ -430,13 +437,13 @@ const ListingDetail = () => {
 
               {/* Phone Masking & Reveal Section */}
               <div className="space-y-3 mb-4">
-                {isPhoneRevealed ? (
+                {isPhoneRevealed || isOwner ? (
                   <a
-                    href={`tel:${revealedPhone}`}
+                    href={`tel:${revealedPhone || listing?.user?.phone || '9911-8888'}`}
                     className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-aurora via-plasma to-nova text-white font-bold py-3.5 rounded-xl shadow-lg shadow-aurora/30 transition-all"
                   >
                     <Phone size={18} />
-                    <span>Залгах: {revealedPhone}</span>
+                    <span>Залгах: {revealedPhone || listing?.user?.phone || '9911-8888'}</span>
                   </a>
                 ) : (
                   <button
@@ -448,25 +455,29 @@ const ListingDetail = () => {
                     <span>Дугаар харах: 9911-****</span>
                   </button>
                 )}
-
-                <div className="flex justify-between items-center text-xs text-nebula-text px-1">
-                  <span className="flex items-center space-x-1">
-                    <Eye size={13} className="text-plasma" />
-                    <span>Утас үзсэн: <strong>{phoneRevealsCount || listing.phoneRevealsCount || 0}</strong> удаа</span>
-                  </span>
-                  <span className="text-aurora font-semibold">Аудит бүртгэлтэй</span>
-                </div>
               </div>
 
-              {/* Creator Audit Logs Modal Button */}
-              {user && listing && (user.id === listing.userId || listing.userId === 'u1') && (
-                <button
-                  onClick={handleFetchAuditLogs}
-                  className="w-full flex items-center justify-center space-x-2 bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold py-2.5 rounded-xl hover:bg-amber-500/30 transition-all text-xs mb-3"
-                >
-                  <ShieldCheck size={16} />
-                  <span>Дугаар үзсэн хэрэглэгчдийн аудит түүх харах</span>
-                </button>
+              {/* Creator-only Audit & Phone Stats Section (Strictly for Listing Owner) */}
+              {isOwner && (
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-4 space-y-2.5">
+                  <div className="flex items-center space-x-2 text-amber-300 font-bold text-xs">
+                    <ShieldCheck size={16} />
+                    <span>Зарын эзэмшигчийн хяналт</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-nebula-text">
+                    <span>Утас үзсэн нийт тоо:</span>
+                    <span className="text-plasma font-black text-sm">
+                      {phoneRevealsCount || listing.phoneRevealsCount || 0} удаа
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleFetchAuditLogs}
+                    className="w-full flex items-center justify-center space-x-1.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold py-2 rounded-xl hover:bg-amber-500/30 transition-all text-xs"
+                  >
+                    <Eye size={14} />
+                    <span>Дугаар үзсэн аудитын түүх харах</span>
+                  </button>
+                </div>
               )}
 
               <button className="w-full flex items-center justify-center space-x-2 bg-void/50 border border-white/10 text-white font-medium py-3 rounded-xl hover:bg-void transition-all mb-4">

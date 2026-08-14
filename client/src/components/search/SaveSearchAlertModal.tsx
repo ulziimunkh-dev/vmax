@@ -159,7 +159,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
                   )}
                   {(filters.priceMin || filters.priceMax) && (
                     <span className="px-2.5 py-1 bg-white/10 text-starlight rounded-lg border border-white/20">
-                      💰 {filters.priceMin || '0'} - {filters.priceMax || '∞'} ₮
+                      💰 {filters.priceMin ? `${Number(filters.priceMin).toLocaleString()} ₮` : '0 ₮'} - {filters.priceMax ? `${Number(filters.priceMax).toLocaleString()} ₮` : '∞'}
                     </span>
                   )}
                   {filters.constructionType && (

@@ -5,7 +5,9 @@ export declare enum ListingType {
 export declare enum ListingCategory {
     APARTMENT = "APARTMENT",
     HOUSE = "HOUSE",
-    COMMERCIAL = "COMMERCIAL"
+    LAND = "LAND",
+    COMMERCIAL = "COMMERCIAL",
+    RESORT = "RESORT"
 }
 export declare enum ListingStatus {
     ACTIVE = "ACTIVE",

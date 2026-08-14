@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, DollarSign, Maximize } from 'lucide-react';
 import { useI18n } from '@/i18n';
+import { PriceInput } from '@/components/common/PriceInput';
 
 interface Props {
   isOpen: boolean;
@@ -53,20 +54,18 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply }) => {
                   <DollarSign size={16} className="mr-1 text-plasma" />
                   <span>{t.filters.priceRange}</span>
                 </label>
-                <div className="flex space-x-4">
-                  <input
-                    type="number"
+                <div className="grid grid-cols-2 gap-3">
+                  <PriceInput
                     value={priceMin}
-                    onChange={(e) => setPriceMin(e.target.value)}
+                    onChange={setPriceMin}
                     placeholder={t.filters.min}
-                    className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma"
+                    size="sm"
                   />
-                  <input
-                    type="number"
+                  <PriceInput
                     value={priceMax}
-                    onChange={(e) => setPriceMax(e.target.value)}
+                    onChange={setPriceMax}
                     placeholder={t.filters.max}
-                    className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma"
+                    size="sm"
                   />
                 </div>
               </div>

@@ -16,6 +16,8 @@ import CompareListings from '@/pages/CompareListings';
 import AboutUs from '@/pages/AboutUs';
 import TermsOfService from '@/pages/TermsOfService';
 import { CompareFloatingBar } from '@/components/listings/CompareFloatingBar';
+import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import api from '@/services/api';
@@ -44,7 +46,7 @@ const App = () => {
         <Starfield />
         <div className="min-h-screen flex flex-col font-sans relative z-0 transition-colors duration-300">
           <Navbar />
-          <main className="flex-grow">
+          <main className="flex-grow pb-20 md:pb-0">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
@@ -60,6 +62,8 @@ const App = () => {
             </Routes>
           </main>
           <CompareFloatingBar />
+          <PWAInstallPrompt />
+          <MobileBottomNav />
           <Footer />
         </div>
       </BrowserRouter>

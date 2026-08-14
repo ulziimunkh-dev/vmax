@@ -17,7 +17,7 @@ export const CompareFloatingBar: React.FC = () => {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4"
+        className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4"
       >
         <div className="bg-cosmic/90 backdrop-blur-xl border border-plasma/40 shadow-2xl shadow-plasma/20 rounded-2xl p-4 flex items-center justify-between gap-4">
           <div className="flex items-center space-x-3">

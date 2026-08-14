@@ -1,0 +1,58 @@
+{
+  "id": "mn.vmax.app",
+  "name": "Vmax - Үл Хөдлөх Хөрөнгийн Нэгдсэн Платформ",
+  "short_name": "Vmax",
+  "description": "Монголын хамгийн том, шинэлэг үл хөдлөх хөрөнгийн платформ. Орон сууц, хаус, оффис зарах, түрээслэх зарын нэгдсэн систем.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0f",
+  "theme_color": "#863bff",
+  "lang": "mn",
+  "dir": "ltr",
+  "categories": ["business", "real estate", "utilities", "shopping"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Зар хайх",
+      "short_name": "Хайх",
+      "description": "Орон сууц, үл хөдлөх хөрөнгийн зар хайх",
+      "url": "/",
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Зар нийтлэх",
+      "short_name": "Зар өгөх",
+      "description": "Үл хөдлөх хөрөнгийн шинэ зар үнэгүй нийтлэх",
+      "url": "/create-listing",
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Хяналтын самбар",
+      "short_name": "Самбар",
+      "description": "Миний зарууд болон статистик харах",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon-192x192.svg", "sizes": "192x192" }]
+    }
+  ]
+}

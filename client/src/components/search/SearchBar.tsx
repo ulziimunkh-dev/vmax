@@ -5,6 +5,7 @@ import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { useI18n } from '@/i18n';
 import FilterDrawer from './FilterDrawer';
 import { SaveSearchAlertModal } from './SaveSearchAlertModal';
+import { PriceInput } from '@/components/common/PriceInput';
 
 export interface SearchFilterParams {
   query: string;
@@ -81,85 +82,76 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         transition={{ delay: 0.2 }}
         className="glass-card p-4 md:p-6 rounded-2xl border-glow shadow-2xl relative z-30"
       >
-        {/* Top Controls: Transaction Type Tabs & Sorting Dropdown */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-          {/* Type Selector Tabs */}
-          <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-none w-full sm:w-auto">
+        {/* Top Controls: Transaction Type Tabs & Advanced Filters Toggle */}
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
+          {/* Segmented Type Selector */}
+          <div className="grid grid-cols-3 p-1 bg-void/60 rounded-2xl border border-white/10 w-full sm:w-auto sm:inline-flex sm:space-x-1">
             <button
-              onClick={() => setType('')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              onClick={() => {
+                setType('');
+                if (onSearch) {
+                  onSearch({ query, type: '', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
+                }
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
                 type === ''
-                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/30'
-                  : 'bg-void/40 text-nebula-text hover:text-plasma hover:bg-void/60'
+                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
+                  : 'text-nebula-text hover:text-white'
               }`}
             >
               {t.filters.allTypes}
             </button>
             <button
-              onClick={() => setType('SALE')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              onClick={() => {
+                setType('SALE');
+                if (onSearch) {
+                  onSearch({ query, type: 'SALE', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
+                }
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
                 type === 'SALE'
-                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/30'
-                  : 'bg-void/40 text-nebula-text hover:text-plasma hover:bg-void/60'
+                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
+                  : 'text-nebula-text hover:text-white'
               }`}
             >
               {t.listings.sale}
             </button>
             <button
-              onClick={() => setType('RENT')}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              onClick={() => {
+                setType('RENT');
+                if (onSearch) {
+                  onSearch({ query, type: 'RENT', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
+                }
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
                 type === 'RENT'
-                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/30'
-                  : 'bg-void/40 text-nebula-text hover:text-plasma hover:bg-void/60'
+                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
+                  : 'text-nebula-text hover:text-white'
               }`}
             >
               {t.listings.rent}
             </button>
           </div>
 
-          {/* Sort By Dropdown & Advanced Toggle */}
-          <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-            <div className="relative flex-1 sm:flex-initial">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-plasma">
-                <ArrowUpDown size={14} />
-              </div>
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value);
-                  if (onSearch) {
-                    onSearch({ query, type, category, district, priceMin, priceMax, sortBy: e.target.value });
-                  }
-                }}
-                className="pl-8 pr-8 py-2 bg-void/50 border border-white/10 rounded-xl text-starlight text-xs font-semibold focus:outline-none focus:border-plasma appearance-none cursor-pointer w-full"
-              >
-                <option value="newest">{t.sort.newest}</option>
-                <option value="views">{t.sort.mostViewed} 🔥</option>
-                <option value="priceAsc">{t.sort.priceLowHigh}</option>
-                <option value="priceDesc">{t.sort.priceHighLow}</option>
-                <option value="mostShared">{t.sort.mostShared}</option>
-              </select>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className={`hidden md:flex items-center space-x-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                showAdvanced || priceMin || priceMax
-                  ? 'bg-plasma/20 border-plasma/40 text-plasma'
-                  : 'bg-void/50 border-white/10 text-nebula-text hover:text-plasma'
-              }`}
-            >
-              <SlidersHorizontal size={14} />
-              <span>Үнэ шүүх</span>
-            </button>
-          </div>
+          {/* Advanced Filter Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
+              showAdvanced || priceMin || priceMax
+                ? 'bg-plasma/20 border-plasma/40 text-plasma shadow-sm'
+                : 'bg-void/50 border-white/10 text-nebula-text hover:text-plasma hover:border-plasma/30'
+            }`}
+          >
+            <SlidersHorizontal size={14} />
+            <span>Дэлгэрэнгүй шүүлтүүр</span>
+          </button>
         </div>
 
         {/* Main Search Controls */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Keyword Search Input */}
-          <div className="md:col-span-5 relative">
+          <div className="md:col-span-4 relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-nebula-text">
               <Search className="h-5 w-5" />
             </div>
@@ -199,7 +191,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <option value="COMMERCIAL">{t.filters.commercial}</option>
               {/* <option value="RESORT">{t.filters.resort}</option> */}
             </select>
-
           </div>
 
           {/* 9 Districts of Ulaanbaatar Dropdown */}
@@ -226,30 +217,31 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           </div>
 
           {/* Search, Alert & Filter Buttons */}
-          <div className="md:col-span-1 flex space-x-2">
+          <div className="md:col-span-2 flex items-center space-x-2">
             <button
               onClick={handleSearch}
-              className="w-full bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all duration-300 flex items-center justify-center"
+              className="flex-1 bg-gradient-to-r from-plasma via-nova to-aurora text-white-force font-bold py-3 px-4 rounded-xl hover:shadow-lg hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center space-x-2 shadow-md shadow-plasma/25"
               title="Хайх"
             >
-              <Search className="h-5 w-5 text-white" />
+              <Search size={16} className="text-white-force stroke-white stroke-[2.5]" color="#ffffff" />
+              <span className="font-bold text-sm tracking-wide text-white-force text-white">Хайх</span>
             </button>
+
             <button
               onClick={() => setIsAlertModalOpen(true)}
-              className="px-3 bg-plasma/20 border border-plasma/40 text-plasma hover:bg-plasma hover:text-white rounded-xl flex items-center justify-center transition-all"
+              className="p-3 bg-void/50 border border-white/10 text-plasma hover:bg-plasma/20 hover:border-plasma/40 rounded-xl flex items-center justify-center transition-all flex-shrink-0"
               title="Шинэ зарын мэдэгдэл захиалах"
             >
               <Bell className="h-5 w-5" />
             </button>
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="md:hidden px-3 bg-void/50 border border-white/10 text-nebula-text hover:text-plasma rounded-xl flex items-center justify-center"
+              className="md:hidden p-3 bg-void/50 border border-white/10 text-nebula-text hover:text-plasma rounded-xl flex items-center justify-center flex-shrink-0"
               title="More Filters"
             >
               <SlidersHorizontal className="h-5 w-5" />
             </button>
           </div>
-
         </div>
 
         {/* Collapsible Detailed Advanced Filters Grid */}
@@ -264,31 +256,25 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
 
               {/* Price Min */}
               <div>
-                <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center">
-                  <DollarSign size={13} className="mr-1 text-plasma" />
-                  <span>Доод үнэ (₮)</span>
-                </label>
-                <input
-                  type="number"
+                <PriceInput
                   value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
+                  onChange={setPriceMin}
+                  label="Доод үнэ (₮)"
                   placeholder="Мин үнэ"
-                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma"
+                  size="sm"
+                  mode={type === 'RENT' ? 'rent' : 'sale'}
                 />
               </div>
 
               {/* Price Max */}
               <div>
-                <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center">
-                  <DollarSign size={13} className="mr-1 text-plasma" />
-                  <span>Дээд үнэ (₮)</span>
-                </label>
-                <input
-                  type="number"
+                <PriceInput
                   value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
+                  onChange={setPriceMax}
+                  label="Дээд үнэ (₮)"
                   placeholder="Макс үнэ"
-                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma"
+                  size="sm"
+                  mode={type === 'RENT' ? 'rent' : 'sale'}
                 />
               </div>
 

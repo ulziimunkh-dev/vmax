@@ -6,9 +6,9 @@ export enum ListingType {
 export enum ListingCategory {
   APARTMENT = 'APARTMENT',
   HOUSE = 'HOUSE',
-  // LAND = 'LAND',
+  LAND = 'LAND',
   COMMERCIAL = 'COMMERCIAL',
-  // RESORT = 'RESORT',
+  RESORT = 'RESORT',
 }
 
 

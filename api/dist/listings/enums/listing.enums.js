@@ -10,7 +10,9 @@ var ListingCategory;
 (function (ListingCategory) {
     ListingCategory["APARTMENT"] = "APARTMENT";
     ListingCategory["HOUSE"] = "HOUSE";
+    ListingCategory["LAND"] = "LAND";
     ListingCategory["COMMERCIAL"] = "COMMERCIAL";
+    ListingCategory["RESORT"] = "RESORT";
 })(ListingCategory || (exports.ListingCategory = ListingCategory = {}));
 var ListingStatus;
 (function (ListingStatus) {
