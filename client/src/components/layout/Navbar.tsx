@@ -72,8 +72,8 @@ const Navbar: React.FC = () => {
     <>
       <header
         className={`fixed top-0 w-full z-40 transition-all duration-300 ${scrolled
-            ? 'bg-void/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20'
-            : 'bg-void/40 backdrop-blur-md border-b border-white/5'
+          ? 'bg-void/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20'
+          : 'bg-void/40 backdrop-blur-md border-b border-white/5'
           }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -102,8 +102,8 @@ const Navbar: React.FC = () => {
                 <Link
                   to="/"
                   className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname === '/'
-                      ? 'text-white bg-white/10 font-bold'
-                      : 'text-nebula-text hover:text-white hover:bg-white/5'
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
                 >
                   {t.nav.listings}
@@ -112,8 +112,8 @@ const Navbar: React.FC = () => {
                 <Link
                   to="/compare"
                   className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${location.pathname === '/compare'
-                      ? 'text-white bg-white/10 font-bold'
-                      : 'text-nebula-text hover:text-white hover:bg-white/5'
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
                 >
                   <Scale size={15} className="text-cyan-400" />
@@ -266,13 +266,13 @@ const Navbar: React.FC = () => {
                           <span>{t.nav.profile}</span>
                         </Link>
 
-                        <Link
+                        {/* <Link
                           to="/pricing"
                           className="flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium text-amber-300 hover:bg-amber-500/10 transition-all"
                         >
                           <Sparkles size={15} className="text-amber-400" />
                           <span>Багц шинэчлэх</span>
-                        </Link>
+                        </Link> */}
 
                         <div className="h-[1px] bg-white/10 my-1" />
 
