@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Starfield from '@/components/layout/Starfield';
+import PromoBanner from '@/components/layout/PromoBanner';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -48,6 +49,7 @@ const App = () => {
         <ScrollToTop />
         <Starfield />
         <div className="min-h-screen flex flex-col font-sans relative z-0 transition-colors duration-300">
+          <PromoBanner />
           <Navbar />
           <main className="flex-grow pb-20 md:pb-0">
             <Routes>

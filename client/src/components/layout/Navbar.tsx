@@ -71,15 +71,14 @@ const Navbar: React.FC = () => {
   return (
     <>
       <header
-        className={`fixed top-0 w-full z-40 transition-all duration-300 ${
-          scrolled
+        className={`fixed top-0 w-full z-40 transition-all duration-300 ${scrolled
             ? 'bg-void/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20'
             : 'bg-void/40 backdrop-blur-md border-b border-white/5'
-        }`}
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            
+
             {/* Left: Brand Logo & Main Nav */}
             <div className="flex items-center space-x-8">
               <Link to="/" className="flex items-center space-x-2.5 group">
@@ -102,22 +101,20 @@ const Navbar: React.FC = () => {
               <nav className="hidden md:flex items-center space-x-1">
                 <Link
                   to="/"
-                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
-                    location.pathname === '/'
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname === '/'
                       ? 'text-white bg-white/10 font-bold'
                       : 'text-nebula-text hover:text-white hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   {t.nav.listings}
                 </Link>
 
                 <Link
                   to="/compare"
-                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${
-                    location.pathname === '/compare'
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${location.pathname === '/compare'
                       ? 'text-white bg-white/10 font-bold'
                       : 'text-nebula-text hover:text-white hover:bg-white/5'
-                  }`}
+                    }`}
                 >
                   <Scale size={15} className="text-cyan-400" />
                   <span>Харьцуулах</span>
@@ -128,7 +125,7 @@ const Navbar: React.FC = () => {
                   )}
                 </Link>
 
-                <Link
+                {/* <Link
                   to="/pricing"
                   className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all flex items-center space-x-1.5 ${
                     location.pathname === '/pricing'
@@ -141,7 +138,7 @@ const Navbar: React.FC = () => {
                   <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
                     VIP
                   </span>
-                </Link>
+                </Link> */}
               </nav>
             </div>
 
@@ -211,15 +208,14 @@ const Navbar: React.FC = () => {
                         {user.subscriptionTier === 'AGENCY'
                           ? 'Агентлаг'
                           : user.subscriptionTier === 'PRO_AGENT'
-                          ? 'PRO Агент'
-                          : 'Хэрэглэгч'}
+                            ? 'PRO Агент'
+                            : 'Хэрэглэгч'}
                       </p>
                     </div>
                     <ChevronDown
                       size={14}
-                      className={`text-nebula-text group-hover:text-white transition-transform ${
-                        isUserMenuOpen ? 'rotate-180' : ''
-                      }`}
+                      className={`text-nebula-text group-hover:text-white transition-transform ${isUserMenuOpen ? 'rotate-180' : ''
+                        }`}
                     />
                   </button>
 

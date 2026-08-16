@@ -5,7 +5,7 @@ export enum SubscriptionTier {
 }
 
 export const SUBSCRIPTION_LIMITS = {
-  [SubscriptionTier.FREE]: 3,
+  [SubscriptionTier.FREE]: 100,
   [SubscriptionTier.PRO_AGENT]: 30,
   [SubscriptionTier.AGENCY]: 999999,
 };
