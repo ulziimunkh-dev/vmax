@@ -322,10 +322,28 @@ html.light .promo-unit-label { color: #7c3aed; }
   color: #ffffff;
 }
 html.light .promo-close { color: #6d28d9; background: rgba(109,40,217,0.08); }
-/* ─────────────────────────────────────────────────────────── */
-
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--color-void); }
 ::-webkit-scrollbar-thumb { background: #2d2d44; border-radius: 4px; }
 html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 ::-webkit-scrollbar-thumb:hover { background: #6c5ce7; }
+
+/* ─────────────────────────────────────────────────────────── */
+/* Leaflet Custom OpenStreetMap Styling & Dark Mode Filter   */
+/* ─────────────────────────────────────────────────────────── */
+.osm-dark-tiles,
+.leaflet-dark-mode .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(2.6) hue-rotate(195deg) saturate(0.25) brightness(0.85);
+}
+
+.osm-light-tiles,
+.leaflet-light-mode .leaflet-tile {
+  filter: saturate(1.05) contrast(1.02);
+}
+
+.custom-picker-pin,
+.custom-property-pin {
+  background: transparent !important;
+  border: none !important;
+}
+

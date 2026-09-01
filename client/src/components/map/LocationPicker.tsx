@@ -24,6 +24,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   // Sync internal state when external latitude/longitude props change (e.g., when editing listing)
   useEffect(() => {
@@ -65,16 +66,14 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
 
       L.control.zoom({ position: 'topleft' }).addTo(map);
 
-      const tileUrl =
-        themeMode === 'light'
-          ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-          : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-
-      L.tileLayer(tileUrl, {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
+      const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: ['a', 'b', 'c'],
         maxZoom: 19,
+        className: themeMode === 'light' ? 'osm-light-tiles' : 'osm-dark-tiles',
       }).addTo(map);
+
+      tileLayerRef.current = tileLayer;
 
       // Add Draggable Marker
       const marker = L.marker([lat, lng], {
@@ -110,9 +109,26 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         markerRef.current = null;
+        tileLayerRef.current = null;
       }
     };
   }, []);
+
+  // Update tile layer className when themeMode changes
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      if (tileLayerRef.current) {
+        mapInstanceRef.current.removeLayer(tileLayerRef.current);
+      }
+      const newTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: ['a', 'b', 'c'],
+        maxZoom: 19,
+        className: themeMode === 'light' ? 'osm-light-tiles' : 'osm-dark-tiles',
+      }).addTo(mapInstanceRef.current);
+      tileLayerRef.current = newTileLayer;
+    }
+  }, [themeMode]);
 
   // Update map and marker when lat or lng state changes from inputs / presets
   useEffect(() => {
