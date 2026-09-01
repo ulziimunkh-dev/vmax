@@ -9,7 +9,7 @@ interface TimeLeft {
   seconds: number;
 }
 
-const TARGET = new Date("2026-09-01T00:00:00+08:00");
+const TARGET = new Date("2026-10-01T00:00:00+08:00");
 
 function getTimeLeft(): TimeLeft {
   const diff = TARGET.getTime() - Date.now();
@@ -76,7 +76,7 @@ const PromoBanner: React.FC = () => {
               <span className="promo-label">
                 Онцгой санал:&nbsp;
                 <strong>Хязгааргүй зар</strong>&nbsp;байршуулах эрх —&nbsp;
-                <span className="promo-until">9-р сарын 1 хүртэл үнэгүй!</span>
+                <span className="promo-until">10-р сарын 1 хүртэл үнэгүй!</span>
               </span>
             </div>
 

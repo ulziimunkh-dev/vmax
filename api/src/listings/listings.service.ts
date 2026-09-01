@@ -101,6 +101,9 @@ export class ListingsService {
       queryBuilder.andWhere("listing.attributes->>'constructionType' ILIKE :constructionType", { constructionType: `%${query.constructionType}%` });
     }
 
+    if (query.hasVideo === 'true' || query.hasVideo === '1') {
+      queryBuilder.andWhere('listing.hasVideo = true');
+    }
 
     if (query.search) {
       queryBuilder.andWhere('(listing.title ILIKE :search OR listing.description ILIKE :search)', { search: `%${query.search}%` });
@@ -214,8 +217,11 @@ export class ListingsService {
       now.getUTCSeconds()
     ));
 
+    const hasVideo = Boolean(createListingDto.videoUrl && createListingDto.videoUrl.trim().length > 0);
+
     const listing = this.listingsRepository.create({
       ...createListingDto,
+      hasVideo,
       contactPhone,
       user,
       expiresAt,
@@ -248,6 +254,9 @@ export class ListingsService {
       throw new ForbiddenException('You can only edit your own listings');
     }
     Object.assign(listing, updateDto);
+    if (updateDto.videoUrl !== undefined) {
+      listing.hasVideo = Boolean(updateDto.videoUrl && updateDto.videoUrl.trim().length > 0);
+    }
     return this.listingsRepository.save(listing);
   }
 

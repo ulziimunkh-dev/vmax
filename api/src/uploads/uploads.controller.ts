@@ -14,9 +14,13 @@ export class UploadsController {
     }
     const s3Data = await this.uploadsService.getS3Object(url);
     if (!s3Data) {
+      if (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov')) {
+        return res.status(404).send('Video not found');
+      }
       return res.redirect('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop');
     }
     res.setHeader('Content-Type', s3Data.contentType);
+    res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.send(s3Data.buffer);
   }
@@ -27,13 +31,30 @@ export class UploadsController {
    */
   @UseGuards(JwtAuthGuard)
   @Post('listings/:listingId')
-  @UseInterceptors(FilesInterceptor('files', 10))
+  @UseInterceptors(FilesInterceptor('files', 15))
   async uploadListingFiles(
     @Param('listingId') listingId: string,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     const urls = await this.uploadsService.uploadListingImages(listingId, files);
     return { urls };
+  }
+
+  /**
+   * Upload 15s Walkthrough Reel Video grouped under parent listing folder in S3:
+   * S3 Path: production/listings/{listingId}/reel-{uuid}.mp4
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('listings/:listingId/video')
+  @UseInterceptors(FileInterceptor('video', {
+    limits: { fileSize: 40 * 1024 * 1024 }, // Max 40MB
+  }))
+  async uploadListingVideo(
+    @Param('listingId') listingId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const url = await this.uploadsService.uploadListingVideo(listingId, file);
+    return { url };
   }
 
   @UseGuards(JwtAuthGuard)

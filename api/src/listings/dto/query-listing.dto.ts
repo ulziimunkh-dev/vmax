@@ -70,6 +70,10 @@ export class QueryListingDto {
   constructionType?: string;
 
   @IsOptional()
+  @IsString()
+  hasVideo?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   page?: number = 1;

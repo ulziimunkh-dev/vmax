@@ -30,6 +30,8 @@ dist/
 .env.production.local
 api/.env*
 client/.env*
+playwright-report/
+.playwright-mcp/
 
 # IDEs & OS files
 .DS_Store

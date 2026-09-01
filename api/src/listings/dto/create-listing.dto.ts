@@ -50,4 +50,12 @@ export class CreateListingDto {
   @IsArray()
   @IsString({ each: true })
   images?: string[];
+
+  @IsOptional()
+  @IsString()
+  videoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  videoThumbnailUrl?: string;
 }

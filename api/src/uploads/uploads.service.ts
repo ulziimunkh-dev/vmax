@@ -90,6 +90,16 @@ export class UploadsService {
     return Promise.all(files.map((file) => this.uploadFile(file, `listings/${listingId}`)));
   }
 
+  /**
+   * Upload 15s Walkthrough Reel Video grouped under listing ID in S3:
+   * S3 Key format: listings/{listingId}/reel-{uuid}{fileExt}
+   */
+  async uploadListingVideo(listingId: string, file: Express.Multer.File): Promise<string> {
+    if (!file) throw new Error('No video file provided');
+    this.logger.log(`🎬 Uploading 15s Reel video for listing [${listingId}]: ${file.originalname} (${file.size} bytes)`);
+    return this.uploadFile(file, `listings/${listingId}`);
+  }
+
   async uploadMultipleFiles(files: Express.Multer.File[], subfolder: string = 'uploads'): Promise<string[]> {
     if (!files || files.length === 0) return [];
     return Promise.all(files.map((file) => this.uploadFile(file, subfolder)));

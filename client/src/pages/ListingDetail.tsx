@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn, ImageIcon, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/i18n';
 import api, { listingsAPI } from '@/services/api';
@@ -45,6 +45,7 @@ const ListingDetail = () => {
   const [inquirySending, setInquirySending] = useState(false);
   const [inquirySuccess, setInquirySuccess] = useState(false);
   const [avatarImgError, setAvatarImgError] = useState(false);
+  const [mediaTab, setMediaTab] = useState<'images' | 'video'>('images');
 
   // Keyboard navigation for carousel / lightbox
   useEffect(() => {
@@ -251,107 +252,159 @@ const ListingDetail = () => {
 
           {/* Main Details & Gallery */}
           <div className="md:col-span-2 space-y-6">
-          {/* ── Image Carousel ─────────────────────────────────────────── */}
+          {/* ── Media Viewer (Photos & 15s Walkthrough Reel) ─────────────── */}
           {(() => {
             const images = listing.images && listing.images.length > 0 ? listing.images : [];
+            const hasReel = Boolean(listing.videoUrl || listing.hasVideo);
             const total = images.length;
             const prev = () => setActiveImageIndex((i) => (i - 1 + total) % total);
             const next = () => setActiveImageIndex((i) => (i + 1) % total);
 
             return (
               <div className="space-y-3">
-                {/* Main viewer */}
-                <div className="relative glass-card rounded-2xl overflow-hidden h-[420px] bg-gradient-to-br from-void to-cosmic group select-none">
-                  {total > 0 ? (
-                    <AnimatePresence mode="wait">
-                      <motion.img
-                        key={activeImageIndex}
-                        src={getImageUrl(images[activeImageIndex])}
-                        alt={`${listing.title} — зураг ${activeImageIndex + 1}`}
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
-                        }}
-                        initial={{ opacity: 0, x: 40 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -40 }}
-                        transition={{ duration: 0.25, ease: 'easeInOut' }}
-                        className="w-full h-full object-cover"
-                      />
-                    </AnimatePresence>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-plasma opacity-40 font-bold text-3xl">Vmax.mn</span>
-                    </div>
-                  )}
-
-                  {/* Gradient overlays */}
-                  {total > 0 && (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-
-                      {/* Prev / Next arrows */}
-                      {total > 1 && (
-                        <>
-                          <button
-                            onClick={prev}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10"
-                            aria-label="Өмнөх зураг"
-                          >
-                            <ChevronLeft size={22} strokeWidth={2.5} />
-                          </button>
-                          <button
-                            onClick={next}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10"
-                            aria-label="Дараагийн зураг"
-                          >
-                            <ChevronRight size={22} strokeWidth={2.5} />
-                          </button>
-                        </>
-                      )}
-
-                      {/* Zoom / fullscreen button */}
+                {/* Media Switcher Tabs (Only if both or video exists) */}
+                {hasReel && (
+                  <div className="flex items-center space-x-2 p-1.5 rounded-2xl bg-void/60 border border-white/10 w-fit backdrop-blur-md">
+                    {total > 0 && (
                       <button
-                        onClick={() => { setLightboxIndex(activeImageIndex); setLightboxOpen(true); }}
-                        className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10"
-                        aria-label="Том хэмжээгээр харах"
+                        type="button"
+                        onClick={() => setMediaTab('images')}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                          mediaTab === 'images'
+                            ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
+                            : 'text-nebula-text hover:text-white'
+                        }`}
                       >
-                        <ZoomIn size={17} strokeWidth={2.5} />
+                        <ImageIcon size={14} />
+                        <span>Гэрэл зураг ({total})</span>
                       </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setMediaTab('video')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                        mediaTab === 'video'
+                          ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
+                          : 'text-nebula-text hover:text-white'
+                      }`}
+                    >
+                      <Smartphone size={14} />
+                      <span>🎬 15s Walkthrough Реел</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                    </button>
+                  </div>
+                )}
 
-                      {/* Counter badge */}
-                      {total > 1 && (
-                        <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
-                          {activeImageIndex + 1} / {total}
-                        </div>
-                      )}
+                {/* 15s Walkthrough Video Player */}
+                {mediaTab === 'video' && listing.videoUrl ? (
+                  <div className="relative glass-card rounded-2xl overflow-hidden h-[460px] bg-black flex items-center justify-center shadow-2xl border border-plasma/40">
+                    <video
+                      src={getImageUrl(listing.videoUrl)}
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 border border-white/10 pointer-events-none">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                      <span>📹 15s Walkthrough Реел</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Main Image Carousel */
+                  <div className="relative glass-card rounded-2xl overflow-hidden h-[420px] bg-gradient-to-br from-void to-cosmic group select-none">
+                    {total > 0 ? (
+                      <AnimatePresence mode="wait">
+                        <motion.img
+                          key={activeImageIndex}
+                          src={getImageUrl(images[activeImageIndex])}
+                          alt={`${listing.title} — зураг ${activeImageIndex + 1}`}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                          }}
+                          initial={{ opacity: 0, x: 40 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -40 }}
+                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          className="w-full h-full object-cover"
+                        />
+                      </AnimatePresence>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-plasma opacity-40 font-bold text-3xl">Vmax.mn</span>
+                      </div>
+                    )}
 
-                      {/* Dot indicators */}
-                      {total > 1 && total <= 12 && (
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                          {images.map((_, idx) => (
+                    {/* Gradient overlays */}
+                    {total > 0 && (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+
+                        {/* Prev / Next arrows */}
+                        {total > 1 && (
+                          <>
                             <button
-                              key={idx}
-                              onClick={() => setActiveImageIndex(idx)}
-                              className={`rounded-full transition-all ${idx === activeImageIndex ? 'w-5 h-2 bg-plasma' : 'w-2 h-2 bg-white/50 hover:bg-white/80'}`}
-                              aria-label={`Зураг ${idx + 1}`}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                              onClick={prev}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
+                              aria-label="Өмнөх зураг"
+                            >
+                              <ChevronLeft size={22} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              onClick={next}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
+                              aria-label="Дараагийн зураг"
+                            >
+                              <ChevronRight size={22} strokeWidth={2.5} />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Zoom / fullscreen button */}
+                        <button
+                          onClick={() => { setLightboxIndex(activeImageIndex); setLightboxOpen(true); }}
+                          className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
+                          aria-label="Том хэмжээгээр харах"
+                        >
+                          <ZoomIn size={17} strokeWidth={2.5} />
+                        </button>
+
+                        {/* Counter badge */}
+                        {total > 1 && (
+                          <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
+                            {activeImageIndex + 1} / {total}
+                          </div>
+                        )}
+
+                        {/* Dot indicators */}
+                        {total > 1 && total <= 12 && (
+                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                            {images.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setActiveImageIndex(idx)}
+                                className={`rounded-full transition-all ${idx === activeImageIndex ? 'w-5 h-2 bg-plasma' : 'w-2 h-2 bg-white/50 hover:bg-white/80'}`}
+                                aria-label={`Зураг ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Thumbnail strip */}
-                {total > 1 && (
+                {mediaTab === 'images' && total > 1 && (
                   <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
                     {images.map((imgUrl, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => setActiveImageIndex(idx)}
-                        className={`relative flex-shrink-0 w-[88px] h-[68px] rounded-xl overflow-hidden border-2 transition-all ${
+                        className={`relative flex-shrink-0 w-[88px] h-[68px] rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
                           activeImageIndex === idx
                             ? 'border-plasma ring-2 ring-plasma/40 scale-105 shadow-lg shadow-plasma/30'
                             : 'border-gray-300 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-plasma/50'

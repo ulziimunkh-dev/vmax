@@ -53,6 +53,15 @@ export class Listing {
   images: string[];
 
   @Column({ nullable: true })
+  videoUrl?: string;
+
+  @Column({ nullable: true })
+  videoThumbnailUrl?: string;
+
+  @Column({ default: false })
+  hasVideo: boolean;
+
+  @Column({ nullable: true })
   contactPhone?: string;
 
   @Column({

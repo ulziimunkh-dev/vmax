@@ -34,6 +34,9 @@ export interface Listing {
   longitude?: number;
   attributes: Record<string, any>;
   images: string[];
+  videoUrl?: string;
+  videoThumbnailUrl?: string;
+  hasVideo?: boolean;
   status: 'active' | 'expired' | 'closed' | 'ACTIVE' | 'EXPIRED' | 'CLOSED' | string;
   userId: string;
   user?: User;
@@ -52,6 +55,7 @@ export interface FilterState {
   type?: string;
   category?: string;
   location?: string;
+  hasVideo?: string;
   priceMin?: number;
   priceMax?: number;
   areaMin?: number;

@@ -37,12 +37,21 @@ const CreateListing = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [fetchingListing, setFetchingListing] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [successListingId, setSuccessListingId] = useState<string | null>(null);
+
+  // Reel Video State (15-seconds max)
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [videoError, setVideoError] = useState<string>('');
 
   // Core Form State
   const [type, setType] = useState('SALE');
@@ -196,6 +205,11 @@ const CreateListing = () => {
             setImagePreviews(d.images.map((img: string) => getImageUrl(img)));
           }
 
+          if (d.videoUrl) {
+            setVideoPreview(getImageUrl(d.videoUrl));
+            if (d.videoThumbnailUrl) setVideoThumbnail(getImageUrl(d.videoThumbnailUrl));
+          }
+
           if (d.attributes) {
             const attr = d.attributes;
             if (attr.rooms !== undefined && attr.rooms !== null) setRooms(String(attr.rooms));
@@ -249,6 +263,113 @@ const CreateListing = () => {
     } finally {
       setUploadingImages(false);
     }
+  };
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setVideoError('');
+
+    if (!file.type.startsWith('video/')) {
+      setVideoError('Зөвхөн видео файл сонгоно уу (MP4, WebM, MOV).');
+      return;
+    }
+
+    if (file.size > 40 * 1024 * 1024) {
+      setVideoError('Бичлэгийн хэмжээ хамгийн ихдээ 40MB байх ёстой.');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setVideoPreview(objectUrl);
+    setVideoFile(file);
+
+    let hasProcessed = false;
+    const processUpload = async (duration?: number) => {
+      if (hasProcessed) return;
+      hasProcessed = true;
+
+      if (duration && duration > 15.6) {
+        setVideoError(`⚠️ Сонгосон бичлэгийн урт ${Math.round(duration)} секунд байна. 15 секундээс хэтрэхгүй бичлэг сонгоно уу.`);
+        setVideoPreview(null);
+        setVideoFile(null);
+        return;
+      }
+
+      if (duration) setVideoDuration(duration);
+      setUploadingVideo(true);
+
+      // Upload video to backend / S3
+      const targetListingId = id || draftIdRef.current;
+      try {
+        const res = await uploadAPI.uploadListingVideo(targetListingId, file);
+        if (res.data?.url) {
+          setVideoPreview(res.data.url);
+        }
+      } catch (uploadErr: any) {
+        console.warn('Background video upload fallback:', uploadErr);
+      } finally {
+        setUploadingVideo(false);
+      }
+    };
+
+    try {
+      const videoEl = document.createElement('video');
+      videoEl.preload = 'metadata';
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      videoEl.setAttribute('playsinline', '');
+      videoEl.src = objectUrl;
+
+      videoEl.onloadedmetadata = () => {
+        const dur = videoEl.duration;
+        processUpload(Number.isFinite(dur) ? dur : undefined);
+
+        try {
+          videoEl.currentTime = Math.min(1.0, (dur || 2) / 2);
+          videoEl.onseeked = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = videoEl.videoWidth || 720;
+              canvas.height = videoEl.videoHeight || 1280;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                const thumbDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                setVideoThumbnail(thumbDataUrl);
+              }
+            } catch (err) {
+              console.warn('Canvas thumbnail error:', err);
+            }
+          };
+        } catch { }
+      };
+
+      videoEl.onerror = () => {
+        processUpload();
+      };
+
+      videoEl.load();
+
+      // Fallback timeout in case metadata loading stalls
+      setTimeout(() => {
+        if (!hasProcessed) {
+          processUpload();
+        }
+      }, 1500);
+    } catch {
+      processUpload();
+    }
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
+    setVideoThumbnail(null);
+    setVideoDuration(null);
+    setVideoError('');
+    if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
   const handleRemoveImage = (index: number) => {
@@ -398,6 +519,12 @@ const CreateListing = () => {
 
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
 
+      if (finalImages.length === 0 && !videoPreview) {
+        alert('Зар нийтлэхийн тулд дор хаяж 1 зураг эсвэл 15 секундийн Реел бичлэг оруулна уу.');
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         title,
         description,
@@ -413,6 +540,8 @@ const CreateListing = () => {
         contactPhone,
         attributes: attrPayload,
         images: finalImages,
+        videoUrl: videoPreview || undefined,
+        videoThumbnailUrl: videoThumbnail || undefined,
       };
 
       let newId = id;
@@ -957,37 +1086,140 @@ const CreateListing = () => {
 
         {step === 3 && (
           <div className="space-y-6">
-            <h3 className="text-xl text-starlight font-bold">Зураг оруулах & Дараалал тохируулах</h3>
+            <div>
+              <h3 className="text-xl text-starlight font-bold">Медиа оруулах (Зураг & 15-секунд Реел)</h3>
+              <p className="text-xs text-nebula-text mt-1">
+                Та 15 секундийн видео реел, зураг эсвэл хоёуланг нь хамтад нь оруулах боломжтой
+              </p>
+            </div>
 
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
+            {/* ── 15-Second Walkthrough Reel Section ────────────────────────────── */}
+            <div className="glass-card p-5 rounded-2xl border border-plasma/30 space-y-3 bg-plasma/5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
+                    <Smartphone size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
+                      <span>🎬 15-Секундийн Walkthrough Реел (Босоо Видео)</span>
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-plasma/20 text-plasma rounded-full">
+                        ШИНЭ
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-nebula-text">
+                      Хамгийн ихдээ 15 секунд, 9:16 босоо хэмжээтэй видео файл (MP4, WebM, MOV)
+                    </p>
+                  </div>
+                </div>
 
-            {/* Drag & Drop Upload Zone */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleDropDropzone}
-              className="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:border-plasma transition-all cursor-pointer bg-void/40 hover:bg-plasma/10"
-            >
-              <div className="text-plasma mb-2 flex justify-center">
-                {uploadingImages ? (
-                  <Upload className="h-10 w-10 animate-bounce text-plasma" />
-                ) : (
-                  <ImageIcon className="h-10 w-10 text-plasma" />
+                {videoPreview && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveVideo}
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center space-x-1 font-semibold px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30"
+                  >
+                    <X size={13} />
+                    <span>Устгах</span>
+                  </button>
                 )}
               </div>
-              <div className="text-sm font-bold text-starlight mb-1">
-                {uploadingImages ? 'Зураг хуулж байна...' : 'Үл хөдлөх хөрөнгийн зураг сонгох'}
+
+              {/* Hidden Video Input */}
+              <input
+                type="file"
+                ref={videoInputRef}
+                accept="video/mp4,video/webm,video/quicktime,video/*"
+                className="hidden"
+                onChange={handleVideoSelect}
+              />
+
+              {videoError && (
+                <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-xs font-medium">
+                  {videoError}
+                </div>
+              )}
+
+              {videoPreview ? (
+                <div className="relative rounded-2xl overflow-hidden border border-plasma/40 bg-black max-w-xs mx-auto aspect-[9/16] max-h-[380px] shadow-2xl group">
+                  <video
+                    src={getImageUrl(videoPreview)}
+                    controls
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1">
+                    <span>📹 {videoDuration ? `${Math.round(videoDuration)} сек` : '15с Реел'}</span>
+                  </div>
+                  {uploadingVideo && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
+                      <RefreshCw className="animate-spin text-plasma" size={24} />
+                      <span className="text-xs text-white font-bold">Видео S3 рүү хуулж байна...</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  onClick={() => videoInputRef.current?.click()}
+                  className="border-2 border-dashed border-plasma/30 rounded-xl p-5 text-center hover:border-plasma transition-all cursor-pointer bg-void/30 hover:bg-plasma/10 flex flex-col items-center justify-center space-y-2"
+                >
+                  <div className="w-12 h-12 rounded-full bg-plasma/20 text-plasma flex items-center justify-center shadow-lg shadow-plasma/20">
+                    <Upload size={20} />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-starlight block">
+                      15-секундын реел бичлэг сонгох
+                    </span>
+                    <span className="text-[11px] text-nebula-text block mt-0.5">
+                      Instagram Reels / TikTok маягийн 9:16 босоо бичлэг оруулж зарын үзэлтээ 3 дахин өсгөнө үү
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Photo Gallery Section ───────────────────────────────────────── */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
+                  <ImageIcon size={16} className="text-plasma" />
+                  <span>Гэрэл зургийн цомог (Зураг чирж дараалал солих)</span>
+                </h4>
+                <span className="text-xs text-nebula-text">
+                  {imagePreviews.length} зураг сонгосон
+                </span>
               </div>
-              <div className="text-xs text-nebula-text">
-                Зургаа оруулсны дараа чирж байрлал солих эсвэл ⭐ дарж нүүр зураг болгоно уу
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
+
+              {/* Drag & Drop Upload Zone */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDropDropzone}
+                className="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:border-plasma transition-all cursor-pointer bg-void/40 hover:bg-plasma/10"
+              >
+                <div className="text-plasma mb-2 flex justify-center">
+                  {uploadingImages ? (
+                    <Upload className="h-10 w-10 animate-bounce text-plasma" />
+                  ) : (
+                    <ImageIcon className="h-10 w-10 text-plasma" />
+                  )}
+                </div>
+                <div className="text-sm font-bold text-starlight mb-1">
+                  {uploadingImages ? 'Зураг хуулж байна...' : 'Үл хөдлөх хөрөнгийн зураг сонгох'}
+                </div>
+                <div className="text-xs text-nebula-text">
+                  Зургаа оруулсны дараа чирж байрлал солих эсвэл ⭐ дарж нүүр зураг болгоно уу
+                </div>
               </div>
             </div>
 

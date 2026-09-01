@@ -123,9 +123,22 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
 
 
             {/* Listing Type Tag */}
-            <div className={`absolute bottom-3 right-3 bg-void/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold border border-white/10 ${listing.isPromoted ? 'text-amber-400' : 'text-plasma'}`}>
-              {listing.type === 'sale' ? t.listings.sale : t.listings.rent}
+            <div className="absolute bottom-3 left-3 flex items-center space-x-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${listing.type?.toLowerCase() === 'sale'
+                  ? 'bg-plasma/80 text-white backdrop-blur-md'
+                  : 'bg-aurora/80 text-white backdrop-blur-md'
+                }`}>
+                {listing.type?.toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
+              </span>
             </div>
+
+            {/* 15s Reel Walkthrough Badge */}
+            {(listing.hasVideo || listing.videoUrl) && (
+              <div className="absolute bottom-3 right-3 z-10 bg-black/80 backdrop-blur-md text-white-force px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center space-x-1.5 border border-white/20 shadow-lg group-hover:bg-plasma transition-colors">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                <span>📹 15s Reel</span>
+              </div>
+            )}
 
             {/* View & Share Counters Overlay */}
             {(listing.viewsCount !== undefined || listing.sharesCount !== undefined) && (

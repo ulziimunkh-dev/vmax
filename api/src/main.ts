@@ -9,10 +9,15 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
+  // Increase body size limit to handle image uploads (base64 or multipart)
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
   app.setGlobalPrefix('api');
   
   app.enableCors({
@@ -34,6 +39,9 @@ async function bootstrap() {
   }
   app.useStaticAssets(uploadsDir, {
     prefix: '/uploads/',
+  });
+  app.useStaticAssets(uploadsDir, {
+    prefix: '/api/uploads/',
   });
 
   const config = new DocumentBuilder()

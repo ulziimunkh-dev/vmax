@@ -4,11 +4,12 @@ import SearchBar from '@/components/search/SearchBar';
 import type { SearchFilterParams } from '@/components/search/SearchBar';
 import ListingGrid from '@/components/listings/ListingGrid';
 import PropertyMap from '@/components/map/PropertyMap';
+import { ReelsFeedModal } from '@/components/listings/ReelsFeedModal';
 import type { Listing } from '@/types';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/i18n';
 import { listingsAPI } from '@/services/api';
-import { LayoutGrid, Map, Sparkles, Zap, Scale, ArrowUpDown } from 'lucide-react';
+import { LayoutGrid, Map, Sparkles, Zap, Scale, ArrowUpDown, Smartphone, Play } from 'lucide-react';
 
 
 const Home = () => {
@@ -18,6 +19,8 @@ const Home = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
+  const [selectedReelId, setSelectedReelId] = useState<string | undefined>(undefined);
   const [currentFilters, setCurrentFilters] = useState<SearchFilterParams>({
     query: '',
     type: '',
@@ -231,11 +234,27 @@ const Home = () => {
               </select>
             </div>
 
+            {/* 15s Walkthrough Reels Quick Trigger */}
+            {filteredListings.some((l) => l.videoUrl || l.hasVideo) && (
+              <button
+                onClick={() => {
+                  const firstReel = filteredListings.find((l) => l.videoUrl || l.hasVideo);
+                  setSelectedReelId(firstReel?.id);
+                  setIsReelsModalOpen(true);
+                }}
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white font-bold text-xs shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              >
+                <Play size={13} className="fill-white text-white" />
+                <span>🎬 Reels</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+              </button>
+            )}
+
             {/* View Mode Switcher (Compact & Modern) */}
             <div className="flex items-center bg-void/60 border border-white/10 p-1 rounded-xl shadow-sm">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === 'grid'
                     ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
                     : 'text-nebula-text hover:text-white'
@@ -246,7 +265,7 @@ const Home = () => {
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   viewMode === 'map'
                     ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
                     : 'text-nebula-text hover:text-white'
@@ -265,6 +284,14 @@ const Home = () => {
         ) : (
           <PropertyMap listings={filteredListings} height="600px" />
         )}
+
+        {/* Full-Screen 9:16 Real Estate Reels Modal Feed */}
+        <ReelsFeedModal
+          isOpen={isReelsModalOpen}
+          onClose={() => setIsReelsModalOpen(false)}
+          initialListingId={selectedReelId}
+          listings={filteredListings}
+        />
       </div>
     </div>
   );
