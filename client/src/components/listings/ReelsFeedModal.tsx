@@ -103,7 +103,9 @@ export const ReelsFeedModal: React.FC<ReelsFeedModalProps> = ({
         <div className="relative w-full h-full max-w-sm md:max-w-md md:h-[88vh] md:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/15 flex items-center justify-center">
           {current.videoUrl ? (
             <video
-              ref={(el) => (videoRefs.current[currentIndex] = el)}
+              ref={(el) => {
+                videoRefs.current[currentIndex] = el;
+              }}
               src={getImageUrl(current.videoUrl)}
               autoPlay
               loop

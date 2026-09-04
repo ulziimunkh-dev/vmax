@@ -37,6 +37,7 @@ export interface Listing {
   videoUrl?: string;
   videoThumbnailUrl?: string;
   hasVideo?: boolean;
+  contactPhone?: string;
   status: 'active' | 'expired' | 'closed' | 'ACTIVE' | 'EXPIRED' | 'CLOSED' | string;
   userId: string;
   user?: User;
