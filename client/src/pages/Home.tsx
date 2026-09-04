@@ -36,9 +36,9 @@ const Home = () => {
     try {
       const activeSort = filters.sortBy || sortBy || 'newest';
       const res = await listingsAPI.getAll({
-        location: filters.district || undefined,
-        search: filters.query || undefined,
+        district: filters.district || undefined,
         khoroo: filters.khoroo || undefined,
+        search: filters.query || undefined,
         type: filters.type || undefined,
         category: filters.category || undefined,
         priceMin: filters.priceMin ? Number(filters.priceMin) : undefined,
@@ -82,29 +82,37 @@ const Home = () => {
   };
 
   const applyClientFilters = (filters: SearchFilterParams) => {
-    const { query, type, category, district, priceMin, priceMax, sortBy } = filters;
+    const { query, type, category, district, khoroo, priceMin, priceMax, sortBy } = filters;
     let result = [...listings];
 
     if (query) {
       const q = query.toLowerCase();
       result = result.filter(item =>
-        item.title.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q)
+        item.title?.toLowerCase().includes(q) ||
+        item.description?.toLowerCase().includes(q) ||
+        item.location?.toLowerCase().includes(q) ||
+        item.district?.toLowerCase().includes(q) ||
+        item.khoroo?.toLowerCase().includes(q)
       );
     }
 
     if (type) {
-      result = result.filter(item => item.type.toLowerCase() === type.toLowerCase());
+      result = result.filter(item => item.type?.toLowerCase() === type.toLowerCase());
     }
 
     if (category) {
-      result = result.filter(item => item.category.toLowerCase() === category.toLowerCase());
+      result = result.filter(item => item.category?.toLowerCase() === category.toLowerCase());
     }
 
     if (district) {
       result = result.filter(item =>
-        item.district.toLowerCase().includes(district.toLowerCase()) ||
-        item.title.toLowerCase().includes(district.toLowerCase())
+        item.district?.toLowerCase().includes(district.toLowerCase())
+      );
+    }
+
+    if (khoroo) {
+      result = result.filter(item =>
+        item.khoroo?.toLowerCase().includes(khoroo.toLowerCase())
       );
     }
 
@@ -158,8 +166,8 @@ const Home = () => {
               <Sparkles size={20} />
             </div>
             <div>
-              <h4 className="text-starlight font-bold text-sm">Байнга шинэчлэгдэх бодит зарууд</h4>
-              <p className="text-nebula-text text-xs">Зарагдсан хуучин заранд цагаа үрэх шаардлагагүй</p>
+              <h4 className="text-starlight font-bold text-sm">{t.homeHighlights.verifiedTitle}</h4>
+              <p className="text-nebula-text text-xs">{t.homeHighlights.verifiedDesc}</p>
             </div>
           </div>
 
@@ -168,8 +176,8 @@ const Home = () => {
               <Zap size={20} />
             </div>
             <div>
-              <h4 className="text-starlight font-bold text-sm">Аянга мэт хурдан хайлт</h4>
-              <p className="text-nebula-text text-xs">Агшин зуурт шүүх ухаалаг систем</p>
+              <h4 className="text-starlight font-bold text-sm">{t.homeHighlights.fastSearchTitle}</h4>
+              <p className="text-nebula-text text-xs">{t.homeHighlights.fastSearchDesc}</p>
             </div>
           </div>
 
@@ -178,8 +186,8 @@ const Home = () => {
               <Scale size={20} />
             </div>
             <div>
-              <h4 className="text-starlight font-bold text-sm">Зэрэгцүүлэн харьцуулах боломж</h4>
-              <p className="text-nebula-text text-xs">Олон зарыг нэг дор зэрэгцүүлж харьцуулна</p>
+              <h4 className="text-starlight font-bold text-sm">{t.homeHighlights.compareTitle}</h4>
+              <p className="text-nebula-text text-xs">{t.homeHighlights.compareDesc}</p>
             </div>
           </div>
         </div>
@@ -208,7 +216,7 @@ const Home = () => {
                 </span>
               </div>
               <p className="text-nebula-text text-xs sm:text-sm mt-1">
-                Улаанбаатар хот болон бүх дүүргийн баталгаажсан үл хөдлөх хөрөнгүүд
+                {t.homeHighlights.subheading}
               </p>
             </div>
           </div>
@@ -226,11 +234,11 @@ const Home = () => {
                 onChange={(e) => handleSortChange(e.target.value)}
                 className="pl-8 pr-7 py-2 bg-void/60 hover:bg-void/80 border border-white/10 hover:border-plasma/40 rounded-xl text-starlight text-xs font-semibold focus:outline-none focus:border-plasma appearance-none cursor-pointer transition-all shadow-sm"
               >
-                <option value="newest">Сүүлд нэмэгдсэн</option>
-                <option value="views">Үзэлт ихтэй 🔥</option>
-                <option value="priceAsc">Үнэ өсөхөөр</option>
-                <option value="priceDesc">Үнэ буурахаар</option>
-                <option value="mostShared">Их хуваалцсан</option>
+                <option value="newest">{t.sort.newest}</option>
+                <option value="views">{t.sort.mostViewed}</option>
+                <option value="priceAsc">{t.sort.priceLowHigh}</option>
+                <option value="priceDesc">{t.sort.priceHighLow}</option>
+                <option value="mostShared">{t.sort.mostShared}</option>
               </select>
             </div>
 
@@ -261,7 +269,7 @@ const Home = () => {
                 }`}
               >
                 <LayoutGrid size={14} />
-                <span>Жагсаалт</span>
+                <span>{t.homeHighlights.listMode}</span>
               </button>
               <button
                 onClick={() => setViewMode('map')}
@@ -272,7 +280,7 @@ const Home = () => {
                 }`}
               >
                 <Map size={14} />
-                <span>Газрын зураг</span>
+                <span>{t.homeHighlights.mapMode}</span>
               </button>
             </div>
           </div>

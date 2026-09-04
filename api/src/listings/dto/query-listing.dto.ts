@@ -17,6 +17,10 @@ export class QueryListingDto {
 
   @IsOptional()
   @IsString()
+  district?: string;
+
+  @IsOptional()
+  @IsString()
   search?: string;
 
   @IsOptional()

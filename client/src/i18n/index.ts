@@ -12,11 +12,19 @@ interface I18nState {
   setLang: (lang: Lang) => void;
 }
 
+const initialLang = (localStorage.getItem('vmax_lang') as Lang) || 'mn';
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = initialLang;
+}
+
 export const useI18n = create<I18nState>((set) => ({
-  lang: (localStorage.getItem('vmax_lang') as Lang) || 'mn',
-  t: translations[(localStorage.getItem('vmax_lang') as Lang) || 'mn'],
+  lang: initialLang,
+  t: translations[initialLang],
   setLang: (lang) => {
     localStorage.setItem('vmax_lang', lang);
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = lang;
+    }
     set({ lang, t: translations[lang] });
   },
 }));

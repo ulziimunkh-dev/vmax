@@ -25,8 +25,10 @@ import {
   CheckCircle2,
   Smartphone,
   RefreshCw,
+  Edit3,
 } from 'lucide-react';
 import { PriceInput } from '@/components/common/PriceInput';
+import { ImageEditorModal } from '@/components/common/ImageEditorModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getImageUrl } from '@/utils/imageUrl';
 
@@ -44,6 +46,7 @@ const CreateListing = () => {
   const [fetchingListing, setFetchingListing] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [successListingId, setSuccessListingId] = useState<string | null>(null);
 
   // Reel Video State (15-seconds max)
@@ -425,6 +428,33 @@ const CreateListing = () => {
     if (draggedIndex !== null) {
       reorderImage(draggedIndex, targetIndex);
       setDraggedIndex(null);
+    }
+  };
+
+  const handleSaveEditedImage = async (editedFile: File, editedPreviewUrl: string) => {
+    if (editingImageIndex === null) return;
+    const indexToUpdate = editingImageIndex;
+
+    const newPreviews = [...imagePreviews];
+    newPreviews[indexToUpdate] = editedPreviewUrl;
+    setImagePreviews(newPreviews);
+
+    const newFiles = [...imageFiles];
+    if (newFiles.length > indexToUpdate) {
+      newFiles[indexToUpdate] = editedFile;
+      setImageFiles(newFiles);
+    }
+
+    const targetListingId = id || draftIdRef.current;
+    try {
+      const uploadRes = await uploadAPI.uploadListingFiles(targetListingId, [editedFile]);
+      if (uploadRes.data?.urls && uploadRes.data.urls.length > 0) {
+        const newUrls = [...uploadedUrls];
+        newUrls[indexToUpdate] = uploadRes.data.urls[0];
+        setUploadedUrls(newUrls);
+      }
+    } catch (err) {
+      console.warn('Background upload of edited photo fallback:', err);
     }
   };
 
@@ -1085,30 +1115,34 @@ const CreateListing = () => {
         )}
 
         {step === 3 && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl text-starlight font-bold">Медиа оруулах (Зураг & 15-секунд Реел)</h3>
-              <p className="text-xs text-nebula-text mt-1">
-                Та 15 секундийн видео реел, зураг эсвэл хоёуланг нь хамтад нь оруулах боломжтой
-              </p>
-            </div>
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6"
+            >
+              <div>
+                <h3 className="text-xl font-heading font-black text-starlight mb-1">
+                  {t.createListing.mediaTitle}
+                </h3>
+                <p className="text-xs text-nebula-text">
+                  {t.createListing.mediaSubtitle}
+                </p>
+              </div>
 
-            {/* ── 15-Second Walkthrough Reel Section ────────────────────────────── */}
-            <div className="glass-card p-5 rounded-2xl border border-plasma/30 space-y-3 bg-plasma/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
-                    <Smartphone size={18} />
-                  </div>
+              {/* ── 15-Second Walkthrough Reel Uploader ────────────────────────── */}
+              <div className="p-4 rounded-2xl bg-void/50 border border-plasma/20 space-y-3">
+                <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
-                      <span>🎬 15-Секундийн Walkthrough Реел (Босоо Видео)</span>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-plasma/20 text-plasma rounded-full">
-                        ШИНЭ
+                      <span>{t.createListing.reelTitle}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-red-500 text-white animate-pulse">
+                        NEW
                       </span>
                     </h4>
                     <p className="text-[11px] text-nebula-text">
-                      Хамгийн ихдээ 15 секунд, 9:16 босоо хэмжээтэй видео файл (MP4, WebM, MOV)
+                      {t.createListing.reelSubtitle}
                     </p>
                   </div>
                 </div>
@@ -1117,10 +1151,10 @@ const CreateListing = () => {
                   <button
                     type="button"
                     onClick={handleRemoveVideo}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center space-x-1 font-semibold px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30"
+                    className="text-xs text-red-400 hover:text-red-300 flex items-center space-x-1 font-semibold px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 cursor-pointer"
                   >
                     <X size={13} />
-                    <span>Устгах</span>
+                    <span>{t.createListing.deletePhoto}</span>
                   </button>
                 )}
               </div>
@@ -1149,12 +1183,12 @@ const CreateListing = () => {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1">
-                    <span>📹 {videoDuration ? `${Math.round(videoDuration)} сек` : '15с Реел'}</span>
+                    <span>📹 {videoDuration ? `${Math.round(videoDuration)}s` : '15s Reel'}</span>
                   </div>
                   {uploadingVideo && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
                       <RefreshCw className="animate-spin text-plasma" size={24} />
-                      <span className="text-xs text-white font-bold">Видео S3 рүү хуулж байна...</span>
+                      <span className="text-xs text-white font-bold">{t.common.loading}</span>
                     </div>
                   )}
                 </div>
@@ -1168,173 +1202,185 @@ const CreateListing = () => {
                   </div>
                   <div>
                     <span className="text-sm font-bold text-starlight block">
-                      15-секундын реел бичлэг сонгох
+                      {t.createListing.reelSelect}
                     </span>
                     <span className="text-[11px] text-nebula-text block mt-0.5">
-                      Instagram Reels / TikTok маягийн 9:16 босоо бичлэг оруулж зарын үзэлтээ 3 дахин өсгөнө үү
+                      {t.createListing.reelHint}
                     </span>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* ── Photo Gallery Section ───────────────────────────────────────── */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
-                  <ImageIcon size={16} className="text-plasma" />
-                  <span>Гэрэл зургийн цомог (Зураг чирж дараалал солих)</span>
-                </h4>
-                <span className="text-xs text-nebula-text">
-                  {imagePreviews.length} зураг сонгосон
-                </span>
-              </div>
-
-              {/* Hidden File Input */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageSelect}
-              />
-
-              {/* Drag & Drop Upload Zone */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDropDropzone}
-                className="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:border-plasma transition-all cursor-pointer bg-void/40 hover:bg-plasma/10"
-              >
-                <div className="text-plasma mb-2 flex justify-center">
-                  {uploadingImages ? (
-                    <Upload className="h-10 w-10 animate-bounce text-plasma" />
-                  ) : (
-                    <ImageIcon className="h-10 w-10 text-plasma" />
-                  )}
-                </div>
-                <div className="text-sm font-bold text-starlight mb-1">
-                  {uploadingImages ? 'Зураг хуулж байна...' : 'Үл хөдлөх хөрөнгийн зураг сонгох'}
-                </div>
-                <div className="text-xs text-nebula-text">
-                  Зургаа оруулсны дараа чирж байрлал солих эсвэл ⭐ дарж нүүр зураг болгоно уу
-                </div>
-              </div>
-            </div>
-
-            {/* Uploaded Image Previews Grid with Drag & Drop Reordering */}
-            {imagePreviews.length > 0 && (
+              {/* ── Photo Gallery Section ───────────────────────────────────────── */}
               <div className="space-y-3 pt-2">
-                <div className="text-xs font-semibold text-starlight flex items-center justify-between">
-                  <span>Сонгосон зураг ({imagePreviews.length}) — Эхний зураг зарын нүүр зураг болно</span>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-plasma hover:underline text-xs flex items-center space-x-1 font-semibold"
-                  >
-                    <Plus size={14} />
-                    <span>Зураг нэмэх</span>
-                  </button>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
+                    <ImageIcon size={16} className="text-plasma" />
+                    <span>{t.createListing.galleryTitle}</span>
+                  </h4>
+                  <span className="text-xs text-nebula-text">
+                    {imagePreviews.length} photos
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {imagePreviews.map((src, idx) => {
-                    const isMain = idx === 0;
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
 
-                    return (
-                      <div
-                        key={idx}
-                        draggable
-                        onDragStart={() => handleDragStartThumbnail(idx)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => handleDropThumbnail(idx)}
-                        className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
-                            ? 'border-plasma ring-2 ring-plasma/50 shadow-plasma/30'
-                            : 'border-white/10 hover:border-plasma/40'
-                          }`}
-                      >
-                        <div className="h-32 w-full overflow-hidden relative">
-                          <img
-                            src={src}
-                            alt={`Зураг ${idx + 1}`}
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
-                            }}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
+                {/* Drag & Drop Upload Zone */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDropDropzone}
+                  className="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:border-plasma transition-all cursor-pointer bg-void/40 hover:bg-plasma/10"
+                >
+                  <div className="text-plasma mb-2 flex justify-center">
+                    {uploadingImages ? (
+                      <Upload className="h-10 w-10 animate-bounce text-plasma" />
+                    ) : (
+                      <ImageIcon className="h-10 w-10 text-plasma" />
+                    )}
+                  </div>
+                  <div className="text-sm font-bold text-starlight mb-1">
+                    {uploadingImages ? t.common.loading : t.createListing.photoSelect}
+                  </div>
+                  <div className="text-xs text-nebula-text">
+                    {t.createListing.photoHint}
+                  </div>
+                </div>
+              </div>
 
-                          {/* Top Controls Overlay */}
-                          <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
-                            {/* Make Main / Cover Star Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleMakeMain(idx)}
-                              title={isMain ? 'Нүүр зураг' : 'Нүүр зураг болгох'}
-                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force ${isMain
-                                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white/50 font-bold'
-                                  : 'bg-black/80 hover:bg-plasma text-white-force ring-1 ring-white/30 shadow'
-                                }`}
-                            >
-                              <Star size={13} className={isMain ? 'fill-white text-white' : 'text-amber-300 fill-amber-300'} />
-                              <span className="text-white-force">{isMain ? 'Нүүр зураг' : 'Нүүр болгох'}</span>
-                            </button>
+              {/* Uploaded Image Previews Grid with Drag & Drop Reordering */}
+              {imagePreviews.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="text-xs font-semibold text-starlight flex items-center justify-between">
+                    <span>{imagePreviews.length} photos</span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-plasma hover:underline text-xs flex items-center space-x-1 font-semibold cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>{t.createListing.addPhotos}</span>
+                    </button>
+                  </div>
 
-                            {/* Delete Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(idx)}
-                              className="p-1.5 bg-black/80 hover:bg-red-500 text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md"
-                              title="Устгах"
-                            >
-                              <X size={14} className="text-white-force" />
-                            </button>
-                          </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {imagePreviews.map((src, idx) => {
+                      const isMain = idx === 0;
 
-                          {/* Reorder Arrows & Drag Handle */}
-                          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
-                            <div className="flex items-center space-x-1">
+                      return (
+                        <div
+                          key={idx}
+                          draggable
+                          onDragStart={() => handleDragStartThumbnail(idx)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => handleDropThumbnail(idx)}
+                          className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
+                              ? 'border-plasma ring-2 ring-plasma/50 shadow-plasma/30'
+                              : 'border-white/10 hover:border-plasma/40'
+                            }`}
+                        >
+                          <div className="h-32 w-full overflow-hidden relative">
+                            <img
+                              src={src}
+                              alt={`Photo ${idx + 1}`}
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                              }}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+
+                            {/* Top Controls Overlay */}
+                            <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
+                              {/* Make Main / Cover Star Button */}
                               <button
                                 type="button"
-                                disabled={idx === 0}
-                                onClick={() => reorderImage(idx, idx - 1)}
-                                className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors"
-                                title="Зүүн тийш зөөх"
+                                onClick={() => handleMakeMain(idx)}
+                                title={isMain ? t.createListing.makeMain : t.createListing.setMain}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force cursor-pointer ${isMain
+                                    ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white/50 font-bold'
+                                    : 'bg-black/80 hover:bg-plasma text-white-force ring-1 ring-white/30 shadow'
+                                  }`}
                               >
-                                <ArrowLeft size={12} className="text-white-force" />
+                                <Star size={13} className={isMain ? 'fill-white text-white' : 'text-amber-300 fill-amber-300'} />
+                                <span className="text-white-force">{isMain ? t.createListing.makeMain : t.createListing.setMain}</span>
                               </button>
-                              <button
-                                type="button"
-                                disabled={idx === imagePreviews.length - 1}
-                                onClick={() => reorderImage(idx, idx + 1)}
-                                className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors"
-                                title="Баруун тийш зөөх"
-                              >
-                                <ArrowRight size={12} className="text-white-force" />
-                              </button>
+
+                              <div className="flex items-center space-x-1">
+                                {/* Edit / Adjust Photo Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingImageIndex(idx)}
+                                  className="p-1.5 bg-black/80 hover:bg-plasma text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                                  title={t.createListing.editPhoto}
+                                >
+                                  <Edit3 size={13} className="text-white-force" />
+                                  <span className="text-[11px] hidden sm:inline text-white-force">{t.createListing.editPhoto}</span>
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveImage(idx)}
+                                  className="p-1.5 bg-black/80 hover:bg-red-500 text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md cursor-pointer"
+                                  title={t.createListing.deletePhoto}
+                                >
+                                  <X size={14} className="text-white-force" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center space-x-1 text-[11px] text-white-force font-semibold bg-black/80 px-2 py-1 rounded-lg backdrop-blur-md ring-1 ring-white/30 shadow">
-                              <GripVertical size={12} className="text-white-force opacity-80" />
-                              <span className="text-white-force">#{idx + 1}</span>
+
+                            {/* Reorder Arrows & Drag Handle */}
+                            <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  type="button"
+                                  disabled={idx === 0}
+                                  onClick={() => reorderImage(idx, idx - 1)}
+                                  className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors cursor-pointer"
+                                  title="Previous"
+                                >
+                                  <ArrowLeft size={12} className="text-white-force" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={idx === imagePreviews.length - 1}
+                                  onClick={() => reorderImage(idx, idx + 1)}
+                                  className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors cursor-pointer"
+                                  title="Next"
+                                >
+                                  <ArrowRight size={12} className="text-white-force" />
+                                </button>
+                              </div>
+                              <div className="flex items-center space-x-1 text-[11px] text-white-force font-semibold bg-black/80 px-2 py-1 rounded-lg backdrop-blur-md ring-1 ring-white/30 shadow">
+                                <GripVertical size={12} className="text-white-force opacity-80" />
+                                <span className="text-white-force">#{idx + 1}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex space-x-4 mt-8">
-              <button onClick={() => setStep(2)} className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all">Буцах</button>
-              <button onClick={handleSubmit} disabled={loading} className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all">
-                {loading ? 'Түр хүлээнэ үү...' : id ? 'Хадгалах' : 'Нийтлэх'}
-              </button>
-            </div>
-          </div>
-        )}
+              <div className="flex space-x-4 mt-8">
+                <button onClick={() => setStep(2)} className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all cursor-pointer">{t.createListing.prev}</button>
+                <button onClick={handleSubmit} disabled={loading} className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all cursor-pointer">
+                  {loading ? t.createListing.saving : id ? t.common.save : t.createListing.submit}
+                </button>
+              </div>
+            </motion.div>
+          )}
       </motion.div>
 
       {/* Verify.mn MO SMS Verification Modal in CreateListing */}
@@ -1430,6 +1476,16 @@ const CreateListing = () => {
             )}
           </motion.div>
         </div>
+      )}
+
+      {/* ── In-Browser Photo Editor Modal ───────────────────────────────────── */}
+      {editingImageIndex !== null && imagePreviews[editingImageIndex] && (
+        <ImageEditorModal
+          isOpen={editingImageIndex !== null}
+          onClose={() => setEditingImageIndex(null)}
+          imageSrc={imagePreviews[editingImageIndex]}
+          onSave={handleSaveEditedImage}
+        />
       )}
     </div>
   );

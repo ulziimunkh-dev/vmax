@@ -79,7 +79,8 @@ export class ListingsService {
 
     if (type) queryBuilder.andWhere('listing.type = :type', { type });
     if (category) queryBuilder.andWhere('listing.category = :category', { category });
-    if (location) queryBuilder.andWhere('(listing.location ILIKE :location OR listing.district ILIKE :location OR listing.khoroo ILIKE :location)', { location: `%${location}%` });
+    if (query.district) queryBuilder.andWhere('listing.district ILIKE :district', { district: `%${query.district}%` });
+    if (location) queryBuilder.andWhere('(listing.location ILIKE :location OR listing.district ILIKE :location OR listing.khoroo ILIKE :location OR listing.title ILIKE :location)', { location: `%${location}%` });
     if (query.khoroo) queryBuilder.andWhere('listing.khoroo ILIKE :khoroo', { khoroo: `%${query.khoroo}%` });
 
     if (priceMin !== undefined) queryBuilder.andWhere('listing.price >= :priceMin', { priceMin });
@@ -106,7 +107,7 @@ export class ListingsService {
     }
 
     if (query.search) {
-      queryBuilder.andWhere('(listing.title ILIKE :search OR listing.description ILIKE :search)', { search: `%${query.search}%` });
+      queryBuilder.andWhere('(listing.title ILIKE :search OR listing.description ILIKE :search OR listing.location ILIKE :search OR listing.district ILIKE :search OR listing.khoroo ILIKE :search)', { search: `%${query.search}%` });
     }
 
     if (sortBy === 'views') {

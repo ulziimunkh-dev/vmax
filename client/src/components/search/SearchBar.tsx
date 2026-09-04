@@ -1,11 +1,42 @@
-import React, { useState } from 'react';
-import { Search, Mic, MapPin, Home, SlidersHorizontal, ArrowUpDown, DollarSign, Bell } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { Search, Mic, MapPin, Home, SlidersHorizontal, Bell, Flame, Building2, Layers } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { useI18n } from '@/i18n';
 import FilterDrawer from './FilterDrawer';
 import { SaveSearchAlertModal } from './SaveSearchAlertModal';
 import { PriceInput } from '@/components/common/PriceInput';
+import { locationsAPI } from '@/services/api';
+
+export const DISTRICT_KHOROOS_MAP: Record<string, number> = {
+  'Хан-Уул': 25,
+  'Баянзүрх': 28,
+  'Сүхбаатар': 20,
+  'Баянгол': 25,
+  'Сонгинохайрхан': 43,
+  'Чингэлтэй': 24,
+  'Багануур': 5,
+  'Багахангай': 2,
+  'Налайх': 8,
+};
+
+export const POPULAR_LOCATIONS = [
+  { id: 'zaisan', label: 'Зайсан', district: 'Хан-Уул', query: 'Зайсан' },
+  { id: 'yarmag', label: 'Яармаг / Нисэх', district: 'Хан-Уул', query: 'Яармаг' },
+  { id: 'river-garden', label: 'River Garden', district: 'Хан-Уул', query: 'River Garden' },
+  { id: '120-myangat', label: '120 мянгат', district: 'Хан-Уул', query: '120 мянгат' },
+  { id: 'hunnu-2222', label: 'Хүннү 2222', district: 'Хан-Уул', query: 'Хүннү 2222' },
+  { id: 'ih-mongol', label: 'Их Монгол', district: 'Хан-Уул', query: 'Их Монгол' },
+  { id: 'bayanmongol', label: 'Баянмонгол', district: 'Баянзүрх', query: 'Баянмонгол' },
+  { id: 'sansar', label: 'Сансар', district: 'Баянзүрх', query: 'Сансар' },
+  { id: 'tov-talbai', label: 'Төв талбай (А бүс)', district: 'Сүхбаатар', query: 'Төв талбай' },
+  { id: '3-4-khoroolol', label: '3, 4-р хороолол', district: 'Баянгол', query: '3-р хороолол' },
+  { id: '1-khoroolol', label: '1-р хороолол', district: 'Сонгинохайрхан', query: '1-р хороолол' },
+  { id: '10-khoroolol', label: '10-р хороолол', district: 'Баянгол', query: '10-р хороолол' },
+  { id: 'marshal-town', label: 'Маршал Таун', district: 'Хан-Уул', query: 'Маршал' },
+  { id: 'encanto', label: 'Encanto Town', district: 'Баянзүрх', query: 'Encanto' },
+  { id: 'belkh', label: 'Бэлх / Сэлх', district: 'Сүхбаатар', query: 'Бэлх' },
+];
 
 export interface SearchFilterParams {
   query: string;
@@ -34,6 +65,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const [category, setCategory] = useState('');
   const [district, setDistrict] = useState('');
   const [khoroo, setKhoroo] = useState('');
+  const [khorooOptions, setKhorooOptions] = useState<string[]>([]);
+  const [activePopularId, setActivePopularId] = useState<string | null>(null);
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [areaMin, setAreaMin] = useState('');
@@ -51,6 +84,90 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const { isListening, startListening } = useVoiceSearch((text) => {
     setQuery(text);
   });
+
+  // Dynamically load khoroos when district changes
+  useEffect(() => {
+    if (!district) {
+      setKhorooOptions([]);
+      setKhoroo('');
+      return;
+    }
+
+    const maxCount = DISTRICT_KHOROOS_MAP[district] || 25;
+    const fallbackList = Array.from({ length: maxCount }, (_, i) => `${i + 1}-р хороо`);
+
+    locationsAPI.getKhoroos(district)
+      .then((res) => {
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+          const names = res.data.map((item: any) => item.khoroo);
+          setKhorooOptions(names);
+        } else {
+          setKhorooOptions(fallbackList);
+        }
+      })
+      .catch(() => {
+        setKhorooOptions(fallbackList);
+      });
+  }, [district]);
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setDistrict(newDistrict);
+    setKhoroo('');
+    setActivePopularId(null);
+  };
+
+  const handlePopularLocationClick = (loc: typeof POPULAR_LOCATIONS[0]) => {
+    if (activePopularId === loc.id) {
+      // Toggle off / reset
+      setActivePopularId(null);
+      setDistrict('');
+      setKhoroo('');
+      setQuery('');
+      if (onSearch) {
+        onSearch({
+          query: '',
+          type,
+          category,
+          district: '',
+          khoroo: '',
+          priceMin,
+          priceMax,
+          areaMin,
+          areaMax,
+          bedrooms,
+          bathrooms,
+          yearBuiltMin,
+          constructionType,
+          sortBy,
+        });
+      }
+      return;
+    }
+
+    setActivePopularId(loc.id);
+    setDistrict(loc.district);
+    setKhoroo('');
+    setQuery(loc.query);
+
+    if (onSearch) {
+      onSearch({
+        query: loc.query,
+        type,
+        category,
+        district: loc.district,
+        khoroo: '',
+        priceMin,
+        priceMax,
+        areaMin,
+        areaMax,
+        bedrooms,
+        bathrooms,
+        yearBuiltMin,
+        constructionType,
+        sortBy,
+      });
+    }
+  };
 
   const handleSearch = () => {
     if (onSearch) {
@@ -72,7 +189,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       });
     }
   };
-
 
   return (
     <>
@@ -138,7 +254,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
             className={`flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
-              showAdvanced || priceMin || priceMax
+              showAdvanced || priceMin || priceMax || khoroo
                 ? 'bg-plasma/20 border-plasma/40 text-plasma shadow-sm'
                 : 'bg-void/50 border-white/10 text-nebula-text hover:text-plasma hover:border-plasma/30'
             }`}
@@ -148,10 +264,40 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           </button>
         </div>
 
+        {/* Popular Locations Horizontal Pills Bar */}
+        <div className="mb-4 pb-1">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="flex items-center space-x-1 text-xs font-bold text-plasma uppercase tracking-wider">
+              <Flame size={14} className="text-amber-400 fill-amber-400 animate-pulse" />
+              <span>Алдартай байршлууд:</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1 text-xs">
+            {POPULAR_LOCATIONS.map((loc) => {
+              const isActive = activePopularId === loc.id;
+              return (
+                <button
+                  key={loc.id}
+                  type="button"
+                  onClick={() => handlePopularLocationClick(loc)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-xl font-medium transition-all duration-200 flex items-center space-x-1.5 border ${
+                    isActive
+                      ? 'bg-gradient-to-r from-plasma to-nova text-white border-plasma shadow-md shadow-plasma/30 scale-[1.03]'
+                      : 'bg-void/40 border-white/10 text-nebula-text hover:text-starlight hover:bg-plasma/10 hover:border-plasma/30'
+                  }`}
+                >
+                  <MapPin size={12} className={isActive ? 'text-white' : 'text-plasma'} />
+                  <span>{loc.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Main Search Controls */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Keyword Search Input */}
-          <div className="md:col-span-4 relative">
+          <div className={`${district ? 'md:col-span-3' : 'md:col-span-4'} relative transition-all`}>
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-nebula-text">
               <Search className="h-5 w-5" />
             </div>
@@ -160,7 +306,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               id="search-keyword"
               name="keyword"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (activePopularId) setActivePopularId(null);
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="block w-full pl-11 pr-12 py-3 bg-void/50 border border-white/10 rounded-xl text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all text-sm"
               placeholder={t.hero.search + '...'}
@@ -177,7 +326,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           </div>
 
           {/* Category Dropdown */}
-          <div className="md:col-span-3 relative">
+          <div className={`${district ? 'md:col-span-2' : 'md:col-span-3'} relative transition-all`}>
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-nebula-text">
               <Home className="h-5 w-5" />
             </div>
@@ -191,14 +340,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <option value="">{t.filters.category} ({t.filters.all})</option>
               <option value="APARTMENT">{t.filters.apartment}</option>
               <option value="HOUSE">{t.filters.house}</option>
-              {/* <option value="LAND">{t.filters.land}</option> */}
               <option value="COMMERCIAL">{t.filters.commercial}</option>
-              {/* <option value="RESORT">{t.filters.resort}</option> */}
             </select>
           </div>
 
           {/* 9 Districts of Ulaanbaatar Dropdown */}
-          <div className="md:col-span-3 relative">
+          <div className={`${district ? 'md:col-span-3' : 'md:col-span-3'} relative transition-all`}>
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-nebula-text">
               <MapPin className="h-5 w-5" />
             </div>
@@ -206,10 +353,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               id="search-district"
               name="district"
               value={district}
-              onChange={(e) => setDistrict(e.target.value)}
+              onChange={(e) => handleDistrictChange(e.target.value)}
               className="block w-full pl-11 pr-8 py-3 bg-void/50 border border-white/10 rounded-xl text-starlight focus:outline-none focus:border-plasma appearance-none text-sm cursor-pointer"
             >
-              <option value="">{t.filters.location}</option>
+              <option value="">{t.filters.location} (Бүх дүүрэг)</option>
               <option value="Баянгол">{t.filters.districts.bayangol}</option>
               <option value="Баянзүрх">{t.filters.districts.bayanzurkh}</option>
               <option value="Сонгинохайрхан">{t.filters.districts.songinokhairkhan}</option>
@@ -221,6 +368,34 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <option value="Налайх">{t.filters.districts.nalaikh}</option>
             </select>
           </div>
+
+          {/* Khoroo Dropdown (Shown when district is selected) */}
+          {district && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="md:col-span-2 relative transition-all"
+            >
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-plasma">
+                <Layers className="h-4 w-4" />
+              </div>
+              <select
+                id="search-khoroo"
+                name="khoroo"
+                value={khoroo}
+                onChange={(e) => setKhoroo(e.target.value)}
+                className="block w-full pl-9 pr-7 py-3 bg-plasma/10 border border-plasma/40 rounded-xl text-starlight focus:outline-none focus:border-plasma appearance-none text-sm cursor-pointer font-medium"
+              >
+                <option value="" className="bg-nebula text-starlight">Бүх хороо</option>
+                {khorooOptions.map((k) => (
+                  <option key={k} value={k} className="bg-nebula text-starlight">
+                    {k}
+                  </option>
+                ))}
+              </select>
+            </motion.div>
+          )}
 
           {/* Search, Alert & Filter Buttons */}
           <div className="md:col-span-2 flex items-center space-x-2">
@@ -387,15 +562,31 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       <FilterDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+        district={district}
+        khoroo={khoroo}
         onApply={(filters) => {
+          if (filters.district !== undefined) setDistrict(filters.district);
+          if (filters.khoroo !== undefined) setKhoroo(filters.khoroo);
+          if (filters.priceMin !== undefined) setPriceMin(filters.priceMin);
+          if (filters.priceMax !== undefined) setPriceMax(filters.priceMax);
+          if (filters.areaMin !== undefined) setAreaMin(filters.areaMin);
+          if (filters.areaMax !== undefined) setAreaMax(filters.areaMax);
+
           if (onSearch) {
             onSearch({
               query,
               type,
               category,
-              district,
-              priceMin: filters.priceMin,
-              priceMax: filters.priceMax,
+              district: filters.district !== undefined ? filters.district : district,
+              khoroo: filters.khoroo !== undefined ? filters.khoroo : khoroo,
+              priceMin: filters.priceMin !== undefined ? filters.priceMin : priceMin,
+              priceMax: filters.priceMax !== undefined ? filters.priceMax : priceMax,
+              areaMin: filters.areaMin !== undefined ? filters.areaMin : areaMin,
+              areaMax: filters.areaMax !== undefined ? filters.areaMax : areaMax,
+              bedrooms,
+              bathrooms,
+              yearBuiltMin,
+              constructionType,
               sortBy,
             });
           }
@@ -411,8 +602,15 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           type,
           category,
           district,
+          khoroo,
           priceMin,
           priceMax,
+          areaMin,
+          areaMax,
+          bedrooms,
+          bathrooms,
+          yearBuiltMin,
+          constructionType,
           sortBy,
         }}
       />
