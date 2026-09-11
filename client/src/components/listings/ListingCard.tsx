@@ -123,7 +123,7 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
 
 
             {/* Listing Type Tag */}
-            <div className="absolute bottom-3 left-3 flex items-center space-x-2">
+            <div className="absolute bottom-3 left-3 z-20 flex items-center space-x-2">
               <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${listing.type?.toLowerCase() === 'sale'
                   ? 'bg-plasma/80 text-white backdrop-blur-md'
                   : 'bg-aurora/80 text-white backdrop-blur-md'
@@ -142,7 +142,7 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
 
             {/* View & Share Counters Overlay */}
             {(listing.viewsCount !== undefined || listing.sharesCount !== undefined) && (
-              <div className="absolute bottom-2 left-3 flex items-center space-x-3 text-[11px] text-white bg-void/80 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-white/10">
+              <div className="absolute bottom-2 right-3 z-10 flex items-center space-x-3 text-[11px] text-white bg-void/80 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-white/10">
                 <span className="flex items-center space-x-1">
                   <Eye size={12} className="text-aurora" />
                   <span>{listing.viewsCount || 0}</span>
