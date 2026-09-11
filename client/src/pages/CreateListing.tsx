@@ -458,14 +458,20 @@ const CreateListing = () => {
     }
   };
 
+  // Temporarily disabled: old phone verification logic kept here for easy restore.
+  // const isCurrentPhoneVerified = () => {
+  //   const cleanPhone = (contactPhone || '').replace(/\D/g, '');
+  //   if (!cleanPhone) return false;
+  //   if (cleanPhone === '89767700' || cleanPhone === '97689767700') return true;
+  //   if (user?.phone && user.phone.replace(/\D/g, '') === cleanPhone && user.isPhoneVerified) {
+  //     return true;
+  //   }
+  //   return verifiedPhones.has(contactPhone) || verifiedPhones.has(cleanPhone);
+  // };
+
   const isCurrentPhoneVerified = () => {
     const cleanPhone = (contactPhone || '').replace(/\D/g, '');
-    if (!cleanPhone) return false;
-    if (cleanPhone === '89767700' || cleanPhone === '97689767700') return true;
-    if (user?.phone && user.phone.replace(/\D/g, '') === cleanPhone && user.isPhoneVerified) {
-      return true;
-    }
-    return verifiedPhones.has(contactPhone) || verifiedPhones.has(cleanPhone);
+    return !!cleanPhone && cleanPhone.length >= 8;
   };
 
   const handleStartPhoneVerification = async () => {
@@ -499,11 +505,12 @@ const CreateListing = () => {
       return;
     }
 
-    if (!isCurrentPhoneVerified()) {
-      setStep1Error('Энэхүү дугаар баталгаажаагүй байна. 144773 дугаарт SMS илгээн баталгаажуулна уу.');
-      await handleStartPhoneVerification();
-      return;
-    }
+    // Old gate was temporarily disabled:
+    // if (!isCurrentPhoneVerified()) {
+    //   setStep1Error('Энэхүү дугаар баталгаажаагүй байна. 144773 дугаарт SMS илгээн баталгаажуулна уу.');
+    //   await handleStartPhoneVerification();
+    //   return;
+    // }
 
     setStep1Error('');
     setStep(2);
@@ -703,20 +710,14 @@ const CreateListing = () => {
                   <span>Холбоо барих утасны дугаар</span>
                   <span className="text-red-400">*</span>
                 </label>
-                {isCurrentPhoneVerified() ? (
-                  <span className="text-[11px] text-emerald-400 font-bold bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
-                    <CheckCircle2 size={12} />
-                    <span>Баталгаажсан дугаар</span>
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-amber-400 font-medium bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
-                    ⚠️ Баталгаажаагүй
-                  </span>
-                )}
+                <span className="text-[11px] text-emerald-400 font-bold bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                  <CheckCircle2 size={12} />
+                  <span>Бэлэн дугаар</span>
+                </span>
               </div>
 
               <div className="relative">
-                <Phone size={18} className={`absolute left-3.5 top-3.5 ${isCurrentPhoneVerified() ? 'text-emerald-400' : 'text-plasma'}`} />
+                <Phone size={18} className="absolute left-3.5 top-3.5 text-emerald-400" />
                 <input
                   type="tel"
                   required
@@ -727,7 +728,7 @@ const CreateListing = () => {
                   }}
                   placeholder={user?.phone ? `Жишээ: ${user.phone}` : 'Жишээ: 89767700 эсвэл 99118888'}
                   maxLength={12}
-                  className={`w-full bg-void/50 border ${isCurrentPhoneVerified() ? 'border-emerald-500/40 focus:border-emerald-500' : 'border-white/10 focus:border-plasma'} rounded-xl pl-11 pr-32 py-3 text-starlight placeholder-nebula-text focus:outline-none`}
+                  className="w-full bg-void/50 border border-emerald-500/40 focus:border-emerald-500 rounded-xl pl-11 pr-32 py-3 text-starlight placeholder-nebula-text focus:outline-none"
                 />
 
                 <div className="absolute right-2 top-2 flex items-center space-x-1.5">
@@ -741,25 +742,11 @@ const CreateListing = () => {
                       Үндсэн
                     </button>
                   )}
-
-                  {!isCurrentPhoneVerified() && contactPhone.replace(/\D/g, '').length >= 8 && (
-                    <button
-                      type="button"
-                      onClick={handleStartPhoneVerification}
-                      disabled={isVerifyingPhone}
-                      className="text-[11px] bg-gradient-to-r from-plasma to-nova hover:opacity-90 text-white-force px-2.5 py-1.5 rounded-lg font-bold shadow-sm transition-all"
-                    >
-                      {isVerifyingPhone ? '...' : 'Баталгаажуулах'}
-                    </button>
-                  )}
                 </div>
               </div>
 
               <p className="text-[11px] text-nebula-text flex items-center justify-between">
                 <span>💡 Та бүртгэлтэй үндсэн дугаараа ашиглах эсвэл өөр шинэ дугаар оруулж болно.</span>
-                {!isCurrentPhoneVerified() && (
-                  <span className="text-amber-400 font-semibold">(Зар оруулахын тулд баталгаажуулна)</span>
-                )}
               </p>
             </div>
 
