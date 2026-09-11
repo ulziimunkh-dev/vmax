@@ -62,7 +62,7 @@ export const ReelsFeedModal: React.FC<ReelsFeedModalProps> = ({
 
   const current = reelListings[currentIndex];
   const seller = current?.user;
-  const sellerPhone = seller?.phone || current?.contactPhone || '89767700';
+  const sellerPhone = current?.contactPhone || current?.attributes?.contactPhone || seller?.phone || '89767700';
 
   return (
     <AnimatePresence>

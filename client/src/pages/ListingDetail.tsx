@@ -725,7 +725,7 @@ const ListingDetail = () => {
                 const sellerName = seller?.name || listing.attributes?.contactName || 'Батболд';
                 const sellerAvatar = seller?.avatarUrl || seller?.avatar;
                 const sellerInitial = sellerName ? sellerName.charAt(0).toUpperCase() : 'Б';
-                const rawPhone = seller?.phone || listing.attributes?.contactPhone || '8976-7700';
+                const rawPhone = listing.contactPhone || listing.attributes?.contactPhone || seller?.phone || '8976-7700';
                 const displayMaskedPhone = rawPhone.length >= 4 ? `${rawPhone.slice(0, 4)}-****` : '8976-****';
                 const finalPhone = revealedPhone || rawPhone;
 
