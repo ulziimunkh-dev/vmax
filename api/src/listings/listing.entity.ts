@@ -2,6 +2,11 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } f
 import { User } from '../users/user.entity';
 import { ListingType, ListingCategory, ListingStatus, PromotionTier } from './enums/listing.enums';
 
+export const ColumnNumericTransformer = {
+  to: (data: number | null): number | null => data,
+  from: (data: string | null): number | null => (data ? parseFloat(data) : null),
+};
+
 @Entity('listings')
 export class Listing {
   @PrimaryGeneratedColumn('uuid')
@@ -25,7 +30,9 @@ export class Listing {
   })
   category: ListingCategory;
 
-  @Column('decimal')
+  @Column('decimal', {
+    transformer: ColumnNumericTransformer,
+  })
   price: number;
 
   @Column()
@@ -100,7 +107,10 @@ export class Listing {
   @Column({ nullable: true })
   promotedUntil: Date;
 
-  @Column('decimal', { nullable: true })
+  @Column('decimal', {
+    nullable: true,
+    transformer: ColumnNumericTransformer,
+  })
   originalPrice: number | null;
 
   @Column({ type: 'timestamptz', nullable: true })

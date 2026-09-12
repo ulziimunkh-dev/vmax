@@ -236,8 +236,13 @@ export class ListingsService {
 
     const hasVideo = Boolean(createListingDto.videoUrl && createListingDto.videoUrl.trim().length > 0);
     const origPrice = createListingDto.originalPrice ? Number(createListingDto.originalPrice) : null;
-    const saleEnd = createListingDto.saleEndsAt ? new Date(createListingDto.saleEndsAt) : null;
     const currentPrice = Number(createListingDto.price) || 0;
+    let saleEnd = createListingDto.saleEndsAt ? new Date(createListingDto.saleEndsAt) : null;
+
+    if (origPrice && origPrice > currentPrice && !saleEnd) {
+      saleEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
+
     const isOnSale = Boolean(origPrice && origPrice > currentPrice && saleEnd);
 
     const listing = this.listingsRepository.create({
@@ -289,10 +294,11 @@ export class ListingsService {
       const origPriceNum = currentOriginalPrice ? Number(currentOriginalPrice) : null;
       const priceNum = currentPrice ? Number(currentPrice) : 0;
 
-      if (origPriceNum && origPriceNum > priceNum && currentSaleEndsAt) {
+      if (origPriceNum && origPriceNum > priceNum) {
+        const endDate = currentSaleEndsAt ? new Date(currentSaleEndsAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         listing.isOnSale = true;
         listing.originalPrice = origPriceNum;
-        listing.saleEndsAt = new Date(currentSaleEndsAt);
+        listing.saleEndsAt = endDate;
       } else {
         listing.isOnSale = false;
         listing.originalPrice = null;
