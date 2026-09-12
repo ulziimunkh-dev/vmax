@@ -93,6 +93,56 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
     }
   };
 
+  const handleFacebookShare = async () => {
+    const fullText = `${shareText}\n${shareUrl}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(fullText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }
+    } catch {
+      // silent
+    }
+
+    if (typeof window !== 'undefined' && (window as any).FB && typeof (window as any).FB.ui === 'function') {
+      try {
+        (window as any).FB.ui(
+          {
+            method: 'share',
+            href: shareUrl,
+            quote: fullText,
+          },
+          function () {
+            recordShare();
+          }
+        );
+        return;
+      } catch (err) {
+        console.warn('FB.ui share failed:', err);
+      }
+    }
+
+    const sharerUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(fullText)}`;
+    openShareLink(sharerUrl);
+  };
+
+  const handleFacebookPosterShare = () => {
+    handleDownloadPoster();
+    const fullText = `${shareText}\n${shareUrl}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fullText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      }
+    } catch {}
+
+    setTimeout(() => {
+      openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(fullText)}`);
+    }, 600);
+  };
+
   const openShareLink = (url: string) => {
     window.open(url, '_blank', 'width=600,height=500,scrollbars=yes,resizable=yes');
     recordShare();
@@ -339,7 +389,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
               {/* Social buttons */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <button
-                  onClick={() => openShareLink('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl))}
+                  onClick={handleFacebookShare}
                   className={BTN}
                 >
                   <div className="p-2 rounded-lg bg-[#1877F2] shrink-0">
@@ -439,7 +489,7 @@ export const SocialShareModal: React.FC<SocialShareModalProps> = ({
                   )}
 
                   <button
-                    onClick={() => { handleDownloadPoster(); setTimeout(() => openShareLink('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl)), 500); }}
+                    onClick={handleFacebookPosterShare}
                     disabled={isGenerating}
                     className={BTN_SM}
                   >
