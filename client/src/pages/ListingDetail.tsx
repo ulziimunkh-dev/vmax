@@ -730,6 +730,68 @@ const ListingDetail = () => {
                         <span className="text-sm font-bold text-starlight">{listing.attributes.elevator}</span>
                       </div>
                     )}
+
+                    {/* Category-Specific Detailed Specs */}
+                    {listing.attributes.landAreaSqm && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🌳 Газрын хэмжээ</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.landAreaSqm} м.кв</span>
+                      </div>
+                    )}
+                    {listing.attributes.heatingType && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🔥 Халаалтын систем</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.heatingType}</span>
+                      </div>
+                    )}
+                    {listing.attributes.waterSupply && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">💧 Цэвэр, бохир ус</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.waterSupply}</span>
+                      </div>
+                    )}
+                    {listing.attributes.commercialType && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🏬 Талбайн зориулалт</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.commercialType}</span>
+                      </div>
+                    )}
+                    {listing.attributes.ceilingHeight && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">📐 Таазны өндөр</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.ceilingHeight} м</span>
+                      </div>
+                    )}
+                    {listing.attributes.powerCapacity && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">⚡ Цахилгааны чадал</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.powerCapacity} кВт</span>
+                      </div>
+                    )}
+                    {listing.attributes.entranceType && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🚪 Орц гарц</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.entranceType}</span>
+                      </div>
+                    )}
+                    {listing.attributes.hvac && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">❄️ Агааржуулалт & Хөргөлт</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.hvac}</span>
+                      </div>
+                    )}
+                    {listing.attributes.landUsage && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">📌 Газрын зориулалт</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.landUsage}</span>
+                      </div>
+                    )}
+                    {listing.attributes.ownershipType && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">📜 Эзэмшлийн эрх</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.ownershipType}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Payment Terms Chips */}

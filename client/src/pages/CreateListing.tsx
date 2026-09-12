@@ -168,6 +168,23 @@ const CreateListing = () => {
   const [paymentTerms, setPaymentTerms] = useState<string[]>([]);
   const [amenities, setAmenities] = useState<string[]>([]);
 
+  // Category-Specific Dynamic Attributes State
+  // HOUSE / TOWNHOUSE specific
+  const [landAreaSqm, setLandAreaSqm] = useState('');
+  const [heatingType, setHeatingType] = useState('');
+  const [waterSupply, setWaterSupply] = useState('');
+
+  // COMMERCIAL / OFFICE specific
+  const [commercialType, setCommercialType] = useState('');
+  const [ceilingHeight, setCeilingHeight] = useState('');
+  const [entranceType, setEntranceType] = useState('');
+  const [powerCapacity, setPowerCapacity] = useState('');
+  const [hvac, setHvac] = useState('');
+
+  // LAND specific
+  const [landUsage, setLandUsage] = useState('');
+  const [ownershipType, setOwnershipType] = useState('');
+
   const toggleChip = <T extends string>(arr: T[], val: T, setFn: React.Dispatch<React.SetStateAction<T[]>>) => {
     setFn(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
   };
@@ -236,6 +253,17 @@ const CreateListing = () => {
             if (attr.elevator) setElevator(String(attr.elevator));
             if (attr.paymentTerms) setPaymentTerms(Array.isArray(attr.paymentTerms) ? attr.paymentTerms : [String(attr.paymentTerms)]);
             if (attr.amenities) setAmenities(Array.isArray(attr.amenities) ? attr.amenities : []);
+
+            if (attr.landAreaSqm !== undefined && attr.landAreaSqm !== null) setLandAreaSqm(String(attr.landAreaSqm));
+            if (attr.heatingType) setHeatingType(String(attr.heatingType));
+            if (attr.waterSupply) setWaterSupply(String(attr.waterSupply));
+            if (attr.commercialType) setCommercialType(String(attr.commercialType));
+            if (attr.ceilingHeight !== undefined && attr.ceilingHeight !== null) setCeilingHeight(String(attr.ceilingHeight));
+            if (attr.entranceType) setEntranceType(String(attr.entranceType));
+            if (attr.powerCapacity !== undefined && attr.powerCapacity !== null) setPowerCapacity(String(attr.powerCapacity));
+            if (attr.hvac) setHvac(String(attr.hvac));
+            if (attr.landUsage) setLandUsage(String(attr.landUsage));
+            if (attr.ownershipType) setOwnershipType(String(attr.ownershipType));
           }
         }
       })
@@ -562,6 +590,18 @@ const CreateListing = () => {
       if (paymentTerms.length > 0) attrPayload.paymentTerms = paymentTerms;
       if (amenities.length > 0) attrPayload.amenities = amenities;
 
+      // Category-Specific attributes
+      if (landAreaSqm) attrPayload.landAreaSqm = Number(parsePrice(landAreaSqm));
+      if (heatingType) attrPayload.heatingType = heatingType;
+      if (waterSupply) attrPayload.waterSupply = waterSupply;
+      if (commercialType) attrPayload.commercialType = commercialType;
+      if (ceilingHeight) attrPayload.ceilingHeight = Number(ceilingHeight);
+      if (entranceType) attrPayload.entranceType = entranceType;
+      if (powerCapacity) attrPayload.powerCapacity = Number(powerCapacity);
+      if (hvac) attrPayload.hvac = hvac;
+      if (landUsage) attrPayload.landUsage = landUsage;
+      if (ownershipType) attrPayload.ownershipType = ownershipType;
+
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
 
       if (finalImages.length === 0 && !videoPreview) {
@@ -842,11 +882,237 @@ const CreateListing = () => {
               </div>
             </div>
 
+            {/* Category-Specific Special Feature Attribute Sections */}
+            {category === 'HOUSE' && (
+              <div className="p-4 bg-plasma/10 border border-plasma/30 rounded-2xl space-y-4">
+                <div className="text-sm font-bold text-plasma flex items-center">
+                  <span>🏡 Хаус / Таунхаус-ийн онцлог шинжүүд</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-nebula-text mb-1">
+                      🌳 Эзэмшлийн газрын хэмжээ (м.кв)
+                    </label>
+                    <input
+                      type="number"
+                      value={landAreaSqm}
+                      onChange={(e) => setLandAreaSqm(e.target.value)}
+                      placeholder="Жишээ: 700 (м.кв)"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-nebula-text mb-1">
+                      🏢 Барилгын давхрын тоо
+                    </label>
+                    <input
+                      type="number"
+                      value={totalFloors}
+                      onChange={(e) => setTotalFloors(e.target.value)}
+                      placeholder="Жишээ: 2 давхар"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma"
+                    />
+                  </div>
+                </div>
+
+                {/* Heating system */}
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">🔥 Халаалтын систем</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Төвийн халаалттай', 'Цахилгаан халаалттай', 'Паар/начны хосломол', 'Наран халаалттай', 'Гүний дулаан (Geothermal)'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(heatingType, opt, setHeatingType)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          heatingType === opt
+                            ? 'bg-plasma/30 border-plasma text-plasma'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Water & Sewerage System */}
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">💧 Цэвэр, бохир усны систем</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Төвийн шугамтай', 'Гүний цооногтой', 'Септик танктай', 'Зөөврийн устай', 'Био жорлонтой'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(waterSupply, opt, setWaterSupply)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          waterSupply === opt
+                            ? 'bg-aurora/30 border-aurora text-aurora'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {category === 'COMMERCIAL' && (
+              <div className="p-4 bg-aurora/10 border border-aurora/30 rounded-2xl space-y-4">
+                <div className="text-sm font-bold text-aurora flex items-center">
+                  <span>🏢 Оффис / Үйлчилгээний талбайн онцлог шинжүүд</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">🏬 Талбайн зориулалт</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Оффисын талбай', 'Үйлчилгээний талбай', 'Дэлгүүр / Шоурум', 'Ресторан / Кафе', 'Үйлдвэр / Агуулах', 'Эмнэлэг / Салон'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(commercialType, opt, setCommercialType)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          commercialType === opt
+                            ? 'bg-aurora/30 border-aurora text-aurora'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-nebula-text mb-1">
+                      📐 Таазны өндөр (метр)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={ceilingHeight}
+                      onChange={(e) => setCeilingHeight(e.target.value)}
+                      placeholder="Жишээ: 3.5 (м)"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-aurora"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-nebula-text mb-1">
+                      ⚡ Цахилгааны чадал (кВт)
+                    </label>
+                    <input
+                      type="number"
+                      value={powerCapacity}
+                      onChange={(e) => setPowerCapacity(e.target.value)}
+                      placeholder="Жишээ: 50 (кВт)"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-aurora"
+                    />
+                  </div>
+                </div>
+
+                {/* Entrance Type */}
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">🚪 Орц гарц</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Тусдаа бие даасан орцтой', 'Нийтийн орцтой', 'Рампатай ачих буулгах хэсэгтэй', 'Төв замаас шууд орцтой'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(entranceType, opt, setEntranceType)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          entranceType === opt
+                            ? 'bg-plasma/30 border-plasma text-plasma'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* HVAC */}
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">❄️ Агааржуулалт & Хөргөлт</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Төвлөрсөн агааржуулалттай', 'Кондиционертэй', 'Бие даасан вентиляцитай', 'Цонхны салхивчтай'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(hvac, opt, setHvac)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          hvac === opt
+                            ? 'bg-nova/30 border-nova text-nova'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {category === 'LAND' && (
+              <div className="p-4 bg-nova/10 border border-nova/30 rounded-2xl space-y-4">
+                <div className="text-sm font-bold text-nova flex items-center">
+                  <span>🏞️ Газрын онцлог шинжүүд</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">📌 Газрын зориулалт</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Амины сууц / Зуслан', 'Худалдаа үйлчилгээ', 'Үйлдвэр агуулах', 'Хөдөө аж ахуй', 'Аялал жуулчлал'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(landUsage, opt, setLandUsage)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          landUsage === opt
+                            ? 'bg-nova/30 border-nova text-nova'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">📜 Эзэмшлийн эрх</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Өмчилсөн (100% өмчлөх эрхийн гэрчилгээтэй)', 'Эзэмших эрхийн гэрчилгээтэй (15 жил)', 'Ашиглах эрхтэй'].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleSingle(ownershipType, opt, setOwnershipType)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
+                          ownershipType === opt
+                            ? 'bg-aurora/30 border-aurora text-aurora'
+                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Expanded Asset Attributes Form Grid */}
             <div className="p-4 bg-void/40 border border-white/10 rounded-2xl space-y-4">
               <div className="text-sm font-bold text-plasma flex items-center">
                 <Layers size={16} className="mr-2" />
-                <span>{t.assetAttributes.title} (Unegui.mn Стандарт)</span>
+                <span>{t.assetAttributes.title} (Энгийн үзүүлэлтүүд)</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
