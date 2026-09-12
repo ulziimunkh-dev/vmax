@@ -49,6 +49,22 @@ export class ListingsService {
       .set({ isPromoted: false, promotionTier: PromotionTier.STANDARD })
       .where('promotedUntil <= :now AND isPromoted = true', { now })
       .execute();
+
+    // Auto-revert expired promotional sale prices back to regular price
+    const expiredSales = await this.listingsRepository
+      .createQueryBuilder('listing')
+      .where('listing.saleEndsAt <= :now AND listing.isOnSale = true', { now })
+      .getMany();
+
+    for (const listing of expiredSales) {
+      if (listing.originalPrice) {
+        listing.price = listing.originalPrice;
+      }
+      listing.originalPrice = null;
+      listing.saleEndsAt = null;
+      listing.isOnSale = false;
+      await this.listingsRepository.save(listing);
+    }
   }
 
   private async checkUserQuota(user: User) {
@@ -219,6 +235,7 @@ export class ListingsService {
     ));
 
     const hasVideo = Boolean(createListingDto.videoUrl && createListingDto.videoUrl.trim().length > 0);
+    const isOnSale = Boolean(createListingDto.originalPrice && Number(createListingDto.originalPrice) > Number(createListingDto.price) && createListingDto.saleEndsAt);
 
     const listing = this.listingsRepository.create({
       ...createListingDto,
@@ -226,6 +243,8 @@ export class ListingsService {
       contactPhone,
       user,
       expiresAt,
+      isOnSale,
+      saleEndsAt: createListingDto.saleEndsAt ? new Date(createListingDto.saleEndsAt) : null,
     });
 
     const savedListing = await this.listingsRepository.save(listing);
@@ -257,6 +276,21 @@ export class ListingsService {
     Object.assign(listing, updateDto);
     if (updateDto.videoUrl !== undefined) {
       listing.hasVideo = Boolean(updateDto.videoUrl && updateDto.videoUrl.trim().length > 0);
+    }
+    if (updateDto.originalPrice !== undefined || updateDto.saleEndsAt !== undefined || updateDto.price !== undefined) {
+      const currentOriginalPrice = updateDto.originalPrice ?? listing.originalPrice;
+      const currentPrice = updateDto.price ?? listing.price;
+      const currentSaleEndsAt = updateDto.saleEndsAt ?? listing.saleEndsAt;
+
+      if (currentOriginalPrice && Number(currentOriginalPrice) > Number(currentPrice) && currentSaleEndsAt) {
+        listing.isOnSale = true;
+        listing.originalPrice = currentOriginalPrice;
+        listing.saleEndsAt = new Date(currentSaleEndsAt);
+      } else {
+        listing.isOnSale = false;
+        listing.originalPrice = null;
+        listing.saleEndsAt = null;
+      }
     }
     return this.listingsRepository.save(listing);
   }

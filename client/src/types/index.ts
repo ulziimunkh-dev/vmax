@@ -50,6 +50,9 @@ export interface Listing {
 
   promotionTier?: PromotionTier;
   promotedUntil?: string;
+  originalPrice?: number;
+  saleEndsAt?: string;
+  isOnSale?: boolean;
 }
 
 export interface FilterState {

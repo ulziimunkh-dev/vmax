@@ -125,6 +125,9 @@ const CreateListing = () => {
   }, [user?.phone, user?.isPhoneVerified]);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [isSaleDiscountEnabled, setIsSaleDiscountEnabled] = useState(false);
+  const [originalPriceInput, setOriginalPriceInput] = useState('');
+  const [saleDurationDays, setSaleDurationDays] = useState('7');
   const [areaSqm, setAreaSqm] = useState('');
   const [district, setDistrict] = useState('Хан-Уул');
   const [khoroo, setKhoroo] = useState('11-р хороо');
@@ -192,6 +195,10 @@ const CreateListing = () => {
           setTitle(d.title || '');
           setDescription(d.description || '');
           setPrice(d.price !== undefined && d.price !== null ? String(d.price) : '');
+          if (d.originalPrice && d.price && Number(d.originalPrice) > Number(d.price)) {
+            setIsSaleDiscountEnabled(true);
+            setOriginalPriceInput(String(d.originalPrice));
+          }
           setAreaSqm(d.areaSqm !== undefined && d.areaSqm !== null ? String(d.areaSqm) : '');
           setDistrict(d.district || 'Хан-Уул');
           setKhoroo(d.khoroo || '11-р хороо');
@@ -562,12 +569,28 @@ const CreateListing = () => {
         return;
       }
 
+      let originalPriceVal: number | undefined = undefined;
+      let saleEndsAtVal: string | undefined = undefined;
+
+      if (isSaleDiscountEnabled && originalPriceInput) {
+        const origPriceNum = Number(originalPriceInput);
+        const currentPriceNum = Number(price) || 0;
+        if (origPriceNum > currentPriceNum) {
+          originalPriceVal = origPriceNum;
+          const durationDays = Number(saleDurationDays) || 7;
+          const endDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+          saleEndsAtVal = endDate.toISOString();
+        }
+      }
+
       const payload = {
         title,
         description,
         type,
         category,
         price: Number(price) || 0,
+        originalPrice: originalPriceVal,
+        saleEndsAt: saleEndsAtVal,
         areaSqm: Number(areaSqm) || 0,
         district,
         khoroo,
@@ -1069,7 +1092,7 @@ const CreateListing = () => {
               <PriceInput
                 value={price}
                 onChange={setPrice}
-                label="Үнэ (₮)"
+                label={isSaleDiscountEnabled ? "Хямдралтай үнэ (₮)" : "Үнэ (₮)"}
                 placeholder="Жишээ: 850,000,000"
                 showQuickAmounts
                 mode={type === 'RENT' ? 'rent' : 'sale'}
@@ -1087,6 +1110,81 @@ const CreateListing = () => {
                   className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma text-sm"
                 />
               </div>
+            </div>
+
+            {/* Limited-Time Sale Discount Option */}
+            <div className="bg-gradient-to-r from-plasma/10 to-amber-500/10 border border-plasma/30 rounded-2xl p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">🔥</span>
+                  <div>
+                    <h4 className="text-sm font-semibold text-starlight">Хугацаатай хямдрал зарлах</h4>
+                    <p className="text-xs text-nebula-text">Зард хямдралын тэмдэглэгээ ба үндсэн үнийн зураасан цуцлалт харагдана</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isSaleDiscountEnabled}
+                    onChange={(e) => {
+                      setIsSaleDiscountEnabled(e.target.checked);
+                      if (!e.target.checked) setOriginalPriceInput('');
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-void/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-starlight after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-plasma"></div>
+                </label>
+              </div>
+
+              {isSaleDiscountEnabled && (
+                <div className="pt-2 border-t border-white/10 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <PriceInput
+                      value={originalPriceInput}
+                      onChange={setOriginalPriceInput}
+                      label="Үндсэн (хямдрахаас өмнөх) үнэ (₮)"
+                      placeholder="Жишээ: 1,000,000,000"
+                      showQuickAmounts
+                      mode={type === 'RENT' ? 'rent' : 'sale'}
+                    />
+                    <div>
+                      <label className="block text-xs font-semibold text-nebula-text mb-1.5">
+                        Хямдралын үргэлжлэх хугацаа
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {['3', '7', '14', '30'].map((days) => (
+                          <button
+                            key={days}
+                            type="button"
+                            onClick={() => setSaleDurationDays(days)}
+                            className={`py-2.5 px-3 rounded-xl text-xs font-medium border transition-all ${
+                              saleDurationDays === days
+                                ? 'bg-plasma text-white border-plasma shadow-md shadow-plasma/20'
+                                : 'bg-void/50 border-white/10 text-nebula-text hover:text-starlight'
+                            }`}
+                          >
+                            {days} хоног
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {Number(originalPriceInput) > Number(price) && Number(price) > 0 && (
+                    <div className="flex items-center justify-between bg-void/40 rounded-xl p-3 border border-white/5 text-xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="bg-red-500/20 text-red-400 font-bold px-2 py-0.5 rounded-full border border-red-500/30">
+                          🔥 -{Math.round(((Number(originalPriceInput) - Number(price)) / Number(originalPriceInput)) * 100)}% Хямдрал
+                        </span>
+                        <span className="text-nebula-text">
+                          Үндсэн үнэ: <span className="line-through text-starlight/60">{Number(originalPriceInput).toLocaleString()}₮</span> → Хямдралтай үнэ: <span className="text-emerald-400 font-bold">{Number(price).toLocaleString()}₮</span>
+                        </span>
+                      </div>
+                      <span className="text-amber-400 font-medium">{saleDurationDays} хоногийн дараа автоматаар үндсэн үнэндээ буцна</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>

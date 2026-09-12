@@ -100,6 +100,15 @@ export class Listing {
   @Column({ nullable: true })
   promotedUntil: Date;
 
+  @Column('decimal', { nullable: true })
+  originalPrice: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  saleEndsAt: Date | null;
+
+  @Column({ default: false })
+  isOnSale: boolean;
+
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

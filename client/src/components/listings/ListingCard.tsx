@@ -157,9 +157,23 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
 
           <div className="p-5">
             <h3 className="text-xl font-bold text-starlight mb-2 truncate group-hover:text-plasma transition-colors">{listing.title}</h3>
-            <p className="text-2xl font-heading font-bold text-aurora text-glow-aurora mb-3">
-              {formatPriceMongolianWords(listing.price)}
-            </p>
+            {/* Price Display with Discount Strikethrough Support */}
+            <div className="mb-3 flex items-baseline flex-wrap gap-2">
+              <span className="text-2xl font-heading font-bold text-aurora text-glow-aurora">
+                {formatPriceMongolianWords(listing.price)}
+              </span>
+
+              {listing.originalPrice && Number(listing.originalPrice) > Number(listing.price) && (
+                <>
+                  <span className="text-sm line-through text-slate-400 font-medium">
+                    {formatPriceMongolianWords(listing.originalPrice)}
+                  </span>
+                  <span className="bg-red-500/20 border border-red-500/40 text-red-400 text-[11px] font-bold px-1.5 py-0.5 rounded-md">
+                    -{Math.round(((Number(listing.originalPrice) - Number(listing.price)) / Number(listing.originalPrice)) * 100)}%
+                  </span>
+                </>
+              )}
+            </div>
 
             {/* Location & Published Relative Time */}
             <div className="flex items-center justify-between text-nebula-text text-xs mb-4">

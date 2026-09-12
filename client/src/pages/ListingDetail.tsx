@@ -533,9 +533,26 @@ const ListingDetail = () => {
                   </div>
                 </div>
                 <div className="text-left sm:text-right flex flex-col items-start sm:items-end flex-shrink-0 whitespace-nowrap">
-                  <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora whitespace-nowrap tracking-wide">
-                    {formatPriceMongolianWords(listing.price)}
-                  </div>
+                  {listing.originalPrice && Number(listing.originalPrice) > Number(listing.price) ? (
+                    <div className="flex flex-col items-start sm:items-end space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs line-through text-slate-400 font-semibold">
+                          {formatPriceMongolianWords(listing.originalPrice)}
+                        </span>
+                        <span className="bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-bold px-2 py-0.5 rounded-full">
+                          🔥 -{Math.round(((Number(listing.originalPrice) - Number(listing.price)) / Number(listing.originalPrice)) * 100)}% Хямдрал
+                        </span>
+                      </div>
+                      <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora whitespace-nowrap tracking-wide">
+                        {formatPriceMongolianWords(listing.price)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora whitespace-nowrap tracking-wide">
+                      {formatPriceMongolianWords(listing.price)}
+                    </div>
+                  )}
+
                   <div className="text-nebula-text text-xs mt-1.5 whitespace-nowrap">
                     {listing.areaSqm ? Math.round(Number(listing.price) / listing.areaSqm).toLocaleString('en-US') : 0} ₮ / м.кв
                   </div>

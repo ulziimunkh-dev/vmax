@@ -58,4 +58,12 @@ export class CreateListingDto {
   @IsOptional()
   @IsString()
   videoThumbnailUrl?: string;
+
+  @IsOptional()
+  @IsNumber()
+  originalPrice?: number;
+
+  @IsOptional()
+  @IsString()
+  saleEndsAt?: string;
 }
