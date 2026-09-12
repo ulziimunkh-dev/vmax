@@ -16,6 +16,7 @@ import Pricing from '@/pages/Pricing';
 import CompareListings from '@/pages/CompareListings';
 import AboutUs from '@/pages/AboutUs';
 import TermsOfService from '@/pages/TermsOfService';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import { CompareFloatingBar } from '@/components/listings/CompareFloatingBar';
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
@@ -62,6 +63,8 @@ const App = () => {
               <Route path="/compare" element={<CompareListings />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/data-deletion" element={<PrivacyPolicy />} />
               <Route path="/create-listing" element={<CreateListing />} />
               <Route path="/listings/:id/edit" element={<CreateListing />} />
               <Route path="/listings/:id" element={<ListingDetail />} />

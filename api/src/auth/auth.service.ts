@@ -114,25 +114,30 @@ export class AuthService {
 
   async facebookLogin(accessToken: string) {
     try {
-      const response = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`);
+      const response = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`);
       const data = await response.json() as {
         error?: { message: string };
         id: string;
-        name: string;
-        email: string;
+        name?: string;
+        email?: string;
         picture?: { data?: { url?: string } };
       };
 
-      if (data.error) {
-        throw new UnauthorizedException('Invalid Facebook token');
+      if (data.error || !data.id) {
+        throw new UnauthorizedException(data.error?.message || 'Invalid Facebook token');
       }
 
-      let user = await this.usersService.findByEmail(data.email);
+      const email = data.email || `fb_${data.id}@vmax.mn`;
+      const name = data.name || 'Facebook User';
+      const avatarUrl = data.picture?.data?.url;
+
+      // 1. Try finding existing user by Facebook providerId or Email
+      let user = await this.usersService.findByEmail(email);
       if (!user) {
         user = await this.usersService.create({
-          email: data.email,
-          name: data.name,
-          avatarUrl: data.picture?.data?.url,
+          email,
+          name,
+          avatarUrl,
           authProvider: AuthProvider.FACEBOOK,
           providerId: data.id,
           isEmailVerified: true,
@@ -140,8 +145,8 @@ export class AuthService {
       }
 
       return this.generateToken(user);
-    } catch {
-      throw new UnauthorizedException('Invalid Facebook token');
+    } catch (err: any) {
+      throw new UnauthorizedException(err.message || 'Invalid Facebook token');
     }
   }
 

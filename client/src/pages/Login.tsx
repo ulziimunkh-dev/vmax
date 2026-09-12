@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { loginWithFacebook } from '@/utils/facebookAuth';
 
 const FacebookIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -98,6 +99,23 @@ const Login = () => {
     }
   };
 
+  const handleFacebookAuth = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const accessToken = await loginWithFacebook();
+      const response = await authAPI.facebookLogin(accessToken);
+      const { user, access_token } = response.data;
+      loginStore(user, access_token);
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || err.response?.data?.message || 'Facebook-ээр нэвтрэхэд алдаа гарлаа.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAppleAuth = async () => {
     setError('');
     setLoading(true);
@@ -183,12 +201,15 @@ const Login = () => {
             <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
           </button>
 
-          {/* Facebook Sign-In Button (Temporarily commented out until Facebook App Review)
-          <button type="button" className="w-full bg-[#1877F2] text-white-force font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-[#0c66db] transition-colors shadow-sm">
+          <button
+            type="button"
+            onClick={handleFacebookAuth}
+            disabled={loading}
+            className="w-full bg-[#1877F2] text-white font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-[#0c66db] transition-colors shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+          >
             <FacebookIcon />
-            <span>{t.auth.continueFacebook}</span>
+            <span className="font-semibold text-sm">{t.auth.continueFacebook}</span>
           </button>
-          */}
 
 
           <div className="flex items-center py-4">
