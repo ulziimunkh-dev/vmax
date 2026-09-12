@@ -32,11 +32,19 @@ import { parsePrice } from '@/utils/formatPrice';
 import { ImageEditorModal } from '@/components/common/ImageEditorModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getImageUrl } from '@/utils/imageUrl';
+import { loginWithFacebook } from '@/utils/facebookAuth';
+
+const FacebookIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+  </svg>
+);
 
 
 const CreateListing = () => {
   const { t } = useI18n();
   const { user, setUser } = useAuthStore();
+  const loginStore = useAuthStore((state) => state.login);
   const navigate = useNavigate();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +57,86 @@ const CreateListing = () => {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [successListingId, setSuccessListingId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const handleGoogleAuth = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (typeof window === 'undefined' || (!(window as any).google?.accounts?.id && !(window as any).google?.accounts?.oauth2)) {
+      setAuthError('Google Identity Services ачаалагдаж байна. Түр хүлээнэ үү.');
+      return;
+    }
+
+    if (!clientId) {
+      setAuthError('Google Client ID тохируулагдаагүй байна.');
+      return;
+    }
+
+    try {
+      if ((window as any).google?.accounts?.oauth2) {
+        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.access_token) {
+              setAuthLoading(true);
+              setAuthError('');
+              try {
+                const res = await authAPI.googleLogin(tokenResponse.access_token);
+                const { user: authedUser, access_token } = res.data;
+                loginStore(authedUser, access_token);
+              } catch (err: any) {
+                setAuthError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+              } finally {
+                setAuthLoading(false);
+              }
+            }
+          },
+        });
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+        return;
+      }
+
+      (window as any).google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (response: any) => {
+          if (!response?.credential) return;
+          try {
+            setAuthLoading(true);
+            setAuthError('');
+            const res = await authAPI.googleLogin(response.credential);
+            const { user: authedUser, access_token } = res.data;
+            loginStore(authedUser, access_token);
+          } catch (err: any) {
+            setAuthError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+          } finally {
+            setAuthLoading(false);
+          }
+        },
+      });
+
+      (window as any).google.accounts.id.prompt();
+    } catch {
+      setAuthError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа.');
+    }
+  };
+
+  const handleFacebookAuth = async () => {
+    setAuthError('');
+    setAuthLoading(true);
+
+    try {
+      const accessToken = await loginWithFacebook();
+      const response = await authAPI.facebookLogin(accessToken);
+      const { user: authedUser, access_token } = response.data;
+      loginStore(authedUser, access_token);
+    } catch (err: any) {
+      setAuthError(err.message || err.response?.data?.message || 'Facebook-ээр нэвтрэхэд алдаа гарлаа.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // Reel Video State (15-seconds max)
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -727,6 +815,104 @@ const CreateListing = () => {
     );
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-[85vh] flex items-center justify-center px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="glass-card max-w-lg w-full p-8 md:p-10 rounded-3xl border-glow relative overflow-hidden text-center space-y-8 shadow-2xl"
+        >
+          {/* Background Ambient Glow */}
+          <div className="absolute -top-24 -left-24 w-60 h-60 bg-plasma/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-nova/20 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Pro Badge & Icon Header */}
+          <div className="relative z-10 space-y-4">
+            <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-plasma/10 border border-plasma/30 text-plasma text-xs font-bold uppercase tracking-wider shadow-sm">
+              <ShieldCheck size={14} className="animate-pulse" />
+              <span>Pro Auth Gateway</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-heading font-black text-starlight tracking-tight">
+              Шинэ зар нийтлэхийн тулд <span className="bg-gradient-to-r from-plasma via-nova to-aurora bg-clip-text text-transparent">нэвтэрнэ үү</span>
+            </h1>
+            <p className="text-nebula-text text-sm md:text-base max-w-md mx-auto leading-relaxed">
+              VMAX.mn платформ дээр үл хөдлөх хөрөнгөө мянга мянган худалдан авагчдад шууд баталгаатайгаар хүргээрэй.
+            </p>
+          </div>
+
+          {/* Core Feature Highlights */}
+          <div className="grid grid-cols-3 gap-3 pt-2 text-left">
+            <div className="p-3 rounded-2xl bg-void/40 border border-white/5 space-y-1">
+              <div className="text-plasma font-bold text-base md:text-lg">⚡ 1 мин</div>
+              <div className="text-[11px] text-nebula-text leading-tight">Түргэн шуурхай нийтлэгдэнэ</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-void/40 border border-white/5 space-y-1">
+              <div className="text-aurora font-bold text-base md:text-lg">🔒 100%</div>
+              <div className="text-[11px] text-nebula-text leading-tight">SMS Дугаар баталгаажсан</div>
+            </div>
+            <div className="p-3 rounded-2xl bg-void/40 border border-white/5 space-y-1">
+              <div className="text-nova font-bold text-base md:text-lg">📢 Шэйр</div>
+              <div className="text-[11px] text-nebula-text leading-tight">Social Постер авто үүснэ</div>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {authError && (
+            <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-semibold">
+              ⚠️ {authError}
+            </div>
+          )}
+
+          {/* Auth Action Buttons */}
+          <div className="space-y-3 pt-2 relative z-10">
+            <button
+              onClick={handleGoogleAuth}
+              disabled={authLoading}
+              className="w-full bg-white text-gray-900 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-3 hover:bg-gray-100 transition-all shadow-md active:scale-95 cursor-pointer text-sm"
+            >
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+              <span>Google-ээр үргэлжлүүлэх</span>
+            </button>
+
+            <button
+              onClick={handleFacebookAuth}
+              disabled={authLoading}
+              className="w-full bg-[#1877F2] text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-3 hover:bg-[#0c66db] transition-all shadow-md active:scale-95 cursor-pointer text-sm"
+            >
+              <FacebookIcon />
+              <span>Facebook-ээр үргэлжлүүлэх</span>
+            </button>
+
+            <div className="flex items-center py-1">
+              <div className="flex-grow border-t border-white/10" />
+              <span className="px-3 text-nebula-text text-xs uppercase tracking-wider">эсвэл</span>
+              <div className="flex-grow border-t border-white/10" />
+            </div>
+
+            <button
+              onClick={() => navigate('/login?redirect=/create-listing')}
+              className="w-full bg-gradient-to-r from-plasma to-nova text-white-force font-bold py-3.5 px-4 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all text-sm cursor-pointer"
+            >
+              И-мэйл болон Нууц үгээр нэвтрэх
+            </button>
+
+            <p className="text-xs text-nebula-text pt-2">
+              Шинэ хэрэглэгч үү?{' '}
+              <button
+                onClick={() => navigate('/register?redirect=/create-listing')}
+                className="text-plasma font-semibold hover:underline cursor-pointer"
+              >
+                Бүртгүүлэх
+              </button>
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-8 border-glow">
@@ -791,7 +977,7 @@ const CreateListing = () => {
                     setContactPhone(e.target.value);
                     if (step1Error) setStep1Error('');
                   }}
-                  placeholder={user?.phone ? `Жишээ: ${user.phone}` : 'Жишээ: 89767700 эсвэл 99118888'}
+                  placeholder={user?.phone ? `Жишээ: ${user.phone}` : 'Жишээ: 99999999'}
                   maxLength={12}
                   className="w-full bg-void/50 border border-emerald-500/40 focus:border-emerald-500 rounded-xl pl-11 pr-32 py-3 text-starlight placeholder-nebula-text focus:outline-none"
                 />
@@ -926,11 +1112,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(heatingType, opt, setHeatingType)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          heatingType === opt
-                            ? 'bg-plasma/30 border-plasma text-plasma'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${heatingType === opt
+                          ? 'bg-plasma/30 border-plasma text-plasma'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -947,11 +1132,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(waterSupply, opt, setWaterSupply)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          waterSupply === opt
-                            ? 'bg-aurora/30 border-aurora text-aurora'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${waterSupply === opt
+                          ? 'bg-aurora/30 border-aurora text-aurora'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -975,11 +1159,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(commercialType, opt, setCommercialType)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          commercialType === opt
-                            ? 'bg-aurora/30 border-aurora text-aurora'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${commercialType === opt
+                          ? 'bg-aurora/30 border-aurora text-aurora'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1025,11 +1208,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(entranceType, opt, setEntranceType)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          entranceType === opt
-                            ? 'bg-plasma/30 border-plasma text-plasma'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${entranceType === opt
+                          ? 'bg-plasma/30 border-plasma text-plasma'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1046,11 +1228,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(hvac, opt, setHvac)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          hvac === opt
-                            ? 'bg-nova/30 border-nova text-nova'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${hvac === opt
+                          ? 'bg-nova/30 border-nova text-nova'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1074,11 +1255,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(landUsage, opt, setLandUsage)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          landUsage === opt
-                            ? 'bg-nova/30 border-nova text-nova'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${landUsage === opt
+                          ? 'bg-nova/30 border-nova text-nova'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1094,11 +1274,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(ownershipType, opt, setOwnershipType)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          ownershipType === opt
-                            ? 'bg-aurora/30 border-aurora text-aurora'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${ownershipType === opt
+                          ? 'bg-aurora/30 border-aurora text-aurora'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1153,11 +1332,10 @@ const CreateListing = () => {
                       key={opt}
                       type="button"
                       onClick={() => toggleSingle(constructionType, opt, setConstructionType)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                        constructionType === opt
-                          ? 'bg-plasma/30 border-plasma text-plasma'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
-                      }`}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${constructionType === opt
+                        ? 'bg-plasma/30 border-plasma text-plasma'
+                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                        }`}
                     >
                       {opt}
                     </button>
@@ -1177,11 +1355,10 @@ const CreateListing = () => {
                       key={opt}
                       type="button"
                       onClick={() => toggleSingle(condition, opt, setCondition)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                        condition === opt
-                          ? 'bg-aurora/30 border-aurora text-aurora'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                      }`}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${condition === opt
+                        ? 'bg-aurora/30 border-aurora text-aurora'
+                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                        }`}
                     >
                       {opt}
                     </button>
@@ -1205,11 +1382,10 @@ const CreateListing = () => {
                         const newParts = parts.includes(dir) ? parts.filter((p) => p !== dir) : [...parts, dir];
                         setWindowDirections(newParts.join(', '));
                       }}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                        windowDirections.includes(dir)
-                          ? 'bg-plasma/30 border-plasma text-plasma'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
-                      }`}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${windowDirections.includes(dir)
+                        ? 'bg-plasma/30 border-plasma text-plasma'
+                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                        }`}
                     >
                       {dir}
                     </button>
@@ -1229,11 +1405,10 @@ const CreateListing = () => {
                       key={opt}
                       type="button"
                       onClick={() => toggleSingle(garage, opt, setGarage)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                        garage === opt
-                          ? 'bg-plasma/30 border-plasma text-plasma'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
-                      }`}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${garage === opt
+                        ? 'bg-plasma/30 border-plasma text-plasma'
+                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-plasma/50'
+                        }`}
                     >
                       {opt}
                     </button>
@@ -1251,11 +1426,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(elevator, opt, setElevator)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          elevator === opt
-                            ? 'bg-aurora/30 border-aurora text-aurora'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${elevator === opt
+                          ? 'bg-aurora/30 border-aurora text-aurora'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1270,11 +1444,10 @@ const CreateListing = () => {
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(balcony, opt, setBalcony)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                          balcony === opt
-                            ? 'bg-aurora/30 border-aurora text-aurora'
-                            : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                        }`}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${balcony === opt
+                          ? 'bg-aurora/30 border-aurora text-aurora'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
+                          }`}
                       >
                         {opt}
                       </button>
@@ -1295,11 +1468,10 @@ const CreateListing = () => {
                       key={opt}
                       type="button"
                       onClick={() => toggleChip(paymentTerms, opt, setPaymentTerms)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                        paymentTerms.includes(opt)
-                          ? 'bg-nova/30 border-nova text-nova'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
-                      }`}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${paymentTerms.includes(opt)
+                        ? 'bg-nova/30 border-nova text-nova'
+                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
+                        }`}
                     >
                       {opt}
                     </button>
@@ -1333,11 +1505,10 @@ const CreateListing = () => {
                       key={tag}
                       type="button"
                       onClick={() => toggleChip(amenities, tag, setAmenities)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
-                        amenities.includes(tag)
-                          ? 'bg-gold/20 border-gold/70 text-gold'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-gold/40'
-                      }`}
+                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${amenities.includes(tag)
+                        ? 'bg-gold/20 border-gold/70 text-gold'
+                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-gold/40'
+                        }`}
                     >
                       {tag}
                     </button>
@@ -1425,11 +1596,10 @@ const CreateListing = () => {
                             key={days}
                             type="button"
                             onClick={() => setSaleDurationDays(days)}
-                            className={`py-2.5 px-3 rounded-xl text-xs font-medium border transition-all ${
-                              saleDurationDays === days
-                                ? 'bg-plasma text-white border-plasma shadow-md shadow-plasma/20'
-                                : 'bg-void/50 border-white/10 text-nebula-text hover:text-starlight'
-                            }`}
+                            className={`py-2.5 px-3 rounded-xl text-xs font-medium border transition-all ${saleDurationDays === days
+                              ? 'bg-plasma text-white border-plasma shadow-md shadow-plasma/20'
+                              : 'bg-void/50 border-white/10 text-nebula-text hover:text-starlight'
+                              }`}
                           >
                             {days} хоног
                           </button>
@@ -1468,272 +1638,272 @@ const CreateListing = () => {
         )}
 
         {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6"
-            >
-              <div>
-                <h3 className="text-xl font-heading font-black text-starlight mb-1">
-                  {t.createListing.mediaTitle}
-                </h3>
-                <p className="text-xs text-nebula-text">
-                  {t.createListing.mediaSubtitle}
-                </p>
+          <motion.div
+            key="step3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 space-y-6"
+          >
+            <div>
+              <h3 className="text-xl font-heading font-black text-starlight mb-1">
+                {t.createListing.mediaTitle}
+              </h3>
+              <p className="text-xs text-nebula-text">
+                {t.createListing.mediaSubtitle}
+              </p>
+            </div>
+
+            {/* ── 15-Second Walkthrough Reel Uploader ────────────────────────── */}
+            <div className="p-4 rounded-2xl bg-void/50 border border-plasma/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
+                    <span>{t.createListing.reelTitle}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-red-500 text-white animate-pulse">
+                      NEW
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-nebula-text">
+                    {t.createListing.reelSubtitle}
+                  </p>
+                </div>
               </div>
 
-              {/* ── 15-Second Walkthrough Reel Uploader ────────────────────────── */}
-              <div className="p-4 rounded-2xl bg-void/50 border border-plasma/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
-                      <span>{t.createListing.reelTitle}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-red-500 text-white animate-pulse">
-                        NEW
-                      </span>
-                    </h4>
-                    <p className="text-[11px] text-nebula-text">
-                      {t.createListing.reelSubtitle}
-                    </p>
-                  </div>
-                </div>
+              {videoPreview && (
+                <button
+                  type="button"
+                  onClick={handleRemoveVideo}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center space-x-1 font-semibold px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 cursor-pointer"
+                >
+                  <X size={13} />
+                  <span>{t.createListing.deletePhoto}</span>
+                </button>
+              )}
+            </div>
 
-                {videoPreview && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveVideo}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center space-x-1 font-semibold px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 cursor-pointer"
-                  >
-                    <X size={13} />
-                    <span>{t.createListing.deletePhoto}</span>
-                  </button>
+            {/* Hidden Video Input */}
+            <input
+              type="file"
+              ref={videoInputRef}
+              accept="video/mp4,video/webm,video/quicktime,video/*"
+              className="hidden"
+              onChange={handleVideoSelect}
+            />
+
+            {videoError && (
+              <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-xs font-medium">
+                {videoError}
+              </div>
+            )}
+
+            {videoPreview ? (
+              <div className="relative rounded-2xl overflow-hidden border border-plasma/40 bg-black max-w-xs mx-auto aspect-[9/16] max-h-[380px] shadow-2xl group">
+                <video
+                  src={getImageUrl(videoPreview)}
+                  controls
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1">
+                  <span>📹 {videoDuration ? `${Math.round(videoDuration)}s` : '15s Reel'}</span>
+                </div>
+                {uploadingVideo && (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
+                    <RefreshCw className="animate-spin text-plasma" size={24} />
+                    <span className="text-xs text-white font-bold">{t.common.loading}</span>
+                  </div>
                 )}
               </div>
-
-              {/* Hidden Video Input */}
-              <input
-                type="file"
-                ref={videoInputRef}
-                accept="video/mp4,video/webm,video/quicktime,video/*"
-                className="hidden"
-                onChange={handleVideoSelect}
-              />
-
-              {videoError && (
-                <div className="p-3 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-xs font-medium">
-                  {videoError}
+            ) : (
+              <div
+                onClick={() => videoInputRef.current?.click()}
+                className="border-2 border-dashed border-plasma/30 rounded-xl p-5 text-center hover:border-plasma transition-all cursor-pointer bg-void/30 hover:bg-plasma/10 flex flex-col items-center justify-center space-y-2"
+              >
+                <div className="w-12 h-12 rounded-full bg-plasma/20 text-plasma flex items-center justify-center shadow-lg shadow-plasma/20">
+                  <Upload size={20} />
                 </div>
-              )}
-
-              {videoPreview ? (
-                <div className="relative rounded-2xl overflow-hidden border border-plasma/40 bg-black max-w-xs mx-auto aspect-[9/16] max-h-[380px] shadow-2xl group">
-                  <video
-                    src={getImageUrl(videoPreview)}
-                    controls
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1">
-                    <span>📹 {videoDuration ? `${Math.round(videoDuration)}s` : '15s Reel'}</span>
-                  </div>
-                  {uploadingVideo && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
-                      <RefreshCw className="animate-spin text-plasma" size={24} />
-                      <span className="text-xs text-white font-bold">{t.common.loading}</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  onClick={() => videoInputRef.current?.click()}
-                  className="border-2 border-dashed border-plasma/30 rounded-xl p-5 text-center hover:border-plasma transition-all cursor-pointer bg-void/30 hover:bg-plasma/10 flex flex-col items-center justify-center space-y-2"
-                >
-                  <div className="w-12 h-12 rounded-full bg-plasma/20 text-plasma flex items-center justify-center shadow-lg shadow-plasma/20">
-                    <Upload size={20} />
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-starlight block">
-                      {t.createListing.reelSelect}
-                    </span>
-                    <span className="text-[11px] text-nebula-text block mt-0.5">
-                      {t.createListing.reelHint}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Photo Gallery Section ───────────────────────────────────────── */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
-                    <ImageIcon size={16} className="text-plasma" />
-                    <span>{t.createListing.galleryTitle}</span>
-                  </h4>
-                  <span className="text-xs text-nebula-text">
-                    {imagePreviews.length} photos
+                <div>
+                  <span className="text-sm font-bold text-starlight block">
+                    {t.createListing.reelSelect}
+                  </span>
+                  <span className="text-[11px] text-nebula-text block mt-0.5">
+                    {t.createListing.reelHint}
                   </span>
                 </div>
+              </div>
+            )}
 
-                {/* Hidden File Input */}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageSelect}
-                />
-
-                {/* Drag & Drop Upload Zone */}
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleDropDropzone}
-                  className="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:border-plasma transition-all cursor-pointer bg-void/40 hover:bg-plasma/10"
-                >
-                  <div className="text-plasma mb-2 flex justify-center">
-                    {uploadingImages ? (
-                      <Upload className="h-10 w-10 animate-bounce text-plasma" />
-                    ) : (
-                      <ImageIcon className="h-10 w-10 text-plasma" />
-                    )}
-                  </div>
-                  <div className="text-sm font-bold text-starlight mb-1">
-                    {uploadingImages ? t.common.loading : t.createListing.photoSelect}
-                  </div>
-                  <div className="text-xs text-nebula-text">
-                    {t.createListing.photoHint}
-                  </div>
-                </div>
+            {/* ── Photo Gallery Section ───────────────────────────────────────── */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-starlight flex items-center gap-1.5">
+                  <ImageIcon size={16} className="text-plasma" />
+                  <span>{t.createListing.galleryTitle}</span>
+                </h4>
+                <span className="text-xs text-nebula-text">
+                  {imagePreviews.length} photos
+                </span>
               </div>
 
-              {/* Uploaded Image Previews Grid with Drag & Drop Reordering */}
-              {imagePreviews.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <div className="text-xs font-semibold text-starlight flex items-center justify-between">
-                    <span>{imagePreviews.length} photos</span>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-plasma hover:underline text-xs flex items-center space-x-1 font-semibold cursor-pointer"
-                    >
-                      <Plus size={14} />
-                      <span>{t.createListing.addPhotos}</span>
-                    </button>
-                  </div>
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {imagePreviews.map((src, idx) => {
-                      const isMain = idx === 0;
+              {/* Drag & Drop Upload Zone */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDropDropzone}
+                className="border-2 border-dashed border-white/20 rounded-2xl p-6 text-center hover:border-plasma transition-all cursor-pointer bg-void/40 hover:bg-plasma/10"
+              >
+                <div className="text-plasma mb-2 flex justify-center">
+                  {uploadingImages ? (
+                    <Upload className="h-10 w-10 animate-bounce text-plasma" />
+                  ) : (
+                    <ImageIcon className="h-10 w-10 text-plasma" />
+                  )}
+                </div>
+                <div className="text-sm font-bold text-starlight mb-1">
+                  {uploadingImages ? t.common.loading : t.createListing.photoSelect}
+                </div>
+                <div className="text-xs text-nebula-text">
+                  {t.createListing.photoHint}
+                </div>
+              </div>
+            </div>
 
-                      return (
-                        <div
-                          key={idx}
-                          draggable
-                          onDragStart={() => handleDragStartThumbnail(idx)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => handleDropThumbnail(idx)}
-                          className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
-                              ? 'border-plasma ring-2 ring-plasma/50 shadow-plasma/30'
-                              : 'border-white/10 hover:border-plasma/40'
-                            }`}
-                        >
-                          <div className="h-32 w-full overflow-hidden relative">
-                            <img
-                              src={src}
-                              alt={`Photo ${idx + 1}`}
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
-                              }}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
+            {/* Uploaded Image Previews Grid with Drag & Drop Reordering */}
+            {imagePreviews.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="text-xs font-semibold text-starlight flex items-center justify-between">
+                  <span>{imagePreviews.length} photos</span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-plasma hover:underline text-xs flex items-center space-x-1 font-semibold cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>{t.createListing.addPhotos}</span>
+                  </button>
+                </div>
 
-                            {/* Top Controls Overlay */}
-                            <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
-                              {/* Make Main / Cover Star Button */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {imagePreviews.map((src, idx) => {
+                    const isMain = idx === 0;
+
+                    return (
+                      <div
+                        key={idx}
+                        draggable
+                        onDragStart={() => handleDragStartThumbnail(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDropThumbnail(idx)}
+                        className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
+                          ? 'border-plasma ring-2 ring-plasma/50 shadow-plasma/30'
+                          : 'border-white/10 hover:border-plasma/40'
+                          }`}
+                      >
+                        <div className="h-32 w-full overflow-hidden relative">
+                          <img
+                            src={src}
+                            alt={`Photo ${idx + 1}`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+
+                          {/* Top Controls Overlay */}
+                          <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
+                            {/* Make Main / Cover Star Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleMakeMain(idx)}
+                              title={isMain ? t.createListing.makeMain : t.createListing.setMain}
+                              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force cursor-pointer ${isMain
+                                ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white/50 font-bold'
+                                : 'bg-black/80 hover:bg-plasma text-white-force ring-1 ring-white/30 shadow'
+                                }`}
+                            >
+                              <Star size={13} className={isMain ? 'fill-white text-white' : 'text-amber-300 fill-amber-300'} />
+                              <span className="text-white-force">{isMain ? t.createListing.makeMain : t.createListing.setMain}</span>
+                            </button>
+
+                            <div className="flex items-center space-x-1">
+                              {/* Edit / Adjust Photo Button */}
                               <button
                                 type="button"
-                                onClick={() => handleMakeMain(idx)}
-                                title={isMain ? t.createListing.makeMain : t.createListing.setMain}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 backdrop-blur-md transition-all text-white-force cursor-pointer ${isMain
-                                    ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/50 ring-1 ring-white/50 font-bold'
-                                    : 'bg-black/80 hover:bg-plasma text-white-force ring-1 ring-white/30 shadow'
-                                  }`}
+                                onClick={() => setEditingImageIndex(idx)}
+                                className="p-1.5 bg-black/80 hover:bg-plasma text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                                title={t.createListing.editPhoto}
                               >
-                                <Star size={13} className={isMain ? 'fill-white text-white' : 'text-amber-300 fill-amber-300'} />
-                                <span className="text-white-force">{isMain ? t.createListing.makeMain : t.createListing.setMain}</span>
+                                <Edit3 size={13} className="text-white-force" />
+                                <span className="text-[11px] hidden sm:inline text-white-force">{t.createListing.editPhoto}</span>
                               </button>
 
-                              <div className="flex items-center space-x-1">
-                                {/* Edit / Adjust Photo Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingImageIndex(idx)}
-                                  className="p-1.5 bg-black/80 hover:bg-plasma text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md flex items-center gap-1 text-xs font-semibold cursor-pointer"
-                                  title={t.createListing.editPhoto}
-                                >
-                                  <Edit3 size={13} className="text-white-force" />
-                                  <span className="text-[11px] hidden sm:inline text-white-force">{t.createListing.editPhoto}</span>
-                                </button>
-
-                                {/* Delete Button */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveImage(idx)}
-                                  className="p-1.5 bg-black/80 hover:bg-red-500 text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md cursor-pointer"
-                                  title={t.createListing.deletePhoto}
-                                >
-                                  <X size={14} className="text-white-force" />
-                                </button>
-                              </div>
+                              {/* Delete Button */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(idx)}
+                                className="p-1.5 bg-black/80 hover:bg-red-500 text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md cursor-pointer"
+                                title={t.createListing.deletePhoto}
+                              >
+                                <X size={14} className="text-white-force" />
+                              </button>
                             </div>
+                          </div>
 
-                            {/* Reorder Arrows & Drag Handle */}
-                            <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
-                              <div className="flex items-center space-x-1">
-                                <button
-                                  type="button"
-                                  disabled={idx === 0}
-                                  onClick={() => reorderImage(idx, idx - 1)}
-                                  className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors cursor-pointer"
-                                  title="Previous"
-                                >
-                                  <ArrowLeft size={12} className="text-white-force" />
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={idx === imagePreviews.length - 1}
-                                  onClick={() => reorderImage(idx, idx + 1)}
-                                  className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors cursor-pointer"
-                                  title="Next"
-                                >
-                                  <ArrowRight size={12} className="text-white-force" />
-                                </button>
-                              </div>
-                              <div className="flex items-center space-x-1 text-[11px] text-white-force font-semibold bg-black/80 px-2 py-1 rounded-lg backdrop-blur-md ring-1 ring-white/30 shadow">
-                                <GripVertical size={12} className="text-white-force opacity-80" />
-                                <span className="text-white-force">#{idx + 1}</span>
-                              </div>
+                          {/* Reorder Arrows & Drag Handle */}
+                          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
+                            <div className="flex items-center space-x-1">
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => reorderImage(idx, idx - 1)}
+                                className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors cursor-pointer"
+                                title="Previous"
+                              >
+                                <ArrowLeft size={12} className="text-white-force" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === imagePreviews.length - 1}
+                                onClick={() => reorderImage(idx, idx + 1)}
+                                className="p-1.5 bg-black/80 text-white-force hover:bg-plasma rounded-lg disabled:opacity-30 ring-1 ring-white/30 shadow backdrop-blur-md transition-colors cursor-pointer"
+                                title="Next"
+                              >
+                                <ArrowRight size={12} className="text-white-force" />
+                              </button>
+                            </div>
+                            <div className="flex items-center space-x-1 text-[11px] text-white-force font-semibold bg-black/80 px-2 py-1 rounded-lg backdrop-blur-md ring-1 ring-white/30 shadow">
+                              <GripVertical size={12} className="text-white-force opacity-80" />
+                              <span className="text-white-force">#{idx + 1}</span>
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-
-              <div className="flex space-x-4 mt-8">
-                <button onClick={() => setStep(2)} className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all cursor-pointer">{t.createListing.prev}</button>
-                <button onClick={handleSubmit} disabled={loading} className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all cursor-pointer">
-                  {loading ? t.createListing.saving : id ? t.common.save : t.createListing.submit}
-                </button>
               </div>
-            </motion.div>
-          )}
+            )}
+
+            <div className="flex space-x-4 mt-8">
+              <button onClick={() => setStep(2)} className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all cursor-pointer">{t.createListing.prev}</button>
+              <button onClick={handleSubmit} disabled={loading} className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all cursor-pointer">
+                {loading ? t.createListing.saving : id ? t.common.save : t.createListing.submit}
+              </button>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Verify.mn MO SMS Verification Modal in CreateListing */}

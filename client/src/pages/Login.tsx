@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -21,6 +21,8 @@ const AppleIcon = () => (
 const Login = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetRedirect = searchParams.get('redirect') || '/';
   const loginStore = useAuthStore((state) => state.login);
 
   const [formData, setFormData] = useState({
@@ -60,7 +62,7 @@ const Login = () => {
                 const res = await authAPI.googleLogin(tokenResponse.access_token);
                 const { user, access_token } = res.data;
                 loginStore(user, access_token);
-                navigate('/');
+                navigate(targetRedirect);
               } catch (err: any) {
                 setError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
               } finally {
@@ -84,7 +86,7 @@ const Login = () => {
             const res = await authAPI.googleLogin(response.credential);
             const { user, access_token } = res.data;
             loginStore(user, access_token);
-            navigate('/');
+            navigate(targetRedirect);
           } catch (err: any) {
             setError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
           } finally {
@@ -108,7 +110,7 @@ const Login = () => {
       const response = await authAPI.facebookLogin(accessToken);
       const { user, access_token } = response.data;
       loginStore(user, access_token);
-      navigate('/');
+      navigate(targetRedirect);
     } catch (err: any) {
       setError(err.message || err.response?.data?.message || 'Facebook-ээр нэвтрэхэд алдаа гарлаа.');
     } finally {
@@ -151,7 +153,7 @@ const Login = () => {
       const response = await authAPI.login(formData);
       const { user, access_token } = response.data;
       loginStore(user, access_token);
-      navigate('/');
+      navigate(targetRedirect);
     } catch (err: any) {
       const msg = err.response?.data?.message;
       if (Array.isArray(msg)) {
