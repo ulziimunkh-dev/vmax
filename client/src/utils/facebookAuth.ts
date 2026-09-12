@@ -1,4 +1,4 @@
-// Facebook Auth Utility with HTTP/HTTPS Fallback
+// Facebook Auth Utility with HTTP/HTTPS & Auto-Init Fallback
 
 declare global {
   interface Window {
@@ -7,45 +7,59 @@ declare global {
   }
 }
 
-export function loadFacebookSDK(appId: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    if (window.FB) {
-      return resolve(window.FB);
-    }
+let isFBInitialized = false;
 
-    window.fbAsyncInit = function () {
-      if (window.FB) {
-        window.FB.init({
-          appId: appId || '291494419107518',
-          cookie: true,
-          xfbml: true,
-          version: 'v19.0',
-        });
-        resolve(window.FB);
-      } else {
-        reject(new Error('Facebook SDK failed to initialize.'));
+export function loadFacebookSDK(appId: string): Promise<any> {
+  const fbAppId = appId || import.meta.env.VITE_FACEBOOK_APP_ID || '291494419107518';
+
+  return new Promise((resolve, reject) => {
+    const initFB = () => {
+      try {
+        if (window.FB) {
+          if (!isFBInitialized) {
+            window.FB.init({
+              appId: fbAppId,
+              cookie: true,
+              xfbml: true,
+              version: 'v26.0',
+            });
+            isFBInitialized = true;
+          }
+          resolve(window.FB);
+        } else {
+          reject(new Error('Facebook SDK unavailable.'));
+        }
+      } catch (err) {
+        reject(err);
       }
     };
 
-    const existingScript = document.getElementById('facebook-jssdk');
-    if (existingScript) {
+    if (window.FB) {
+      initFB();
       return;
     }
 
-    const script = document.createElement('script');
-    script.id = 'facebook-jssdk';
-    script.src = 'https://connect.facebook.net/en_US/sdk.js';
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => reject(new Error('Facebook SDK script blocked or unavailable.'));
-    document.body.appendChild(script);
+    window.fbAsyncInit = function () {
+      initFB();
+    };
+
+    const existingScript = document.getElementById('facebook-jssdk');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = 'facebook-jssdk';
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => reject(new Error('Facebook SDK script blocked or unavailable.'));
+      document.body.appendChild(script);
+    }
   });
 }
 
 function openOAuthPopup(appId: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const redirectUri = window.location.origin + window.location.pathname;
-    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${encodeURIComponent(
+    const authUrl = `https://www.facebook.com/v26.0/dialog/oauth?client_id=${encodeURIComponent(
       appId
     )}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=email,public_profile`;
 
@@ -95,10 +109,9 @@ function openOAuthPopup(appId: string): Promise<string> {
 
 export async function loginWithFacebook(appId?: string): Promise<string> {
   const fbAppId = appId || import.meta.env.VITE_FACEBOOK_APP_ID || '291494419107518';
-
-  // 1. If running on HTTP (e.g. http://localhost:5173), skip FB.login() to avoid HTTPS requirement error
   const isHttps = window.location.protocol === 'https:';
 
+  // 1. Try FB SDK Login first if running on HTTPS
   if (isHttps) {
     try {
       const FB = await loadFacebookSDK(fbAppId);
@@ -114,11 +127,11 @@ export async function loginWithFacebook(appId?: string): Promise<string> {
           { scope: 'public_profile,email' }
         );
       });
-    } catch {
-      // Fallback to OAuth popup dialog
+    } catch (e) {
+      console.warn('Facebook SDK Login failed, falling back to OAuth popup:', e);
     }
   }
 
-  // 2. Direct Popup OAuth Fallback (Works on HTTP localhost & production)
+  // 2. Direct Popup OAuth Fallback
   return openOAuthPopup(fbAppId);
 }

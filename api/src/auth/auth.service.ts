@@ -114,7 +114,7 @@ export class AuthService {
 
   async facebookLogin(accessToken: string) {
     try {
-      const response = await fetch(`https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`);
+      const response = await fetch(`https://graph.facebook.com/v26.0/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`);
       const data = await response.json() as {
         error?: { message: string };
         id: string;
