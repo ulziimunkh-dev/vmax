@@ -82,7 +82,7 @@ function openOAuthPopup(appId: string): Promise<string> {
       try {
         if (!popup || popup.closed) {
           clearInterval(checkPopup);
-          reject(new Error('Facebook нэвтрэх цонх хаагдлаа.'));
+          reject(new Error('Facebook нэвтрэх үйлдэл цуцлагдлаа.'));
           return;
         }
 
@@ -115,11 +115,13 @@ export async function loginWithFacebook(appId?: string): Promise<string> {
   if (isHttps) {
     try {
       const FB = await loadFacebookSDK(fbAppId);
-      return await new Promise<string>((resolve, reject) => {
+      const token = await new Promise<string>((resolve, reject) => {
         FB.login(
           (response: any) => {
             if (response?.authResponse?.accessToken) {
               resolve(response.authResponse.accessToken);
+            } else if (response?.status === 'not_authorized' || response?.status === 'unknown') {
+              reject(new Error('USER_CANCELLED_OR_UNAUTHORIZED'));
             } else {
               reject(new Error('FB_SDK_LOGIN_FAILED'));
             }
@@ -127,8 +129,12 @@ export async function loginWithFacebook(appId?: string): Promise<string> {
           { scope: 'public_profile,email' }
         );
       });
-    } catch (e) {
-      console.warn('Facebook SDK Login failed, falling back to OAuth popup:', e);
+      return token;
+    } catch (e: any) {
+      if (e.message === 'USER_CANCELLED_OR_UNAUTHORIZED') {
+        throw new Error('Facebook-ээр нэвтрэх үйлдэл цуцлагдлаа.');
+      }
+      // Fallback to OAuth popup dialog
     }
   }
 
