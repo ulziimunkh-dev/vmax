@@ -60,10 +60,8 @@ export class CreateListingDto {
   videoThumbnailUrl?: string;
 
   @IsOptional()
-  @IsNumber()
-  originalPrice?: number;
+  originalPrice?: number | null;
 
   @IsOptional()
-  @IsString()
-  saleEndsAt?: string;
+  saleEndsAt?: string | null;
 }

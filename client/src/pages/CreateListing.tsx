@@ -28,6 +28,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { PriceInput } from '@/components/common/PriceInput';
+import { parsePrice } from '@/utils/formatPrice';
 import { ImageEditorModal } from '@/components/common/ImageEditorModal';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getImageUrl } from '@/utils/imageUrl';
@@ -569,14 +570,15 @@ const CreateListing = () => {
         return;
       }
 
-      let originalPriceVal: number | undefined = undefined;
-      let saleEndsAtVal: string | undefined = undefined;
+      let originalPriceVal: number | null = null;
+      let saleEndsAtVal: string | null = null;
+
+      const rawPriceNum = Number(parsePrice(price)) || 0;
 
       if (isSaleDiscountEnabled && originalPriceInput) {
-        const origPriceNum = Number(originalPriceInput);
-        const currentPriceNum = Number(price) || 0;
-        if (origPriceNum > currentPriceNum) {
-          originalPriceVal = origPriceNum;
+        const rawOrigNum = Number(parsePrice(originalPriceInput));
+        if (rawOrigNum > rawPriceNum && rawOrigNum > 0) {
+          originalPriceVal = rawOrigNum;
           const durationDays = Number(saleDurationDays) || 7;
           const endDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
           saleEndsAtVal = endDate.toISOString();
@@ -588,10 +590,10 @@ const CreateListing = () => {
         description,
         type,
         category,
-        price: Number(price) || 0,
+        price: rawPriceNum,
         originalPrice: originalPriceVal,
         saleEndsAt: saleEndsAtVal,
-        areaSqm: Number(areaSqm) || 0,
+        areaSqm: Number(parsePrice(areaSqm)) || 0,
         district,
         khoroo,
         location,
@@ -1170,14 +1172,14 @@ const CreateListing = () => {
                     </div>
                   </div>
 
-                  {Number(originalPriceInput) > Number(price) && Number(price) > 0 && (
+                  {Number(parsePrice(originalPriceInput)) > Number(parsePrice(price)) && Number(parsePrice(price)) > 0 && (
                     <div className="flex items-center justify-between bg-void/40 rounded-xl p-3 border border-white/5 text-xs">
                       <div className="flex items-center space-x-2">
                         <span className="bg-red-500/20 text-red-400 font-bold px-2 py-0.5 rounded-full border border-red-500/30">
-                          🔥 -{Math.round(((Number(originalPriceInput) - Number(price)) / Number(originalPriceInput)) * 100)}% Хямдрал
+                          🔥 -{Math.round(((Number(parsePrice(originalPriceInput)) - Number(parsePrice(price))) / Number(parsePrice(originalPriceInput))) * 100)}% Хямдрал
                         </span>
                         <span className="text-nebula-text">
-                          Үндсэн үнэ: <span className="line-through text-starlight/60">{Number(originalPriceInput).toLocaleString()}₮</span> → Хямдралтай үнэ: <span className="text-emerald-400 font-bold">{Number(price).toLocaleString()}₮</span>
+                          Үндсэн үнэ: <span className="line-through text-starlight/60">{Number(parsePrice(originalPriceInput)).toLocaleString()}₮</span> → Хямдралтай үнэ: <span className="text-emerald-400 font-bold">{Number(parsePrice(price)).toLocaleString()}₮</span>
                         </span>
                       </div>
                       <span className="text-amber-400 font-medium">{saleDurationDays} хоногийн дараа автоматаар үндсэн үнэндээ буцна</span>

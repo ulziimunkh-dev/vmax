@@ -235,7 +235,10 @@ export class ListingsService {
     ));
 
     const hasVideo = Boolean(createListingDto.videoUrl && createListingDto.videoUrl.trim().length > 0);
-    const isOnSale = Boolean(createListingDto.originalPrice && Number(createListingDto.originalPrice) > Number(createListingDto.price) && createListingDto.saleEndsAt);
+    const origPrice = createListingDto.originalPrice ? Number(createListingDto.originalPrice) : null;
+    const saleEnd = createListingDto.saleEndsAt ? new Date(createListingDto.saleEndsAt) : null;
+    const currentPrice = Number(createListingDto.price) || 0;
+    const isOnSale = Boolean(origPrice && origPrice > currentPrice && saleEnd);
 
     const listing = this.listingsRepository.create({
       ...createListingDto,
@@ -244,7 +247,8 @@ export class ListingsService {
       user,
       expiresAt,
       isOnSale,
-      saleEndsAt: createListingDto.saleEndsAt ? new Date(createListingDto.saleEndsAt) : null,
+      originalPrice: origPrice,
+      saleEndsAt: saleEnd,
     });
 
     const savedListing = await this.listingsRepository.save(listing);
@@ -278,13 +282,16 @@ export class ListingsService {
       listing.hasVideo = Boolean(updateDto.videoUrl && updateDto.videoUrl.trim().length > 0);
     }
     if (updateDto.originalPrice !== undefined || updateDto.saleEndsAt !== undefined || updateDto.price !== undefined) {
-      const currentOriginalPrice = updateDto.originalPrice ?? listing.originalPrice;
-      const currentPrice = updateDto.price ?? listing.price;
-      const currentSaleEndsAt = updateDto.saleEndsAt ?? listing.saleEndsAt;
+      const currentOriginalPrice = updateDto.originalPrice !== undefined ? updateDto.originalPrice : listing.originalPrice;
+      const currentPrice = updateDto.price !== undefined ? updateDto.price : listing.price;
+      const currentSaleEndsAt = updateDto.saleEndsAt !== undefined ? updateDto.saleEndsAt : listing.saleEndsAt;
 
-      if (currentOriginalPrice && Number(currentOriginalPrice) > Number(currentPrice) && currentSaleEndsAt) {
+      const origPriceNum = currentOriginalPrice ? Number(currentOriginalPrice) : null;
+      const priceNum = currentPrice ? Number(currentPrice) : 0;
+
+      if (origPriceNum && origPriceNum > priceNum && currentSaleEndsAt) {
         listing.isOnSale = true;
-        listing.originalPrice = currentOriginalPrice;
+        listing.originalPrice = origPriceNum;
         listing.saleEndsAt = new Date(currentSaleEndsAt);
       } else {
         listing.isOnSale = false;
