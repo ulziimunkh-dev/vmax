@@ -158,6 +158,32 @@ const ListingDetail = () => {
     }
   };
 
+  // Calculate remaining time for promotional sale countdown
+  const [saleTimeLeft, setSaleTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
+
+  useEffect(() => {
+    if (!listing?.saleEndsAt) {
+      setSaleTimeLeft(null);
+      return;
+    }
+    const updateCountdown = () => {
+      const diff = new Date(listing.saleEndsAt!).getTime() - Date.now();
+      if (diff <= 0) {
+        setSaleTimeLeft(null);
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setSaleTimeLeft({ days, hours, minutes, seconds });
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [listing?.saleEndsAt]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchListing();
@@ -558,6 +584,51 @@ const ListingDetail = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Promotional Sale Deadline Countdown Banner (Option 1) */}
+              {listing.originalPrice && Number(listing.originalPrice) > Number(listing.price) && (
+                <div className="mt-2 mb-6 bg-gradient-to-r from-plasma/20 via-amber-500/15 to-red-500/20 border border-plasma/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-starlight animate-fadeIn">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-plasma/20 border border-plasma/40 flex items-center justify-center text-plasma flex-shrink-0">
+                      <Clock size={20} className="animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Урамшуулалт хямдралын дуусах хугацаа</h4>
+                      <p className="text-xs text-nebula-text">Тохируулсан хугацаа дуусахад зарын үнэ буцаж үндсэн үнэдээ шилжинэ</p>
+                    </div>
+                  </div>
+
+                  {saleTimeLeft ? (
+                    <div className="flex items-center space-x-2 text-center bg-void/70 px-4 py-2 rounded-xl border border-white/10 flex-shrink-0">
+                      {saleTimeLeft.days > 0 && (
+                        <div className="flex flex-col min-w-[32px]">
+                          <span className="text-lg font-bold text-plasma font-mono leading-none">{saleTimeLeft.days}</span>
+                          <span className="text-[9px] text-nebula-text uppercase mt-0.5">өдөр</span>
+                        </div>
+                      )}
+                      {saleTimeLeft.days > 0 && <span className="text-plasma font-bold text-base -mt-1">:</span>}
+                      <div className="flex flex-col min-w-[28px]">
+                        <span className="text-lg font-bold text-starlight font-mono leading-none">{String(saleTimeLeft.hours).padStart(2, '0')}</span>
+                        <span className="text-[9px] text-nebula-text uppercase mt-0.5">цаг</span>
+                      </div>
+                      <span className="text-starlight font-bold text-base -mt-1">:</span>
+                      <div className="flex flex-col min-w-[28px]">
+                        <span className="text-lg font-bold text-starlight font-mono leading-none">{String(saleTimeLeft.minutes).padStart(2, '0')}</span>
+                        <span className="text-[9px] text-nebula-text uppercase mt-0.5">мин</span>
+                      </div>
+                      <span className="text-starlight font-bold text-base -mt-1">:</span>
+                      <div className="flex flex-col min-w-[28px]">
+                        <span className="text-lg font-bold text-amber-400 font-mono leading-none">{String(saleTimeLeft.seconds).padStart(2, '0')}</span>
+                        <span className="text-[9px] text-nebula-text uppercase mt-0.5">сек</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-xs font-semibold text-amber-400 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 flex-shrink-0">
+                      🔥 Урамшуулалт хямдралтай үнэ
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Property Overview Quick Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-6 border-y border-white/10 my-6">
