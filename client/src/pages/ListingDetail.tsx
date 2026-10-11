@@ -634,22 +634,51 @@ const ListingDetail = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-6 border-y border-white/10 my-6">
                 <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5">
                   <Maximize size={24} className="mb-2 text-plasma" />
-                  <span className="text-lg font-bold text-white">{listing.areaSqm} м.кв</span>
-                  <span className="text-xs text-nebula-text">Талбай</span>
+                  <span className="text-lg font-bold text-white">
+                    {listing.category === 'LAND' && Number(listing.areaSqm) >= 10000
+                      ? `${(Number(listing.areaSqm) / 10000).toFixed(2)} га`
+                      : `${listing.areaSqm} м.кв`}
+                  </span>
+                  <span className="text-xs text-nebula-text">
+                    {listing.category === 'LAND' && Number(listing.areaSqm) >= 10000
+                      ? `${listing.areaSqm} м.кв`
+                      : 'Талбай'}
+                  </span>
                 </div>
-                {(listing.attributes?.rooms || listing.attributes?.bedrooms) && (
-                  <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5">
-                    <BedDouble size={24} className="mb-2 text-plasma" />
-                    <span className="text-lg font-bold text-white">{listing.attributes?.rooms || listing.attributes?.bedrooms} өрөө</span>
-                    <span className="text-xs text-nebula-text">Өрөөний тоо</span>
-                  </div>
-                )}
-                {listing.attributes?.bathrooms && (
-                  <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5">
-                    <Bath size={24} className="mb-2 text-plasma" />
-                    <span className="text-lg font-bold text-white">{listing.attributes.bathrooms}</span>
-                    <span className="text-xs text-nebula-text">Ариун цэврийн өрөө</span>
-                  </div>
+                {listing.category === 'LAND' ? (
+                  <>
+                    {listing.attributes?.landUsage && (
+                      <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5 text-center">
+                        <span className="text-2xl mb-1">📌</span>
+                        <span className="text-sm font-bold text-white line-clamp-1">{listing.attributes.landUsage}</span>
+                        <span className="text-xs text-nebula-text">Газрын зориулалт</span>
+                      </div>
+                    )}
+                    {listing.attributes?.ownershipType && (
+                      <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5 text-center">
+                        <span className="text-2xl mb-1">📜</span>
+                        <span className="text-sm font-bold text-white line-clamp-1">{listing.attributes.ownershipType}</span>
+                        <span className="text-xs text-nebula-text">Эзэмшлийн эрх</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {(listing.attributes?.rooms || listing.attributes?.bedrooms) && (
+                      <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5">
+                        <BedDouble size={24} className="mb-2 text-plasma" />
+                        <span className="text-lg font-bold text-white">{listing.attributes?.rooms || listing.attributes?.bedrooms} өрөө</span>
+                        <span className="text-xs text-nebula-text">Өрөөний тоо</span>
+                      </div>
+                    )}
+                    {listing.attributes?.bathrooms && (
+                      <div className="flex flex-col items-center p-4 bg-void/50 rounded-xl border border-white/5">
+                        <Bath size={24} className="mb-2 text-plasma" />
+                        <span className="text-lg font-bold text-white">{listing.attributes.bathrooms}</span>
+                        <span className="text-xs text-nebula-text">Ариун цэврийн өрөө</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -792,7 +821,47 @@ const ListingDetail = () => {
                         <span className="text-sm font-bold text-starlight">{listing.attributes.ownershipType}</span>
                       </div>
                     )}
+                    {listing.attributes.certificateValidity && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">⏳ Гэрчилгээний хугацаа</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.certificateValidity}</span>
+                      </div>
+                    )}
+                    {listing.attributes.terrain && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🌄 Гадаргуугийн тогтоц</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.terrain}</span>
+                      </div>
+                    )}
+                    {listing.attributes.fenceType && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🧱 Хашаа хамгаалалт</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.fenceType}</span>
+                      </div>
+                    )}
+                    {listing.attributes.roadDistance && (
+                      <div className="bg-void/40 p-3 rounded-xl border border-white/5">
+                        <span className="text-xs text-nebula-text block mb-1">🛣️ Төв замаас алслал</span>
+                        <span className="text-sm font-bold text-starlight">{listing.attributes.roadDistance}</span>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Land Utilities / Infrastructure Tag Cloud */}
+                  {listing.attributes.landUtilities && Array.isArray(listing.attributes.landUtilities) && listing.attributes.landUtilities.length > 0 && (
+                    <div className="pt-4">
+                      <h4 className="text-sm font-bold text-emerald-400 mb-2 flex items-center gap-2">
+                        <span>⚡</span> Дэд бүтэц, инженерийн шугам сүлжээ
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {listing.attributes.landUtilities.map((util: string) => (
+                          <span key={util} className="text-xs px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-medium">
+                            {util}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Payment Terms Chips */}
                   {listing.attributes.paymentTerms && (Array.isArray(listing.attributes.paymentTerms) ? listing.attributes.paymentTerms.length > 0 : !!listing.attributes.paymentTerms) && (

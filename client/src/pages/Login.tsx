@@ -203,6 +203,7 @@ const Login = () => {
             <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
           </button>
 
+          {/* Facebook Login Button (Temporarily commented out)
           <button
             type="button"
             onClick={handleFacebookAuth}
@@ -212,6 +213,7 @@ const Login = () => {
             <FacebookIcon />
             <span className="font-semibold text-sm">{t.auth.continueFacebook}</span>
           </button>
+          */}
 
 
           <div className="flex items-center py-4">

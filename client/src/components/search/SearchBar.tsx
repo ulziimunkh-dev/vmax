@@ -340,6 +340,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <option value="">{t.filters.category} ({t.filters.all})</option>
               <option value="APARTMENT">{t.filters.apartment}</option>
               <option value="HOUSE">{t.filters.house}</option>
+              <option value="LAND">{t.filters.land}</option>
               <option value="COMMERCIAL">{t.filters.commercial}</option>
             </select>
           </div>

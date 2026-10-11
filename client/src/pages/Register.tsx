@@ -137,6 +137,7 @@ const Register = () => {
             <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
           </button>
 
+          {/* Facebook Login Button (Temporarily commented out)
           <button
             type="button"
             onClick={handleFacebookAuth}
@@ -146,6 +147,7 @@ const Register = () => {
             <FacebookIcon />
             <span className="font-semibold text-sm">{t.auth.continueFacebook}</span>
           </button>
+          */}
 
           <div className="flex items-center py-2">
             <div className="flex-grow border-t border-white/10"></div>

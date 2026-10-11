@@ -190,22 +190,30 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
             <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4">
               <div className="flex flex-col items-center justify-center text-nebula-text">
                 <Maximize size={16} className="mb-1 text-plasma/70" />
-                <span className="text-xs">{listing.areaSqm} {t.listings.sqm}</span>
+                <span className="text-xs">
+                  {listing.category === 'LAND' && Number(listing.areaSqm) >= 10000
+                    ? `${(Number(listing.areaSqm) / 10000).toFixed(1)} га`
+                    : `${listing.areaSqm} ${t.listings.sqm}`}
+                </span>
               </div>
               <div className="flex flex-col items-center justify-center text-nebula-text">
                 <BedDouble size={16} className="mb-1 text-plasma/70" />
-                <span className="text-xs">
-                  {listing.attributes?.bedrooms || listing.attributes?.rooms
-                    ? `${listing.attributes?.bedrooms || listing.attributes?.rooms} ${t.listings.bedrooms}`
-                    : (listing.category || 'Үл хөдлөх')}
+                <span className="text-xs truncate max-w-[85px] text-center" title={listing.category === 'LAND' ? listing.attributes?.landUsage : undefined}>
+                  {listing.category === 'LAND'
+                    ? (listing.attributes?.landUsage || 'Газар')
+                    : (listing.attributes?.bedrooms || listing.attributes?.rooms
+                      ? `${listing.attributes?.bedrooms || listing.attributes?.rooms} ${t.listings.bedrooms}`
+                      : (listing.category || 'Үл хөдлөх'))}
                 </span>
               </div>
               <div className="flex flex-col items-center justify-center text-nebula-text">
                 <Bath size={16} className="mb-1 text-plasma/70" />
-                <span className="text-xs">
-                  {listing.attributes?.bathrooms
-                    ? `${listing.attributes.bathrooms} ${t.listings.bathrooms}`
-                    : (listing.district || 'Улаанбаатар')}
+                <span className="text-xs truncate max-w-[85px] text-center" title={listing.category === 'LAND' ? listing.attributes?.ownershipType : undefined}>
+                  {listing.category === 'LAND'
+                    ? (listing.attributes?.ownershipType ? (listing.attributes.ownershipType.includes('Өмч') ? 'Өмчилсөн' : 'Эзэмших') : (listing.district || 'Газар'))
+                    : (listing.attributes?.bathrooms
+                      ? `${listing.attributes.bathrooms} ${t.listings.bathrooms}`
+                      : (listing.district || 'Улаанбаатар'))}
                 </span>
               </div>
             </div>

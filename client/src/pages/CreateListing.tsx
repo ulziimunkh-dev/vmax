@@ -272,6 +272,11 @@ const CreateListing = () => {
   // LAND specific
   const [landUsage, setLandUsage] = useState('');
   const [ownershipType, setOwnershipType] = useState('');
+  const [certificateValidity, setCertificateValidity] = useState('');
+  const [fenceType, setFenceType] = useState('');
+  const [terrain, setTerrain] = useState('');
+  const [roadDistance, setRoadDistance] = useState('');
+  const [landUtilities, setLandUtilities] = useState<string[]>([]);
 
   const toggleChip = <T extends string>(arr: T[], val: T, setFn: React.Dispatch<React.SetStateAction<T[]>>) => {
     setFn(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
@@ -352,6 +357,11 @@ const CreateListing = () => {
             if (attr.hvac) setHvac(String(attr.hvac));
             if (attr.landUsage) setLandUsage(String(attr.landUsage));
             if (attr.ownershipType) setOwnershipType(String(attr.ownershipType));
+            if (attr.certificateValidity) setCertificateValidity(String(attr.certificateValidity));
+            if (attr.fenceType) setFenceType(String(attr.fenceType));
+            if (attr.terrain) setTerrain(String(attr.terrain));
+            if (attr.roadDistance) setRoadDistance(String(attr.roadDistance));
+            if (attr.landUtilities) setLandUtilities(Array.isArray(attr.landUtilities) ? attr.landUtilities : []);
           }
         }
       })
@@ -689,6 +699,11 @@ const CreateListing = () => {
       if (hvac) attrPayload.hvac = hvac;
       if (landUsage) attrPayload.landUsage = landUsage;
       if (ownershipType) attrPayload.ownershipType = ownershipType;
+      if (certificateValidity) attrPayload.certificateValidity = certificateValidity;
+      if (fenceType) attrPayload.fenceType = fenceType;
+      if (terrain) attrPayload.terrain = terrain;
+      if (roadDistance) attrPayload.roadDistance = roadDistance;
+      if (landUtilities.length > 0) attrPayload.landUtilities = landUtilities;
 
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
 
@@ -876,6 +891,7 @@ const CreateListing = () => {
               <span>Google-ээр үргэлжлүүлэх</span>
             </button>
 
+            {/* Facebook OAuth Button (Temporarily commented out)
             <button
               onClick={handleFacebookAuth}
               disabled={authLoading}
@@ -884,6 +900,7 @@ const CreateListing = () => {
               <FacebookIcon />
               <span>Facebook-ээр үргэлжлүүлэх</span>
             </button>
+            */}
 
             <div className="flex items-center py-1">
               <div className="flex-grow border-t border-white/10" />
@@ -944,7 +961,7 @@ const CreateListing = () => {
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight focus:outline-none focus:border-plasma">
                 <option value="APARTMENT">{t.filters.apartment}</option>
                 <option value="HOUSE">{t.filters.house}</option>
-                {/* <option value="LAND">{t.filters.land}</option> */}
+                <option value="LAND">{t.filters.land}</option>
                 <option value="COMMERCIAL">{t.filters.commercial}</option>
                 {/* <option value="RESORT">{t.filters.resort}</option> */}
               </select>
@@ -952,7 +969,13 @@ const CreateListing = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-nebula-text mb-1">Зарын гарчиг</label>
-              <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (step1Error) setStep1Error(''); }} placeholder="Жишээ: King Tower, 137мкв 3 өрөө байр зарна" className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma" />
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => { setTitle(e.target.value); if (step1Error) setStep1Error(''); }}
+                placeholder={category === 'LAND' ? 'Жишээ: Төв аймаг Зуунмод, 0.07 га эзэмших эрхтэй тэгш газар зарна' : 'Жишээ: King Tower, 137мкв 3 өрөө байр зарна'}
+                className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -1021,7 +1044,7 @@ const CreateListing = () => {
           <div className="space-y-6">
             <h3 className="text-xl text-starlight font-bold mb-2">Байршил & Үл Хөдлөх Хөрөнгийн Дэлгэрэнгүй Үзүүлэлтүүд</h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className={`grid grid-cols-1 ${category === 'LAND' ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-4`}>
               <div>
                 <label className="block text-xs font-semibold text-nebula-text mb-1">Улаанбаатарын Дүүрэг</label>
                 <select value={district} onChange={(e) => setDistrict(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight focus:outline-none focus:border-plasma">
@@ -1056,16 +1079,18 @@ const CreateListing = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-nebula-text mb-1">Өрөөний тоо</label>
-                <select value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight focus:outline-none focus:border-plasma">
-                  <option value="1">1 өрөө</option>
-                  <option value="2">2 өрөө</option>
-                  <option value="3">3 өрөө</option>
-                  <option value="4">4 өрөө</option>
-                  <option value="5">5+ өрөө</option>
-                </select>
-              </div>
+              {category !== 'LAND' && (
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-1">Өрөөний тоо</label>
+                  <select value={rooms} onChange={(e) => setRooms(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight focus:outline-none focus:border-plasma">
+                    <option value="1">1 өрөө</option>
+                    <option value="2">2 өрөө</option>
+                    <option value="3">3 өрөө</option>
+                    <option value="4">4 өрөө</option>
+                    <option value="5">5+ өрөө</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Category-Specific Special Feature Attribute Sections */}
@@ -1242,23 +1267,46 @@ const CreateListing = () => {
             )}
 
             {category === 'LAND' && (
-              <div className="p-4 bg-nova/10 border border-nova/30 rounded-2xl space-y-4">
-                <div className="text-sm font-bold text-nova flex items-center">
-                  <span>🏞️ Газрын онцлог шинжүүд</span>
+              <div className="p-5 bg-gradient-to-br from-emerald-500/10 via-void/60 to-plasma/10 border border-emerald-500/30 rounded-2xl space-y-5 shadow-lg">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xl">🏞️</span>
+                    <div>
+                      <h4 className="text-base font-bold text-starlight">Газрын дэлгэрэнгүй үзүүлэлтүүд</h4>
+                      <p className="text-xs text-nebula-text">Газрын зориулалт, эзэмшил, дэд бүтэц зэрэг онцлох шинжүүдийг сонгоно уу</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                    Газар
+                  </span>
                 </div>
 
+                {/* 1. Газрын зориулалт (landUsage) */}
                 <div>
-                  <label className="block text-xs font-semibold text-nebula-text mb-2">📌 Газрын зориулалт</label>
+                  <label className="block text-xs font-bold text-starlight mb-2 flex items-center space-x-1">
+                    <span>📌 Газрын зориулалт</span>
+                    <span className="text-red-400">*</span>
+                  </label>
                   <div className="flex flex-wrap gap-2">
-                    {['Амины сууц / Зуслан', 'Худалдаа үйлчилгээ', 'Үйлдвэр агуулах', 'Хөдөө аж ахуй', 'Аялал жуулчлал'].map((opt) => (
+                    {[
+                      'Гэр бүлийн хамтын хэрэгцээний (Амины орон сууц)',
+                      'Зуслангийн зориулалттай',
+                      'Худалдаа, нийтийн үйлчилгээ',
+                      'Үйлдвэрлэл, агуулах, бааз',
+                      'Газар тариалан / Мод үржүүлэг',
+                      'Хөдөө аж ахуй / Фермер',
+                      'ШТС, авто үйлчилгээ, зам дагуу',
+                      'Аялал жуулчлал, амралт',
+                    ].map((opt) => (
                       <button
                         key={opt}
                         type="button"
                         onClick={() => toggleSingle(landUsage, opt, setLandUsage)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${landUsage === opt
-                          ? 'bg-nova/30 border-nova text-nova'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-nova/50'
-                          }`}
+                        className={`text-xs px-3.5 py-2 rounded-xl border font-medium transition-all ${
+                          landUsage === opt
+                            ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300 font-bold shadow-md shadow-emerald-500/20'
+                            : 'bg-void/50 border-white/10 text-nebula-text hover:border-emerald-500/40 hover:text-starlight'
+                        }`}
                       >
                         {opt}
                       </button>
@@ -1266,20 +1314,164 @@ const CreateListing = () => {
                   </div>
                 </div>
 
+                {/* 2. Эзэмшлийн эрхийн төрөл & Гэрчилгээний хугацаа */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-starlight mb-2">📜 Эзэмшлийн эрхийн төрөл</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        'Өмчилсөн (100% өмчлөх эрхтэй)',
+                        'Эзэмших эрхийн гэрчилгээтэй',
+                        'Ашиглах эрхтэй',
+                      ].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleSingle(ownershipType, opt, setOwnershipType)}
+                          className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-all ${
+                            ownershipType === opt
+                              ? 'bg-plasma/30 border-plasma text-plasma font-bold'
+                              : 'bg-void/50 border-white/10 text-nebula-text hover:border-plasma/40'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-starlight mb-2">⏳ Гэрчилгээний хугацаа</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Хугацаагүй (Өмчилсөн)', '15 жил', '20 жил', '30 жил', '40 жил', '5 жил'].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleSingle(certificateValidity, opt, setCertificateValidity)}
+                          className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-all ${
+                            certificateValidity === opt
+                              ? 'bg-aurora/30 border-aurora text-aurora font-bold'
+                              : 'bg-void/50 border-white/10 text-nebula-text hover:border-aurora/40'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Гадаргуугийн байдал & Хашаа хамгаалалт */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-starlight mb-2">🌄 Гадаргуугийн байдал (Тогтоц)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        'Тэгш тэгшхэн',
+                        'Уулын энгэр / Бага зэрэг налуу',
+                        'Дэнж / Өндөрлөг (Харагдац сайн)',
+                        'Гол / Усны эх ойролцоо',
+                        'Ойн захад / Модтой',
+                      ].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleSingle(terrain, opt, setTerrain)}
+                          className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-all ${
+                            terrain === opt
+                              ? 'bg-nova/30 border-nova text-nova font-bold'
+                              : 'bg-void/50 border-white/10 text-nebula-text hover:border-nova/40'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-starlight mb-2">🧱 Хашаа, хамгаалалт</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        'Бүрэн төмөр / блокон хашаатай',
+                        'Модон хашаатай',
+                        'Торон хашаатай',
+                        'Хашаагүй / Чөлөөт талбай',
+                      ].map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleSingle(fenceType, opt, setFenceType)}
+                          className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-all ${
+                            fenceType === opt
+                              ? 'bg-amber-500/30 border-amber-400 text-amber-300 font-bold'
+                              : 'bg-void/50 border-white/10 text-nebula-text hover:border-amber-500/40'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Төв засмал замаас алслагдсан зай */}
                 <div>
-                  <label className="block text-xs font-semibold text-nebula-text mb-2">📜 Эзэмшлийн эрх</label>
+                  <label className="block text-xs font-bold text-starlight mb-2">🛣️ Төв засмал замаас алслал</label>
                   <div className="flex flex-wrap gap-2">
-                    {['Өмчилсөн (100% өмчлөх эрхийн гэрчилгээтэй)', 'Эзэмших эрхийн гэрчилгээтэй (15 жил)', 'Ашиглах эрхтэй'].map((opt) => (
+                    {[
+                      'Төв зам дагуу (0м)',
+                      '100м - 500м',
+                      '500м - 1км',
+                      '1км - 3км',
+                      '3км-ээс дээш',
+                    ].map((opt) => (
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => toggleSingle(ownershipType, opt, setOwnershipType)}
-                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${ownershipType === opt
-                          ? 'bg-aurora/30 border-aurora text-aurora'
-                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-aurora/50'
-                          }`}
+                        onClick={() => toggleSingle(roadDistance, opt, setRoadDistance)}
+                        className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition-all ${
+                          roadDistance === opt
+                            ? 'bg-plasma/30 border-plasma text-plasma font-bold'
+                            : 'bg-void/50 border-white/10 text-nebula-text hover:border-plasma/40'
+                        }`}
                       >
                         {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 5. Дэд бүтэц, инженерийн шугам сүлжээ (Multi-select) */}
+                <div>
+                  <label className="block text-xs font-bold text-starlight mb-2 flex items-center justify-between">
+                    <span>⚡ Дэд бүтэц, инженерийн шугам сүлжээ (Олон сонголттой)</span>
+                    <span className="text-[11px] text-emerald-400 font-normal">Сонгосон: {landUtilities.length}</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      '⚡ Цахилгаан холбогдсон (220V)',
+                      '⚡ Өндөр хүчдэл (380V / Дэд станц)',
+                      '💧 Гүний худагтай (Устай)',
+                      '🚰 Төвийн цэвэр усны шугамтай',
+                      '🚽 Төвийн бохирын шугамтай',
+                      '🛣️ Засмал замтай шууд залгаа',
+                      '🛤️ Засмал замаас ойрхон',
+                      '🌐 Шилэн кабель / Холбоотой',
+                      '📐 Кадастрын зураг, нэгж талбар баталгаажсан',
+                    ].map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggleChip(landUtilities, opt, setLandUtilities)}
+                        className={`text-xs px-3.5 py-2 rounded-xl border font-medium transition-all flex items-center space-x-1.5 ${
+                          landUtilities.includes(opt)
+                            ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300 font-semibold shadow-sm'
+                            : 'bg-void/50 border-white/10 text-nebula-text hover:border-emerald-500/30 hover:text-starlight'
+                        }`}
+                      >
+                        <span>{opt}</span>
+                        {landUtilities.includes(opt) && <CheckCircle size={12} className="text-emerald-400" />}
                       </button>
                     ))}
                   </div>
@@ -1287,12 +1479,13 @@ const CreateListing = () => {
               </div>
             )}
 
-            {/* Expanded Asset Attributes Form Grid */}
-            <div className="p-4 bg-void/40 border border-white/10 rounded-2xl space-y-4">
-              <div className="text-sm font-bold text-plasma flex items-center">
-                <Layers size={16} className="mr-2" />
-                <span>{t.assetAttributes.title} (Энгийн үзүүлэлтүүд)</span>
-              </div>
+            {/* Expanded Asset Attributes Form Grid (Apartment / House / Commercial) */}
+            {category !== 'LAND' && (
+              <div className="p-4 bg-void/40 border border-white/10 rounded-2xl space-y-4">
+                <div className="text-sm font-bold text-plasma flex items-center">
+                  <Layers size={16} className="mr-2" />
+                  <span>{t.assetAttributes.title} (Энгийн үзүүлэлтүүд)</span>
+                </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
@@ -1455,7 +1648,11 @@ const CreateListing = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
+            {/* Payment Terms & Amenities Section */}
+            <div className="p-4 bg-void/40 border border-white/10 rounded-2xl space-y-4">
               {/* Payment Terms — Multi Chip */}
               <div>
                 <label className="block text-xs font-semibold text-nebula-text mb-2">💳 Төлбөрийн нөхцөл</label>
@@ -1479,42 +1676,44 @@ const CreateListing = () => {
                 </div>
               </div>
 
-              {/* Amenities — Multi Chip Tags */}
-              <div>
-                <label className="block text-xs font-semibold text-nebula-text mb-2">✨ Давуу тал / Тоноглол (Amenities)</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    '🛡️ 24/7 харуул хамгаалалт',
-                    '🚗 Дулаан зогсоол',
-                    '☀️ Наран талтай',
-                    '🌳 Хүүхдийн тоглоомын талбай',
-                    '🏫 Сургууль, цэцэрлэгт ойр',
-                    '🛋️ Тавилгатай үлдэнэ',
-                    '⚡ Ухаалаг систем (Smart Home)',
-                    '💧 Төвийн шугам бүрэн',
-                    '📜 Гэрчилгээ бэлэн',
-                    '🏊 Усан бассейн',
-                    '🏋️ Фитнесс заал',
-                    '🔐 Хаалттай хотхон',
-                    '🛗 Хурдан лифт',
-                    '🪟 Шилэн вакум тагт',
-                    '🔥 Шалны дулаалга',
-                    '🌐 Хурдан интернет',
-                  ].map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleChip(amenities, tag, setAmenities)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${amenities.includes(tag)
-                        ? 'bg-gold/20 border-gold/70 text-gold'
-                        : 'bg-void/50 border-white/15 text-nebula-text hover:border-gold/40'
-                        }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+              {/* Amenities — Multi Chip Tags for Apartment/House/Commercial */}
+              {category !== 'LAND' && (
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-2">✨ Давуу тал / Тоноглол (Amenities)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      '🛡️ 24/7 харуул хамгаалалт',
+                      '🚗 Дулаан зогсоол',
+                      '☀️ Наран талтай',
+                      '🌳 Хүүхдийн тоглоомын талбай',
+                      '🏫 Сургууль, цэцэрлэгт ойр',
+                      '🛋️ Тавилгатай үлдэнэ',
+                      '⚡ Ухаалаг систем (Smart Home)',
+                      '💧 Төвийн шугам бүрэн',
+                      '📜 Гэрчилгээ бэлэн',
+                      '🏊 Усан бассейн',
+                      '🏋️ Фитнесс заал',
+                      '🔐 Хаалттай хотхон',
+                      '🛗 Хурдан лифт',
+                      '🪟 Шилэн вакум тагт',
+                      '🔥 Шалны дулаалга',
+                      '🌐 Хурдан интернет',
+                    ].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleChip(amenities, tag, setAmenities)}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${amenities.includes(tag)
+                          ? 'bg-gold/20 border-gold/70 text-gold'
+                          : 'bg-void/50 border-white/15 text-nebula-text hover:border-gold/40'
+                          }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Google Map Location Picker */}
@@ -1539,15 +1738,48 @@ const CreateListing = () => {
               />
               <div>
                 <label className="block text-xs font-semibold text-nebula-text mb-1.5 flex items-center justify-between">
-                  <span>Талбай (м.кв)</span>
+                  <span>{category === 'LAND' ? 'Газрын талбай (м.кв / га)' : 'Талбай (м.кв)'}</span>
+                  {category === 'LAND' && Number(areaSqm) > 0 && (
+                    <span className="text-emerald-400 font-bold text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      {Number(areaSqm) >= 10000
+                        ? `${(Number(areaSqm) / 10000).toFixed(2)} га`
+                        : `${(Number(areaSqm) / 10000).toFixed(3)} га (${areaSqm} м²)`}
+                    </span>
+                  )}
                 </label>
                 <input
                   type="number"
                   value={areaSqm}
                   onChange={(e) => setAreaSqm(e.target.value)}
-                  placeholder="137"
+                  placeholder={category === 'LAND' ? "Жишээ: 700 (м.кв)" : "137"}
                   className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma text-sm"
                 />
+                {category === 'LAND' && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[
+                      { label: '0.05 га (500 м²)', sqm: '500' },
+                      { label: '0.07 га (700 м²)', sqm: '700' },
+                      { label: '0.10 га (1,000 м²)', sqm: '1000' },
+                      { label: '0.15 га (1,500 м²)', sqm: '1500' },
+                      { label: '0.5 га (5,000 м²)', sqm: '5000' },
+                      { label: '1 га (10,000 м²)', sqm: '10000' },
+                      { label: '2 га (20,000 м²)', sqm: '20000' },
+                    ].map((item) => (
+                      <button
+                        key={item.sqm}
+                        type="button"
+                        onClick={() => setAreaSqm(item.sqm)}
+                        className={`text-[10px] px-2 py-1 rounded-lg border font-medium transition-all ${
+                          areaSqm === item.sqm
+                            ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300 font-bold'
+                            : 'bg-void/40 border-white/10 text-nebula-text hover:border-emerald-500/40'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
