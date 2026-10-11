@@ -13,6 +13,8 @@ import {
   GripVertical,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   Layers,
   Building,
   Calendar,
@@ -59,6 +61,39 @@ const CreateListing = () => {
   const [successListingId, setSuccessListingId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+
+  const pageTopRef = useRef<HTMLDivElement>(null);
+  const savedScrollPosRef = useRef<number>(0);
+
+  // Automatically scroll to the top of the form whenever step advances or changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    if (pageTopRef.current) {
+      pageTopRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [step]);
+
+  // Automatically scroll to top when listing is successfully saved / published
+  useEffect(() => {
+    if (successListingId) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
+  }, [successListingId]);
+
+  const startEditImage = (idx: number) => {
+    savedScrollPosRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+    setEditingImageIndex(idx);
+  };
 
   const handleGoogleAuth = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -579,6 +614,15 @@ const CreateListing = () => {
       setImageFiles(newFiles);
     }
 
+    const prevScroll = savedScrollPosRef.current;
+    setTimeout(() => {
+      window.scrollTo(0, prevScroll);
+      document.documentElement.scrollTop = prevScroll;
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }, 10);
+
     const targetListingId = id || draftIdRef.current;
     try {
       const uploadRes = await uploadAPI.uploadListingFiles(targetListingId, [editedFile]);
@@ -669,6 +713,12 @@ const CreateListing = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setLoading(true);
 
     try {
@@ -931,7 +981,7 @@ const CreateListing = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
+    <div ref={pageTopRef} className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-8 border-glow">
         <h2 className="text-3xl font-heading font-bold text-glow mb-8 text-center">{id ? 'Зар засах' : t.createListing.title}</h2>
 
@@ -2026,7 +2076,7 @@ const CreateListing = () => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                   {imagePreviews.map((src, idx) => {
                     const isMain = idx === 0;
 
@@ -2037,12 +2087,13 @@ const CreateListing = () => {
                         onDragStart={() => handleDragStartThumbnail(idx)}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={() => handleDropThumbnail(idx)}
-                        className={`relative group rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
-                          ? 'border-plasma ring-2 ring-plasma/50 shadow-plasma/30'
+                        className={`group relative rounded-2xl sm:rounded-xl overflow-hidden border transition-all bg-cosmic shadow-md ${isMain
+                          ? 'border-plasma ring-2 ring-plasma/60 sm:ring-plasma/50 shadow-plasma/30'
                           : 'border-white/10 hover:border-plasma/40'
                           }`}
                       >
-                        <div className="h-32 w-full overflow-hidden relative">
+                        {/* Image Preview Container */}
+                        <div className="h-40 sm:h-32 w-full overflow-hidden relative bg-black/40">
                           <img
                             src={src}
                             alt={`Photo ${idx + 1}`}
@@ -2050,11 +2101,11 @@ const CreateListing = () => {
                               e.currentTarget.onerror = null;
                               e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
                             }}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            className="w-full h-full object-cover sm:group-hover:scale-105 transition-transform"
                           />
 
-                          {/* Top Controls Overlay */}
-                          <div className="absolute top-2 left-2 right-2 flex justify-between items-center z-10">
+                          {/* ── Desktop Controls: Top Overlay (Restored like before on large screens) ── */}
+                          <div className="hidden sm:flex absolute top-2 left-2 right-2 justify-between items-center z-10">
                             {/* Make Main / Cover Star Button */}
                             <button
                               type="button"
@@ -2073,12 +2124,11 @@ const CreateListing = () => {
                               {/* Edit / Adjust Photo Button */}
                               <button
                                 type="button"
-                                onClick={() => setEditingImageIndex(idx)}
-                                className="p-1.5 bg-black/80 hover:bg-plasma text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                                onClick={() => startEditImage(idx)}
+                                className="p-1.5 bg-black/80 hover:bg-plasma text-white-force rounded-lg transition-colors ring-1 ring-white/30 shadow backdrop-blur-md flex items-center justify-center cursor-pointer"
                                 title={t.createListing.editPhoto}
                               >
                                 <Edit3 size={13} className="text-white-force" />
-                                <span className="text-[11px] hidden sm:inline text-white-force">{t.createListing.editPhoto}</span>
                               </button>
 
                               {/* Delete Button */}
@@ -2093,8 +2143,8 @@ const CreateListing = () => {
                             </div>
                           </div>
 
-                          {/* Reorder Arrows & Drag Handle */}
-                          <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
+                          {/* ── Desktop Controls: Bottom Overlay (Restored like before on large screens) ── */}
+                          <div className="hidden sm:flex absolute bottom-2 left-2 right-2 justify-between items-center z-10">
                             <div className="flex items-center space-x-1">
                               <button
                                 type="button"
@@ -2120,6 +2170,87 @@ const CreateListing = () => {
                               <span className="text-white-force">#{idx + 1}</span>
                             </div>
                           </div>
+
+                          {/* ── Mobile-Only Overlay Elements ── */}
+                          {/* Image Badges: Order & Main indicator */}
+                          <div className="sm:hidden absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10 pointer-events-none">
+                            <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-plasma/90 text-white border border-white/40 shadow-lg shadow-plasma/40 backdrop-blur-md flex items-center gap-1 tracking-wide">
+                              <span className="text-[10px] opacity-80">№</span>
+                              <span>{idx + 1}</span>
+                            </span>
+                            {isMain && (
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-plasma to-nova text-white border border-white/30 shadow-md shadow-plasma/40 flex items-center gap-1">
+                                <Star size={12} className="fill-white text-white" />
+                                <span>{t.createListing.makeMain}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Quick Delete Button directly on top-right of Image on Mobile */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(idx);
+                            }}
+                            className="sm:hidden absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center bg-red-600/90 hover:bg-red-500 active:scale-90 text-white rounded-lg border border-white/40 shadow-lg shadow-red-950/60 backdrop-blur-md transition-all z-20 cursor-pointer"
+                            title={t.createListing.deletePhoto}
+                          >
+                            <X size={16} className="text-white font-bold" />
+                          </button>
+
+                          {/* Reorder Buttons on Mobile */}
+                          <div className="sm:hidden absolute bottom-2.5 left-2.5 flex items-center space-x-1.5 z-10">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => reorderImage(idx, idx - 1)}
+                              className="w-8 h-8 flex items-center justify-center bg-void/90 text-starlight hover:text-white hover:bg-plasma active:scale-90 rounded-lg disabled:opacity-20 border border-plasma/40 hover:border-plasma shadow-lg shadow-black/60 backdrop-blur-md transition-all cursor-pointer"
+                              title="Урагшлуулах / Дээшлүүлэх"
+                            >
+                              <ArrowUp size={16} className="text-starlight hover:text-white" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === imagePreviews.length - 1}
+                              onClick={() => reorderImage(idx, idx + 1)}
+                              className="w-8 h-8 flex items-center justify-center bg-void/90 text-starlight hover:text-white hover:bg-plasma active:scale-90 rounded-lg disabled:opacity-20 border border-plasma/40 hover:border-plasma shadow-lg shadow-black/60 backdrop-blur-md transition-all cursor-pointer"
+                              title="Хойшлуулах / Доошлуулах"
+                            >
+                              <ArrowDown size={16} className="text-starlight hover:text-white" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Dedicated Bottom Actions Bar (Mobile Only, hidden on large screens) */}
+                        <div className="sm:hidden p-2.5 bg-void/95 border-t border-white/10 flex items-center gap-2">
+                          {/* Make Main Button */}
+                          {!isMain ? (
+                            <button
+                              type="button"
+                              onClick={() => handleMakeMain(idx)}
+                              className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-plasma/10 hover:bg-plasma/30 active:bg-plasma/50 text-starlight hover:text-white border border-plasma/30 hover:border-plasma transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              title={t.createListing.setMain}
+                            >
+                              <Star size={14} className="text-amber-300 fill-amber-300 shrink-0" />
+                              <span className="truncate">{t.createListing.setMain}</span>
+                            </button>
+                          ) : (
+                            <div className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-plasma to-nova border border-white/20 shadow-sm flex items-center justify-center gap-1.5">
+                              <Star size={14} className="fill-white text-white shrink-0" />
+                              <span className="truncate">{t.createListing.makeMain}</span>
+                            </div>
+                          )}
+
+                          {/* Edit Button */}
+                          <button
+                            type="button"
+                            onClick={() => startEditImage(idx)}
+                            className="min-h-[38px] px-3 py-1.5 bg-plasma/20 hover:bg-plasma active:scale-95 text-plasma hover:text-white border border-plasma/40 rounded-xl transition-all flex items-center justify-center cursor-pointer shadow-sm shrink-0"
+                            title={t.createListing.editPhoto}
+                          >
+                            <Edit3 size={15} className="shrink-0" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -2129,8 +2260,22 @@ const CreateListing = () => {
             )}
 
             <div className="flex space-x-4 mt-8">
-              <button onClick={() => setStep(2)} className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all cursor-pointer">{t.createListing.prev}</button>
-              <button onClick={handleSubmit} disabled={loading} className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all cursor-pointer">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep(2);
+                  window.scrollTo(0, 0);
+                }}
+                className="w-1/2 bg-void/50 border border-white/10 text-starlight font-medium py-3 rounded-xl hover:bg-plasma/20 transition-all cursor-pointer"
+              >
+                {t.createListing.prev}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-1/2 bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all cursor-pointer"
+              >
                 {loading ? t.createListing.saving : id ? t.common.save : t.createListing.submit}
               </button>
             </div>
@@ -2237,7 +2382,14 @@ const CreateListing = () => {
       {editingImageIndex !== null && imagePreviews[editingImageIndex] && (
         <ImageEditorModal
           isOpen={editingImageIndex !== null}
-          onClose={() => setEditingImageIndex(null)}
+          onClose={() => {
+            const prevScroll = savedScrollPosRef.current;
+            setEditingImageIndex(null);
+            setTimeout(() => {
+              window.scrollTo(0, prevScroll);
+              document.documentElement.scrollTop = prevScroll;
+            }, 10);
+          }}
           imageSrc={imagePreviews[editingImageIndex]}
           onSave={handleSaveEditedImage}
         />

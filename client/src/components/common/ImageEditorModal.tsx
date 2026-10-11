@@ -170,40 +170,40 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/85 backdrop-blur-xl">
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.92 }}
-          className="relative w-full max-w-4xl max-h-[92vh] flex flex-col glass-card bg-void/95 border border-white/20 rounded-3xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-4xl max-h-[96vh] sm:max-h-[92vh] flex flex-col glass-card bg-void/95 border border-white/20 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-cosmic/50">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 bg-cosmic/50 shrink-0">
             <div className="flex items-center space-x-2">
-              <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
-                <Sparkles size={18} />
+              <div className="p-1.5 sm:p-2 rounded-xl bg-plasma/20 text-plasma">
+                <Sparkles size={16} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-starlight">{t.photoEditor.title}</h3>
-                <p className="text-xs text-nebula-text">{t.photoEditor.subtitle}</p>
+                <h3 className="text-sm sm:text-base font-bold text-starlight">{t.photoEditor.title}</h3>
+                <p className="text-[11px] sm:text-xs text-nebula-text hidden xs:block">{t.photoEditor.subtitle}</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/10 text-nebula-text hover:text-white transition-all cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-nebula-text hover:text-white transition-all cursor-pointer"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* Body: Canvas Preview + Controls Sidebar */}
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 p-6 overflow-y-auto">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 p-3 sm:p-6 overflow-y-auto">
             {/* Canvas Viewer Container */}
-            <div className="md:col-span-2 flex items-center justify-center bg-black/60 rounded-2xl p-4 border border-white/10 min-h-[320px] max-h-[480px] overflow-hidden relative">
+            <div className="md:col-span-2 flex items-center justify-center bg-black/60 rounded-xl sm:rounded-2xl p-2 sm:p-4 border border-white/10 min-h-[200px] sm:min-h-[320px] max-h-[300px] sm:max-h-[480px] overflow-hidden relative">
               <canvas
                 ref={canvasRef}
-                className="max-w-full max-h-[440px] object-contain rounded-lg shadow-2xl transition-all"
+                className="max-w-full max-h-[280px] sm:max-h-[440px] object-contain rounded-lg shadow-2xl transition-all"
               />
             </div>
 
