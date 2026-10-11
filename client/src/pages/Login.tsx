@@ -203,7 +203,7 @@ const Login = () => {
             <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
           </button>
 
-          {/* Facebook Login Button (Temporarily commented out)
+          {/* Facebook OAuth Button (Temporarily commented out)
           <button
             type="button"
             onClick={handleFacebookAuth}
