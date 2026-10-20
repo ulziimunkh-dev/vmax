@@ -50,8 +50,45 @@ const ListingDetail = () => {
   const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
-  const [videoProgress, setVideoProgress] = useState(0);
+  const [isVideoBuffering, setIsVideoBuffering] = useState(false);
   const detailVideoRef = useRef<HTMLVideoElement>(null);
+  const detailProgressBarRef = useRef<HTMLDivElement>(null);
+
+  const openReelsModal = () => {
+    if (detailVideoRef.current) {
+      detailVideoRef.current.pause();
+      setIsVideoPlaying(false);
+    }
+    setIsReelsModalOpen(true);
+  };
+
+  // Autoplay video when mediaTab switches to 'video' (only when reels modal is NOT open)
+  useEffect(() => {
+    if (isReelsModalOpen) {
+      if (detailVideoRef.current) {
+        detailVideoRef.current.pause();
+        setIsVideoPlaying(false);
+      }
+      return;
+    }
+
+    if (mediaTab === 'video' && detailVideoRef.current && listing?.videoUrl) {
+      const vid = detailVideoRef.current;
+      vid.defaultMuted = true;
+      vid.muted = isVideoMuted;
+      const playPromise = vid.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsVideoPlaying(true))
+          .catch((err) => {
+            console.warn('Autoplay prevented on ListingDetail:', err);
+            vid.muted = true;
+            setIsVideoMuted(true);
+            vid.play().then(() => setIsVideoPlaying(true)).catch(() => setIsVideoPlaying(false));
+          });
+      }
+    }
+  }, [mediaTab, listing?.videoUrl, isReelsModalOpen]);
 
   // Keyboard navigation for carousel / lightbox
   useEffect(() => {
@@ -330,28 +367,21 @@ const ListingDetail = () => {
                 {/* Walkthrough Reel Video Player */}
                 {mediaTab === 'video' && listing.videoUrl ? (
                   <div className="relative glass-card rounded-2xl overflow-hidden h-[520px] bg-black/95 flex items-center justify-center shadow-2xl border border-plasma/40 group select-none media-player-dark">
-                    {/* Ambient blurred backdrop from the video */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
-                      <video
-                        src={getImageUrl(listing.videoUrl)}
-                        muted
-                        loop
-                        playsInline
-                        autoPlay
-                        className="w-full h-full object-cover blur-2xl scale-125"
-                      />
-                    </div>
+                    {/* Ambient backdrop */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 bg-gradient-to-br from-plasma/20 via-black to-cosmic/30" />
 
                     {/* Centered Vertical 9:16 Reel Player */}
                     <div className="relative h-full aspect-[9/16] max-w-full overflow-hidden shadow-2xl bg-black rounded-xl z-10 flex items-center justify-center">
                       <video
+                        key={listing.videoUrl}
                         ref={detailVideoRef}
                         src={getImageUrl(listing.videoUrl)}
                         autoPlay
                         loop
                         playsInline
+                        preload="auto"
                         muted={isVideoMuted}
-                        className="w-full h-full object-cover cursor-pointer"
+                        className="w-full h-full object-cover cursor-pointer transform-gpu"
                         onClick={() => {
                           if (detailVideoRef.current) {
                             if (detailVideoRef.current.paused) {
@@ -365,12 +395,28 @@ const ListingDetail = () => {
                         }}
                         onPlay={() => setIsVideoPlaying(true)}
                         onPause={() => setIsVideoPlaying(false)}
+                        onWaiting={() => setIsVideoBuffering(true)}
+                        onPlaying={() => {
+                          setIsVideoBuffering(false);
+                          setIsVideoPlaying(true);
+                        }}
+                        onCanPlay={() => setIsVideoBuffering(false)}
                         onTimeUpdate={() => {
-                          if (detailVideoRef.current && detailVideoRef.current.duration) {
-                            setVideoProgress((detailVideoRef.current.currentTime / detailVideoRef.current.duration) * 100);
+                          if (detailVideoRef.current && detailVideoRef.current.duration && detailProgressBarRef.current) {
+                            const pct = (detailVideoRef.current.currentTime / detailVideoRef.current.duration) * 100;
+                            detailProgressBarRef.current.style.width = `${pct}%`;
                           }
                         }}
                       />
+
+                      {/* Buffering Spinner */}
+                      {isVideoBuffering && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                          <div className="p-3 rounded-full bg-black/60 backdrop-blur-md">
+                            <RefreshCw className="animate-spin text-plasma" size={28} />
+                          </div>
+                        </div>
+                      )}
 
                       {/* Play indicator overlay when paused */}
                       {!isVideoPlaying && (
@@ -399,7 +445,7 @@ const ListingDetail = () => {
                         {/* Fullscreen Reel Button */}
                         <button
                           type="button"
-                          onClick={() => setIsReelsModalOpen(true)}
+                          onClick={openReelsModal}
                           className="px-3 py-1 rounded-full bg-black/75 hover:bg-plasma text-white text-white-force text-xs font-semibold backdrop-blur-md border border-white/20 transition-all flex items-center gap-1.5 pointer-events-auto shadow-md cursor-pointer"
                           title="Бүтэн дэлгэцээр үзэх"
                         >
@@ -427,7 +473,7 @@ const ListingDetail = () => {
 
                         <button
                           type="button"
-                          onClick={() => setIsReelsModalOpen(true)}
+                          onClick={openReelsModal}
                           className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-plasma to-nova text-white text-white-force text-xs font-bold shadow-lg shadow-plasma/30 hover:scale-105 transition-all pointer-events-auto cursor-pointer flex items-center gap-1.5"
                         >
                           <Smartphone size={13} className="text-white-force" />
@@ -438,8 +484,9 @@ const ListingDetail = () => {
                       {/* Progress Bar */}
                       <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20 z-20">
                         <div
-                          className="h-full bg-gradient-to-r from-plasma to-nova transition-all duration-100"
-                          style={{ width: `${videoProgress}%` }}
+                          ref={detailProgressBarRef}
+                          className="h-full bg-gradient-to-r from-plasma to-nova transition-[width] duration-75 ease-linear"
+                          style={{ width: '0%' }}
                         />
                       </div>
                     </div>

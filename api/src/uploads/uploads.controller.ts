@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Param, Query, Res, Req, UseInterceptors, UploadedFiles, UploadedFile, UseGuards } from '@nestjs/common';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import * as fs from 'fs';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UploadsService } from './uploads.service';
 
@@ -12,15 +13,15 @@ export class UploadsController {
     if (!url) {
       return res.status(400).send('Missing url parameter');
     }
-    const s3Data = await this.uploadsService.getS3Object(url);
-    if (!s3Data) {
+    const media = await this.uploadsService.getMediaFile(url);
+    if (!media || !fs.existsSync(media.filePath)) {
       if (url.includes('.mp4') || url.includes('.webm') || url.includes('.mov')) {
         return res.status(404).send('Video not found');
       }
       return res.redirect('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop');
     }
 
-    const totalSize = s3Data.buffer.length;
+    const totalSize = media.size;
     const range = req.headers?.range;
 
     if (range) {
@@ -34,22 +35,23 @@ export class UploadsController {
       }
 
       const chunkSize = (end - start) + 1;
-      const chunk = s3Data.buffer.subarray(start, end + 1);
 
       res.status(206);
       res.setHeader('Content-Range', `bytes ${start}-${end}/${totalSize}`);
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Content-Length', chunkSize);
-      res.setHeader('Content-Type', s3Data.contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return res.send(chunk);
+      res.setHeader('Content-Type', media.contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      const stream = fs.createReadStream(media.filePath, { start, end });
+      return stream.pipe(res);
     }
 
-    res.setHeader('Content-Type', s3Data.contentType);
+    res.setHeader('Content-Type', media.contentType);
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Length', totalSize);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.send(s3Data.buffer);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    const stream = fs.createReadStream(media.filePath);
+    return stream.pipe(res);
   }
 
   /**

@@ -24,7 +24,8 @@ async function bootstrap() {
     origin: true,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    allowedHeaders: 'Content-Type, Accept, Authorization, Range',
+    exposedHeaders: 'Content-Range, Accept-Ranges, Content-Length',
   });
 
   app.useGlobalPipes(new ValidationPipe({

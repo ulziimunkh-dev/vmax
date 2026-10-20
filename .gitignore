@@ -47,3 +47,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Uploads cache
+uploads-cache/
+api/uploads-cache/

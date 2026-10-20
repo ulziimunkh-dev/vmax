@@ -34,13 +34,22 @@ export const ProjectReelsModal: React.FC<ProjectReelsModalProps> = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const progressBarsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  const syncBars = (activeIdx: number) => {
+    reels.forEach((_, i) => {
+      const bar = progressBarsRef.current[i];
+      if (bar) {
+        bar.style.width = i < activeIdx ? '100%' : '0%';
+      }
+    });
+  };
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
-    setProgress(0);
     setIsPlaying(true);
+    syncBars(initialIndex);
   }, [initialIndex, isOpen]);
 
   // Keyboard navigation
@@ -64,21 +73,23 @@ export const ProjectReelsModal: React.FC<ProjectReelsModalProps> = ({
 
   const handleNext = () => {
     if (currentIndex < reels.length - 1) {
-      setCurrentIndex((i) => i + 1);
-      setProgress(0);
+      const nextIdx = currentIndex + 1;
+      setCurrentIndex(nextIdx);
       setIsPlaying(true);
+      syncBars(nextIdx);
     } else {
       // Loop to first or close
       setCurrentIndex(0);
-      setProgress(0);
+      syncBars(0);
     }
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-      setProgress(0);
+      const prevIdx = currentIndex - 1;
+      setCurrentIndex(prevIdx);
       setIsPlaying(true);
+      syncBars(prevIdx);
     }
   };
 
@@ -98,7 +109,10 @@ export const ProjectReelsModal: React.FC<ProjectReelsModalProps> = ({
     const current = videoRef.current.currentTime;
     const total = videoRef.current.duration;
     if (total > 0) {
-      setProgress((current / total) * 100);
+      const bar = progressBarsRef.current[currentIndex];
+      if (bar) {
+        bar.style.width = `${(current / total) * 100}%`;
+      }
     }
   };
 
@@ -109,7 +123,7 @@ export const ProjectReelsModal: React.FC<ProjectReelsModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-2 sm:p-4 media-player-dark">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm p-2 sm:p-4 media-player-dark">
         {/* Close Button */}
         <button
           type="button"
@@ -151,14 +165,10 @@ export const ProjectReelsModal: React.FC<ProjectReelsModalProps> = ({
             {reels.map((_, i) => (
               <div key={i} className="flex-1 h-1 rounded-full bg-white/30 overflow-hidden backdrop-blur-md">
                 <div
-                  className="h-full bg-plasma transition-all duration-100"
+                  ref={(el) => { progressBarsRef.current[i] = el; }}
+                  className="h-full bg-plasma transition-[width] duration-75 ease-linear"
                   style={{
-                    width:
-                      i < currentIndex
-                        ? '100%'
-                        : i === currentIndex
-                        ? `${progress}%`
-                        : '0%',
+                    width: i < currentIndex ? '100%' : '0%',
                   }}
                 />
               </div>
@@ -195,11 +205,12 @@ export const ProjectReelsModal: React.FC<ProjectReelsModalProps> = ({
               src={videoSrc}
               autoPlay
               playsInline
+              preload="auto"
               loop
               muted={isMuted}
               onTimeUpdate={handleTimeUpdate}
               onEnded={handleNext}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transform-gpu"
             />
 
             {/* Play/Pause Overlay indicator */}
