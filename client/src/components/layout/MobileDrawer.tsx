@@ -17,7 +17,7 @@ import {
   Moon,
   ChevronRight,
   ShieldCheck,
-  Building,
+  Building2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -44,6 +44,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
       label: t.nav.listings,
       to: '/',
       icon: <Home size={18} className="text-plasma" />,
+    },
+    {
+      label: '🏢 Шинэ төслүүд (3D Tour)',
+      to: '/projects',
+      icon: <Building2 size={18} className="text-plasma" />,
+      badge: '3D',
+      badgeColor: 'bg-plasma/20 text-plasma border-plasma/30',
     },
     {
       label: 'Багцууд (VIP, Баталгаажсан)',

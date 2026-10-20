@@ -110,6 +110,20 @@ const Navbar: React.FC = () => {
                 </Link>
 
                 <Link
+                  to="/projects"
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${location.pathname.startsWith('/projects')
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-nebula-text hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                  <Building2 size={15} className="text-plasma" />
+                  <span>Шинэ төслүүд</span>
+                  <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-plasma/20 text-plasma border border-plasma/30 uppercase">
+                    3D
+                  </span>
+                </Link>
+
+                <Link
                   to="/compare"
                   className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${location.pathname === '/compare'
                     ? 'text-white bg-white/10 font-bold'

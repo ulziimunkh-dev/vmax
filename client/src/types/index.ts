@@ -68,3 +68,67 @@ export interface FilterState {
   limit?: number;
 }
 
+export interface FloorPlanItem {
+  id?: string;
+  title: string;
+  rooms: number;
+  areaSqm: number;
+  pricePerSqm?: number;
+  startingPrice: number;
+  image2dUrl: string;
+  image3dUrl?: string;
+  availableCount?: number;
+  description?: string;
+}
+
+export interface ProjectReelItem {
+  id?: string;
+  title: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  durationSeconds?: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  developerName: string;
+  developerLogo?: string;
+  tagline?: string;
+  description: string;
+  status: 'PLANNING' | 'CONSTRUCTING' | 'READY_TO_MOVE' | 'COMPLETED' | string;
+  completionYearQuarter?: string;
+  city: string;
+  district: string;
+  khoroo?: string;
+  addressDetail?: string;
+  latitude?: number;
+  longitude?: number;
+  salesPhone: string;
+  salesEmail?: string;
+  websiteUrl?: string;
+  facebookPageUrl?: string;
+  instagramHandle?: string;
+  viberOrTelegramUrl?: string;
+  minPricePerSqm?: number;
+  maxPricePerSqm?: number;
+  startingPrice?: number;
+  paymentTerms: string[];
+  specialOffers: string[];
+  amenities: string[];
+  tour3dUrl?: string;
+  videoUrl?: string;
+  videoThumbnailUrl?: string;
+  reels?: ProjectReelItem[];
+  coverImage: string;
+  galleryImages: string[];
+  brochurePdfUrl?: string;
+  floorPlans: FloorPlanItem[];
+  viewsCount?: number;
+  inquiriesCount?: number;
+  isFeatured?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+

@@ -13,6 +13,7 @@ import { LocationsModule } from './locations/locations.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import { SmsModule } from './sms/sms.module';
+import { ProjectsModule } from './projects/projects.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -63,6 +64,7 @@ import configuration from './config/configuration';
     SubscriptionsModule,
     SavedSearchesModule,
     SmsModule,
+    ProjectsModule,
   ],
 })
 export class AppModule {}

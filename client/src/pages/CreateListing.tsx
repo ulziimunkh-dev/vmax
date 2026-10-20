@@ -28,6 +28,10 @@ import {
   Smartphone,
   RefreshCw,
   Edit3,
+  Trash2,
+  Play,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { PriceInput } from '@/components/common/PriceInput';
 import { parsePrice } from '@/utils/formatPrice';
@@ -173,12 +177,16 @@ const CreateListing = () => {
     }
   };
 
-  // Reel Video State (15-seconds max)
+  // Reel Video State (up to 60s)
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string | null>(null);
   const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
   const [videoError, setVideoError] = useState<string>('');
+  const [isVideoMuted, setIsVideoMuted] = useState<boolean>(true);
+  const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
 
   // Core Form State
   const [type, setType] = useState('SALE');
@@ -363,6 +371,7 @@ const CreateListing = () => {
 
           if (d.videoUrl) {
             setVideoPreview(getImageUrl(d.videoUrl));
+            setUploadedVideoUrl(d.videoUrl);
             if (d.videoThumbnailUrl) setVideoThumbnail(getImageUrl(d.videoThumbnailUrl));
           }
 
@@ -448,36 +457,40 @@ const CreateListing = () => {
       return;
     }
 
-    if (file.size > 40 * 1024 * 1024) {
-      setVideoError('Бичлэгийн хэмжээ хамгийн ихдээ 40MB байх ёстой.');
+    if (file.size > 100 * 1024 * 1024) {
+      setVideoError('Бичлэгийн хэмжээ хамгийн ихдээ 100MB байх ёстой.');
       return;
     }
 
     const objectUrl = URL.createObjectURL(file);
     setVideoPreview(objectUrl);
+    setUploadedVideoUrl(null);
     setVideoFile(file);
+    setIsVideoPlaying(true);
 
     let hasProcessed = false;
     const processUpload = async (duration?: number) => {
       if (hasProcessed) return;
       hasProcessed = true;
 
-      if (duration && duration > 15.6) {
-        setVideoError(`⚠️ Сонгосон бичлэгийн урт ${Math.round(duration)} секунд байна. 15 секундээс хэтрэхгүй бичлэг сонгоно уу.`);
+      if (duration && duration > 90.5) {
+        setVideoError(`⚠️ Сонгосон бичлэгийн урт ${Math.round(duration)} секунд байна. 90 секундээс (90s) хэтрэхгүй Reel бичлэг сонгоно уу.`);
         setVideoPreview(null);
         setVideoFile(null);
+        setUploadedVideoUrl(null);
         return;
       }
 
       if (duration) setVideoDuration(duration);
       setUploadingVideo(true);
 
-      // Upload video to backend / S3
+      // Upload video to backend / S3 in the background
       const targetListingId = id || draftIdRef.current;
       try {
         const res = await uploadAPI.uploadListingVideo(targetListingId, file);
         if (res.data?.url) {
-          setVideoPreview(res.data.url);
+          setUploadedVideoUrl(res.data.url);
+          // Notice: We keep videoPreview as objectUrl so local playback doesn't stall or reload
         }
       } catch (uploadErr: any) {
         console.warn('Background video upload fallback:', uploadErr);
@@ -538,6 +551,7 @@ const CreateListing = () => {
   const handleRemoveVideo = () => {
     setVideoFile(null);
     setVideoPreview(null);
+    setUploadedVideoUrl(null);
     setVideoThumbnail(null);
     setVideoDuration(null);
     setVideoError('');
@@ -757,8 +771,32 @@ const CreateListing = () => {
 
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
 
-      if (finalImages.length === 0 && !videoPreview) {
-        alert('Зар нийтлэхийн тулд дор хаяж 1 зураг эсвэл 15 секундийн Реел бичлэг оруулна уу.');
+      if (uploadingVideo) {
+        alert('Бичлэг сервер рүү хуулж байна. Түр хүлээнэ үү...');
+        setLoading(false);
+        return;
+      }
+
+      let finalVideoUrl = uploadedVideoUrl;
+      if (!finalVideoUrl && videoFile) {
+        setUploadingVideo(true);
+        try {
+          const res = await uploadAPI.uploadListingVideo(id || draftIdRef.current, videoFile);
+          if (res.data?.url) {
+            finalVideoUrl = res.data.url;
+            setUploadedVideoUrl(res.data.url);
+          }
+        } catch (uploadErr) {
+          console.error('Final video upload failed:', uploadErr);
+        } finally {
+          setUploadingVideo(false);
+        }
+      } else if (!finalVideoUrl && videoPreview && !videoPreview.startsWith('blob:')) {
+        finalVideoUrl = videoPreview;
+      }
+
+      if (finalImages.length === 0 && !finalVideoUrl && !videoPreview) {
+        alert('Зар нийтлэхийн тулд дор хаяж 1 зураг эсвэл Реел бичлэг оруулна уу.');
         setLoading(false);
         return;
       }
@@ -795,7 +833,7 @@ const CreateListing = () => {
         contactPhone,
         attributes: attrPayload,
         images: finalImages,
-        videoUrl: videoPreview || undefined,
+        videoUrl: finalVideoUrl || undefined,
         videoThumbnailUrl: videoThumbnail || undefined,
       };
 
@@ -1980,22 +2018,109 @@ const CreateListing = () => {
             )}
 
             {videoPreview ? (
-              <div className="relative rounded-2xl overflow-hidden border border-plasma/40 bg-black max-w-xs mx-auto aspect-[9/16] max-h-[380px] shadow-2xl group">
+              <div className="relative rounded-2xl overflow-hidden border border-plasma/50 bg-black max-w-[280px] sm:max-w-[320px] mx-auto aspect-[9/16] max-h-[500px] shadow-2xl group select-none">
                 <video
+                  ref={previewVideoRef}
                   src={getImageUrl(videoPreview)}
-                  controls
+                  autoPlay
+                  loop
                   playsInline
-                  className="w-full h-full object-cover"
+                  muted={isVideoMuted}
+                  className="w-full h-full object-cover cursor-pointer"
+                  onClick={() => {
+                    if (previewVideoRef.current) {
+                      if (previewVideoRef.current.paused) {
+                        previewVideoRef.current.play();
+                        setIsVideoPlaying(true);
+                      } else {
+                        previewVideoRef.current.pause();
+                        setIsVideoPlaying(false);
+                      }
+                    }
+                  }}
+                  onPlay={() => setIsVideoPlaying(true)}
+                  onPause={() => setIsVideoPlaying(false)}
                 />
-                <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1">
-                  <span>📹 {videoDuration ? `${Math.round(videoDuration)}s` : '15s Reel'}</span>
+
+                {/* Top Floating Controls */}
+                <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-20">
+                  <div className="flex items-center gap-1.5 pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveVideo();
+                      }}
+                      className="p-1.5 rounded-full bg-black/60 hover:bg-red-500/80 text-white backdrop-blur-md transition-all shadow-md cursor-pointer"
+                      title="Устгах"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                    <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold border border-white/10 shadow-sm">
+                      📹 {videoDuration ? `${Math.round(videoDuration)}s` : '90s Reel'}
+                    </span>
+                  </div>
+
+                  <div className="pointer-events-auto">
+                    {uploadingVideo ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-plasma/30 border border-plasma/60 text-plasma text-[11px] font-bold backdrop-blur-md shadow-md animate-pulse">
+                        <RefreshCw className="animate-spin" size={11} />
+                        <span>Хуулж байна...</span>
+                      </span>
+                    ) : uploadedVideoUrl ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-semibold backdrop-blur-md shadow-md">
+                        <CheckCircle size={11} />
+                        <span>Бэлэн</span>
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                {uploadingVideo && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center flex-col gap-2">
-                    <RefreshCw className="animate-spin text-plasma" size={24} />
-                    <span className="text-xs text-white font-bold">{t.common.loading}</span>
+
+                {/* Center Play Indicator when paused */}
+                {!isVideoPlaying && (
+                  <div
+                    onClick={() => {
+                      if (previewVideoRef.current) {
+                        previewVideoRef.current.play();
+                        setIsVideoPlaying(true);
+                      }
+                    }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px] cursor-pointer z-10"
+                  >
+                    <div className="w-14 h-14 rounded-full bg-plasma/90 text-white flex items-center justify-center shadow-xl shadow-plasma/40 pl-0.5 hover:scale-105 transition-transform">
+                      <Play size={26} fill="currentColor" />
+                    </div>
                   </div>
                 )}
+
+                {/* Bottom Sound & Replace Controls */}
+                <div className="absolute bottom-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      videoInputRef.current?.click();
+                    }}
+                    className="px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 text-white/90 text-[11px] font-medium backdrop-blur-md border border-white/10 transition-all cursor-pointer shadow-md pointer-events-auto"
+                  >
+                    Өөр бичлэг сонгох
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (previewVideoRef.current) {
+                        previewVideoRef.current.muted = !isVideoMuted;
+                      }
+                      setIsVideoMuted((prev) => !prev);
+                    }}
+                    className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/10 transition-all cursor-pointer shadow-md pointer-events-auto"
+                    title={isVideoMuted ? 'Дуу асаах' : 'Дуу хаах'}
+                  >
+                    {isVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                  </button>
+                </div>
               </div>
             ) : (
               <div

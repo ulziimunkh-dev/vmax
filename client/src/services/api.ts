@@ -89,4 +89,13 @@ export const listingsAPI = {
   share: (id: string) => api.post(`/listings/${id}/share`),
 };
 
+export const projectsAPI = {
+  getAll: (params?: any) => api.get('/projects', { params }),
+  getOne: (id: string) => api.get(`/projects/${id}`),
+  create: (data: any) => api.post('/projects', data),
+  update: (id: string, data: any) => api.patch(`/projects/${id}`, data),
+  remove: (id: string) => api.delete(`/projects/${id}`),
+};
+
 export default api;
+

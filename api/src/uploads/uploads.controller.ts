@@ -8,7 +8,7 @@ export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
   @Get('s3')
-  async getS3Image(@Query('url') url: string, @Res() res: any) {
+  async getS3Image(@Query('url') url: string, @Req() req: any, @Res() res: any) {
     if (!url) {
       return res.status(400).send('Missing url parameter');
     }
@@ -19,8 +19,35 @@ export class UploadsController {
       }
       return res.redirect('https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop');
     }
+
+    const totalSize = s3Data.buffer.length;
+    const range = req.headers?.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+
+      if (isNaN(start) || start >= totalSize || end >= totalSize || start > end) {
+        res.setHeader('Content-Range', `bytes */${totalSize}`);
+        return res.status(416).send('Requested range not satisfiable');
+      }
+
+      const chunkSize = (end - start) + 1;
+      const chunk = s3Data.buffer.subarray(start, end + 1);
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${totalSize}`);
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Length', chunkSize);
+      res.setHeader('Content-Type', s3Data.contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(chunk);
+    }
+
     res.setHeader('Content-Type', s3Data.contentType);
     res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Length', totalSize);
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.send(s3Data.buffer);
   }
@@ -47,7 +74,7 @@ export class UploadsController {
   @UseGuards(JwtAuthGuard)
   @Post('listings/:listingId/video')
   @UseInterceptors(FileInterceptor('video', {
-    limits: { fileSize: 40 * 1024 * 1024 }, // Max 40MB
+    limits: { fileSize: 100 * 1024 * 1024 }, // Max 100MB for up to 1.30min (90s) video
   }))
   async uploadListingVideo(
     @Param('listingId') listingId: string,

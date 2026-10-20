@@ -65,9 +65,24 @@ html.light button.bg-black,
 html.light button.bg-black *,
 html.light .bg-plasma.text-white,
 html.light .text-white-force,
-html.light .text-white-force * {
+html.light .text-white-force *,
+html.light [class*="bg-black/"] .text-white,
+html.light [class*="bg-black/"] > span.text-white,
+html.light .bg-black .text-white,
+html.light [data-video-player] .text-white,
+html.light [data-video-player] button,
+html.light .media-player-dark .text-white,
+html.light .media-player-dark button {
   color: #ffffff !important;
-  fill: #ffffff !important;
+}
+
+html.light button.bg-gradient-to-r svg,
+html.light a.bg-gradient-to-r svg,
+html.light button.bg-plasma svg,
+html.light button.bg-black svg,
+html.light .text-white-force svg,
+html.light [class*="bg-black/"] svg:not([class*="text-"]):not([class*="stroke-"]),
+html.light .media-player-dark svg:not([class*="text-"]):not([class*="stroke-"]) {
   stroke: #ffffff !important;
 }
 

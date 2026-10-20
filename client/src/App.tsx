@@ -14,6 +14,9 @@ import CreateListing from '@/pages/CreateListing';
 import ListingDetail from '@/pages/ListingDetail';
 import Pricing from '@/pages/Pricing';
 import CompareListings from '@/pages/CompareListings';
+import Projects from '@/pages/Projects';
+import ProjectDetail from '@/pages/ProjectDetail';
+import CreateProject from '@/pages/CreateProject';
 import AboutUs from '@/pages/AboutUs';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
@@ -66,6 +69,9 @@ const App = () => {
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/data-deletion" element={<PrivacyPolicy />} />
               <Route path="/create-listing" element={<CreateListing />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:id" element={<ProjectDetail />} />
+              <Route path="/create-project" element={<CreateProject />} />
               <Route path="/listings/:id/edit" element={<CreateListing />} />
               <Route path="/listings/:id" element={<ListingDetail />} />
             </Routes>

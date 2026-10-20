@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn, ImageIcon, Smartphone } from 'lucide-react';
+import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn, ImageIcon, Smartphone, Play, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/i18n';
 import api, { listingsAPI } from '@/services/api';
@@ -10,6 +10,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useRecentVisits } from '@/hooks/useRecentVisits';
 import { SocialShareModal } from '@/components/listings/SocialShareModal';
 import { RecentVisits } from '@/components/listings/RecentVisits';
+import { ReelsFeedModal } from '@/components/listings/ReelsFeedModal';
 import PropertyMap from '@/components/map/PropertyMap';
 import { formatRelativeTime, formatDateFull } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
@@ -46,6 +47,11 @@ const ListingDetail = () => {
   const [inquirySuccess, setInquirySuccess] = useState(false);
   const [avatarImgError, setAvatarImgError] = useState(false);
   const [mediaTab, setMediaTab] = useState<'images' | 'video'>('images');
+  const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const detailVideoRef = useRef<HTMLVideoElement>(null);
 
   // Keyboard navigation for carousel / lightbox
   useEffect(() => {
@@ -321,20 +327,121 @@ const ListingDetail = () => {
                   </div>
                 )}
 
-                {/* 15s Walkthrough Video Player */}
+                {/* Walkthrough Reel Video Player */}
                 {mediaTab === 'video' && listing.videoUrl ? (
-                  <div className="relative glass-card rounded-2xl overflow-hidden h-[460px] bg-black flex items-center justify-center shadow-2xl border border-plasma/40">
-                    <video
-                      src={getImageUrl(listing.videoUrl)}
-                      controls
-                      autoPlay
-                      loop
-                      playsInline
-                      className="w-full h-full object-contain"
-                    />
-                    <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 border border-white/10 pointer-events-none">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                      <span>📹 15s Walkthrough Реел</span>
+                  <div className="relative glass-card rounded-2xl overflow-hidden h-[520px] bg-black/95 flex items-center justify-center shadow-2xl border border-plasma/40 group select-none media-player-dark">
+                    {/* Ambient blurred backdrop from the video */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+                      <video
+                        src={getImageUrl(listing.videoUrl)}
+                        muted
+                        loop
+                        playsInline
+                        autoPlay
+                        className="w-full h-full object-cover blur-2xl scale-125"
+                      />
+                    </div>
+
+                    {/* Centered Vertical 9:16 Reel Player */}
+                    <div className="relative h-full aspect-[9/16] max-w-full overflow-hidden shadow-2xl bg-black rounded-xl z-10 flex items-center justify-center">
+                      <video
+                        ref={detailVideoRef}
+                        src={getImageUrl(listing.videoUrl)}
+                        autoPlay
+                        loop
+                        playsInline
+                        muted={isVideoMuted}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => {
+                          if (detailVideoRef.current) {
+                            if (detailVideoRef.current.paused) {
+                              detailVideoRef.current.play();
+                              setIsVideoPlaying(true);
+                            } else {
+                              detailVideoRef.current.pause();
+                              setIsVideoPlaying(false);
+                            }
+                          }
+                        }}
+                        onPlay={() => setIsVideoPlaying(true)}
+                        onPause={() => setIsVideoPlaying(false)}
+                        onTimeUpdate={() => {
+                          if (detailVideoRef.current && detailVideoRef.current.duration) {
+                            setVideoProgress((detailVideoRef.current.currentTime / detailVideoRef.current.duration) * 100);
+                          }
+                        }}
+                      />
+
+                      {/* Play indicator overlay when paused */}
+                      {!isVideoPlaying && (
+                        <div
+                          onClick={() => {
+                            if (detailVideoRef.current) {
+                              detailVideoRef.current.play();
+                              setIsVideoPlaying(true);
+                            }
+                          }}
+                          className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[2px] cursor-pointer z-20"
+                        >
+                          <div className="w-16 h-16 rounded-full bg-plasma/90 text-white text-white-force flex items-center justify-center shadow-xl shadow-plasma/40 pl-1 hover:scale-110 transition-transform">
+                            <Play size={30} fill="currentColor" className="text-white-force" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Top Overlay Badge */}
+                      <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+                        <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-white-force text-xs font-bold flex items-center gap-1.5 border border-white/20 pointer-events-auto shadow-md">
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                          <span className="text-white-force">📹 Walkthrough Реел</span>
+                        </div>
+
+                        {/* Fullscreen Reel Button */}
+                        <button
+                          type="button"
+                          onClick={() => setIsReelsModalOpen(true)}
+                          className="px-3 py-1 rounded-full bg-black/75 hover:bg-plasma text-white text-white-force text-xs font-semibold backdrop-blur-md border border-white/20 transition-all flex items-center gap-1.5 pointer-events-auto shadow-md cursor-pointer"
+                          title="Бүтэн дэлгэцээр үзэх"
+                        >
+                          <Maximize size={12} className="text-white-force" />
+                          <span className="hidden sm:inline text-white-force">Бүтэн дэлгэцээр</span>
+                        </button>
+                      </div>
+
+                      {/* Bottom Controls Bar */}
+                      <div className="absolute bottom-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (detailVideoRef.current) {
+                              detailVideoRef.current.muted = !isVideoMuted;
+                            }
+                            setIsVideoMuted((m) => !m);
+                          }}
+                          className="p-2.5 rounded-full bg-black/75 hover:bg-black/90 text-white text-white-force backdrop-blur-md border border-white/20 transition-all pointer-events-auto cursor-pointer shadow-md"
+                          title={isVideoMuted ? 'Дуу асаах' : 'Дуу хаах'}
+                        >
+                          {isVideoMuted ? <VolumeX size={16} className="text-white-force" /> : <Volume2 size={16} className="text-white-force" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsReelsModalOpen(true)}
+                          className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-plasma to-nova text-white text-white-force text-xs font-bold shadow-lg shadow-plasma/30 hover:scale-105 transition-all pointer-events-auto cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Smartphone size={13} className="text-white-force" />
+                          <span className="text-white-force">Reel горим</span>
+                        </button>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20 z-20">
+                        <div
+                          className="h-full bg-gradient-to-r from-plasma to-nova transition-all duration-100"
+                          style={{ width: `${videoProgress}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -386,6 +493,19 @@ const ListingDetail = () => {
                               <ChevronRight size={22} strokeWidth={2.5} />
                             </button>
                           </>
+                        )}
+
+                        {/* Reel shortcut button if video exists */}
+                        {listing.videoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setMediaTab('video')}
+                            className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-black/75 hover:bg-plasma backdrop-blur-md text-white text-white-force text-xs font-bold transition-all shadow-xl flex items-center gap-1.5 border border-white/20 cursor-pointer"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                            <Smartphone size={13} className="text-white-force" />
+                            <span className="text-white-force">Reel үзэх</span>
+                          </button>
                         )}
 
                         {/* Zoom / fullscreen button */}
@@ -1262,6 +1382,16 @@ const ListingDetail = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Full-Screen 9:16 Real Estate Reels Modal Feed */}
+      {listing && listing.videoUrl && (
+        <ReelsFeedModal
+          isOpen={isReelsModalOpen}
+          onClose={() => setIsReelsModalOpen(false)}
+          initialListingId={listing.id}
+          listings={[listing]}
+        />
       )}
     </div>
   );
