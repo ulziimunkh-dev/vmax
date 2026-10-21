@@ -265,8 +265,12 @@ export const ReelsFeedModal: React.FC<ReelsFeedModalProps> = ({
           <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-16 z-30 space-y-3 pointer-events-none">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-plasma text-white-force uppercase">
-                  {current.type === 'RENT' || current.type === 'rent' ? t.listings.rent : t.listings.sale}
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-white-force uppercase shadow-md ${
+                  String(current.type).toLowerCase() === 'rent'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
+                    : 'bg-gradient-to-r from-plasma to-nova'
+                }`}>
+                  {String(current.type).toLowerCase() === 'rent' ? t.listings.rent : t.listings.sale}
                 </span>
                 <span className="text-xl font-black text-white">
                   {Number(current.price).toLocaleString()} ₮

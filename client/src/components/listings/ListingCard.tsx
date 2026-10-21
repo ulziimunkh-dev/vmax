@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Maximize, BedDouble, Bath, Heart, Share2, Eye, Clock, Scale } from 'lucide-react';
+import { MapPin, Maximize, BedDouble, Bath, Heart, Share2, Eye, Clock, Scale, Film } from 'lucide-react';
 
 import { motion } from 'framer-motion';
 import type { Listing } from '@/types';
@@ -75,14 +75,17 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
               </div>
             )}
 
+            {/* Subtle dark gradient overlay to ensure image badges and text contrast */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/35 pointer-events-none" />
+
             {/* Promotion Badges */}
             {listing.promotionTier === 'TOP_URGENT' && (
-              <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1 shadow-lg shadow-red-500/50 animate-pulse">
-                <span>🔥 ЯАРАЛТАЙ ЗАР</span>
+              <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white text-white-force px-3 py-1 rounded-full text-xs font-bold flex items-center space-x-1 shadow-lg shadow-red-500/50 animate-pulse border border-white/20">
+                <span className="text-white-force">🔥 ЯАРАЛТАЙ ЗАР</span>
               </div>
             )}
             {(listing.promotionTier === 'VIP' || (listing.isPromoted && listing.promotionTier !== 'TOP_URGENT')) && (
-              <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 px-3 py-1 rounded-full text-xs font-black flex items-center space-x-1 shadow-lg shadow-amber-500/50">
+              <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 px-3 py-1 rounded-full text-xs font-black flex items-center space-x-1 shadow-lg shadow-amber-500/50 border border-amber-300">
                 <span>⭐ VIP ОНЦЛОХ</span>
               </div>
             )}
@@ -104,7 +107,7 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
               <button
                 onClick={handleCompareClick}
                 className={`p-2 rounded-full backdrop-blur-md border transition-all ${inCompare
-                    ? 'bg-plasma text-white border-plasma shadow-lg shadow-plasma/50'
+                    ? 'bg-plasma text-white text-white-force border-plasma shadow-lg shadow-plasma/50'
                     : 'bg-void/70 text-white border-white/10 hover:text-plasma hover:bg-void'
                   }`}
                 title="Харьцуулах цонхонд нэмэх"
@@ -122,33 +125,37 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
             </div>
 
 
-            {/* Listing Type Tag */}
-            <div className="absolute bottom-3 left-3 z-20 flex items-center space-x-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${listing.type?.toLowerCase() === 'sale'
-                  ? 'bg-plasma/80 text-white backdrop-blur-md'
-                  : 'bg-aurora/80 text-white backdrop-blur-md'
-                }`}>
-                {listing.type?.toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
+            {/* Bottom Left Badges: Listing Type Tag (Sell / Rent) & Optional Reel Badge */}
+            <div className="absolute bottom-2.5 left-3 z-20 flex items-center space-x-1.5 pointer-events-none">
+              <span
+                className={`px-3 py-1 rounded-xl text-xs font-extrabold shadow-md border backdrop-blur-md text-white text-white-force flex items-center gap-1.5 transition-transform ${
+                  listing.type?.toLowerCase() === 'sale'
+                    ? 'bg-gradient-to-r from-plasma to-nova border-white/25 shadow-plasma/30'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 border-white/25 shadow-emerald-500/30'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-white text-white-force animate-pulse" />
+                <span className="text-white text-white-force">{listing.type?.toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}</span>
               </span>
+
+              {/* 90s Reel Walkthrough Badge next to type tag */}
+              {(listing.hasVideo || listing.videoUrl) && (
+                <div className="bg-gradient-to-r from-pink-500 to-rose-600 text-white text-white-force px-2.5 py-1 rounded-xl text-[11px] font-extrabold flex items-center space-x-1 border border-white/25 shadow-md shadow-pink-500/30 backdrop-blur-md">
+                  <Film size={12} className="text-white-force" />
+                  <span className="text-white-force">Reel</span>
+                </div>
+              )}
             </div>
 
-            {/* 90s Reel Walkthrough Badge */}
-            {(listing.hasVideo || listing.videoUrl) && (
-              <div className="absolute bottom-3 right-3 z-10 bg-black/80 backdrop-blur-md text-white-force px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center space-x-1.5 border border-white/20 shadow-lg group-hover:bg-plasma transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                <span>📹 90s Reel</span>
-              </div>
-            )}
-
-            {/* View & Share Counters Overlay */}
+            {/* View & Share Counters Overlay - Always displayed on bottom right */}
             {(listing.viewsCount !== undefined || listing.sharesCount !== undefined) && (
-              <div className="absolute bottom-2 right-3 z-10 flex items-center space-x-3 text-[11px] text-white bg-void/80 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-white/10">
-                <span className="flex items-center space-x-1">
-                  <Eye size={12} className="text-aurora" />
+              <div className="absolute bottom-2.5 right-3 z-10 flex items-center space-x-2.5 text-[11px] bg-white/90 dark:bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-white/20 shadow-md">
+                <span className="flex items-center space-x-1 text-slate-800 dark:text-white dark:text-white-force font-semibold">
+                  <Eye size={12} className="text-sky-500 dark:text-cyan-300 shrink-0" />
                   <span>{listing.viewsCount || 0}</span>
                 </span>
-                <span className="flex items-center space-x-1">
-                  <Share2 size={12} className="text-plasma" />
+                <span className="flex items-center space-x-1 text-slate-800 dark:text-white dark:text-white-force font-semibold">
+                  <Share2 size={11} className="text-plasma shrink-0" />
                   <span>{listing.sharesCount || 0}</span>
                 </span>
               </div>

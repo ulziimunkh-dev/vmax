@@ -238,8 +238,12 @@ const PropertyMap: React.FC<Props> = ({
           >
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center space-x-2">
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-plasma/20 text-plasma border border-plasma/40 uppercase">
-                  {selectedListing.type === 'sale' ? t.listings.sale : t.listings.rent}
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase ${
+                  String(selectedListing.type).toLowerCase() === 'sale'
+                    ? 'bg-plasma/20 text-plasma border-plasma/40'
+                    : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40'
+                }`}>
+                  {String(selectedListing.type).toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
                 </span>
                 <span className="text-xs text-nebula-text flex items-center">
                   <Home size={12} className="mr-1" />

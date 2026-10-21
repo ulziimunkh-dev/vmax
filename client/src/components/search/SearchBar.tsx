@@ -212,7 +212,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
                 type === ''
                   ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
-                  : 'text-nebula-text hover:text-white'
+                  : 'text-slate-600 dark:text-nebula-text hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {t.filters.allTypes}
@@ -224,10 +224,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                   onSearch({ query, type: 'SALE', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
                 }
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center ${
                 type === 'SALE'
                   ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
-                  : 'text-nebula-text hover:text-white'
+                  : 'text-slate-600 dark:text-nebula-text hover:text-plasma'
               }`}
             >
               {t.listings.sale}
@@ -239,10 +239,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                   onSearch({ query, type: 'RENT', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
                 }
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center ${
                 type === 'RENT'
-                  ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
-                  : 'text-nebula-text hover:text-white'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white-force shadow-md shadow-emerald-500/30'
+                  : 'text-slate-600 dark:text-nebula-text hover:text-emerald-500'
               }`}
             >
               {t.listings.rent}

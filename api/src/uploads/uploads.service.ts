@@ -44,6 +44,74 @@ export class UploadsService {
   }
 
   /**
+   * MP4 Faststart: Relocates the 'moov' atom before 'mdat' and adjusts 'stco' / 'co64'
+   * chunk offsets so web browsers can start playback instantly (progressive download)
+   * instead of downloading the entire file first.
+   */
+  applyMp4Faststart(buf: Buffer): Buffer {
+    if (!buf || buf.length < 32) return buf;
+    try {
+      let offset = 0;
+      const boxes: { type: string; offset: number; size: number }[] = [];
+      while (offset < buf.length - 8) {
+        const size = buf.readUInt32BE(offset);
+        const type = buf.toString('ascii', offset + 4, offset + 8);
+        if (size === 0 || size === 1 || offset + size > buf.length) break;
+        boxes.push({ type, offset, size });
+        offset += size;
+      }
+
+      const moovBox = boxes.find((b) => b.type === 'moov');
+      const mdatBox = boxes.find((b) => b.type === 'mdat');
+
+      if (moovBox && mdatBox && moovBox.offset > mdatBox.offset) {
+        const moovBuf = Buffer.from(buf.subarray(moovBox.offset, moovBox.offset + moovBox.size));
+        const shift = moovBox.size;
+
+        let pos = 0;
+        while (pos < moovBuf.length - 16) {
+          const boxType = moovBuf.toString('ascii', pos + 4, pos + 8);
+          if (boxType === 'stco') {
+            const boxSize = moovBuf.readUInt32BE(pos);
+            const entryCount = moovBuf.readUInt32BE(pos + 12);
+            for (let i = 0; i < entryCount; i++) {
+              const entryOffset = pos + 16 + i * 4;
+              if (entryOffset + 4 <= moovBuf.length) {
+                const oldVal = moovBuf.readUInt32BE(entryOffset);
+                moovBuf.writeUInt32BE(oldVal + shift, entryOffset);
+              }
+            }
+            pos += boxSize > 0 ? boxSize : 1;
+          } else if (boxType === 'co64') {
+            const boxSize = moovBuf.readUInt32BE(pos);
+            const entryCount = moovBuf.readUInt32BE(pos + 12);
+            for (let i = 0; i < entryCount; i++) {
+              const entryOffset = pos + 16 + i * 8;
+              if (entryOffset + 8 <= moovBuf.length) {
+                const oldVal = moovBuf.readBigUInt64BE(entryOffset);
+                moovBuf.writeBigUInt64BE(oldVal + BigInt(shift), entryOffset);
+              }
+            }
+            pos += boxSize > 0 ? boxSize : 1;
+          } else {
+            pos++;
+          }
+        }
+
+        const beforeMdat = buf.subarray(0, mdatBox.offset);
+        const mdatData = buf.subarray(mdatBox.offset, moovBox.offset);
+        const afterMoov = buf.subarray(moovBox.offset + moovBox.size);
+
+        this.logger.log(`🎬 Applied MP4 faststart: moved 'moov' (${shift} bytes) to front before 'mdat'`);
+        return Buffer.concat([beforeMdat, moovBuf, mdatData, afterMoov]);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Faststart optimization skipped: ${err.message}`);
+    }
+    return buf;
+  }
+
+  /**
    * Upload single file to S3 (or local fallback) with specified subfolder.
    * For listing photos: subfolder = `listings/${listingId}`
    */
@@ -51,6 +119,11 @@ export class UploadsService {
     const fileExt = path.extname(file.originalname);
     const envFolder = this.configService.get<string>('aws.folder') || 'development';
     const region = this.configService.get<string>('aws.region') || 'us-east-1';
+
+    // Optimize MP4 videos by relocating moov atom to front for instant web playback
+    if ((fileExt.toLowerCase() === '.mp4' || file.mimetype?.includes('video')) && file.buffer) {
+      file.buffer = this.applyMp4Faststart(file.buffer);
+    }
 
     // Key format: e.g. production/listings/{listingId}/{uuid}.jpg or development/uploads/{uuid}.jpg
     const s3Key = `${envFolder}/${subfolder.replace(/^\//, '')}/${uuidv4()}${fileExt}`;
@@ -202,19 +275,34 @@ export class UploadsService {
           return null;
         }
 
+        let finalSize = stats.size;
+        if (ext.toLowerCase() === '.mp4' || (response.ContentType && response.ContentType.includes('video'))) {
+          try {
+            const rawBuf = await fs.promises.readFile(tempPath);
+            const optimized = this.applyMp4Faststart(rawBuf);
+            if (optimized !== rawBuf) {
+              await fs.promises.writeFile(tempPath, optimized);
+              finalSize = optimized.length;
+              this.logger.log(`🎬 Applied MP4 faststart to cached video: ${key}`);
+            }
+          } catch (e: any) {
+            this.logger.warn(`Faststart optimization skipped: ${e.message}`);
+          }
+        }
+
         await fs.promises.rename(tempPath, cachedFilePath);
         const contentType = response.ContentType || (ext === '.mp4' ? 'video/mp4' : 'application/octet-stream');
         await fs.promises.writeFile(
           metaPath,
-          JSON.stringify({ contentType, size: stats.size }),
+          JSON.stringify({ contentType, size: finalSize }),
           'utf8',
         );
 
-        this.logger.log(`⚡ Cached S3 media to disk: ${key} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+        this.logger.log(`⚡ Cached S3 media to disk: ${key} (${(finalSize / 1024 / 1024).toFixed(2)} MB)`);
         return {
           filePath: cachedFilePath,
           contentType,
-          size: stats.size,
+          size: finalSize,
         };
       } catch (err: any) {
         this.logger.error(`Error downloading S3 object for cache [${key}]: ${err.message}`);

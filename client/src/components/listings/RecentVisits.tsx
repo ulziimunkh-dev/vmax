@@ -56,8 +56,12 @@ export const RecentVisits: React.FC = () => {
                       Vmax.mn
                     </div>
                   )}
-                  <span className="absolute top-2 right-2 bg-void/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-semibold text-white">
-                    {item.type === 'sale' ? t.listings.sale : t.listings.rent}
+                  <span className={`absolute top-2 right-2 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-[10px] font-bold text-white text-white-force shadow-sm border border-white/20 ${
+                    String(item.type).toLowerCase() === 'sale'
+                      ? 'bg-gradient-to-r from-plasma to-nova'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-600'
+                  }`}>
+                    {String(item.type).toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
                   </span>
                 </div>
                 <div className="p-3">

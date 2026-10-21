@@ -704,8 +704,12 @@ const ListingDetail = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex items-center space-x-2 mb-3">
-                    <span className="px-3 py-1 bg-plasma/20 text-plasma rounded-full text-sm font-semibold border border-plasma/30">
-                      {listing.type === 'sale' ? t.listings.sale : t.listings.rent}
+                    <span className={`px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold border shadow-sm ${
+                      String(listing.type).toLowerCase() === 'sale'
+                        ? 'bg-plasma/15 text-plasma border-plasma/30'
+                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    }`}>
+                      {String(listing.type).toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
                     </span>
 
                     {/* Publication Relative Time Badge */}
