@@ -18,6 +18,11 @@ async function bootstrap() {
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+  });
+
   app.setGlobalPrefix('api');
   
   app.enableCors({

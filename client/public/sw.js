@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vmax-pwa-v1';
+const CACHE_NAME = 'vmax-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -6,24 +6,33 @@ const STATIC_ASSETS = [
   '/favicon.svg',
   '/icons/icon-192x192.svg',
   '/icons/icon-512x512.svg',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
   '/images/hero_penthouse.png',
   '/images/hero_tower.png',
   '/images/hero_villa.png',
 ];
 
-// Install Event - Pre-cache core shell assets
+// Install Event - Pre-cache core shell assets safely
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[ServiceWorker] Some static assets failed to pre-cache:', err);
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // Cache each asset safely so a single missing file does not abort installation
+      await Promise.allSettled(
+        STATIC_ASSETS.map((asset) =>
+          fetch(asset)
+            .then((res) => {
+              if (res.ok) return cache.put(asset, res);
+            })
+            .catch((err) => console.warn(`[SW] Could not pre-cache: ${asset}`, err))
+        )
+      );
     })
   );
   self.skipWaiting();
 });
 
-// Activate Event - Clean up old caches
+// Activate Event - Clean up old caches immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -37,62 +46,116 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event - Dynamic caching strategy
+// Fetch Event - Safe strategy with guaranteed Response objects
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests and browser extensions
+  // Skip non-GET requests and non-http(s) schemes
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // 1. API Requests: Network-First with Cache Fallback
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-          }
-          return response;
-        })
-        .catch(async () => {
-          const cachedResponse = await caches.match(request);
-          if (cachedResponse) return cachedResponse;
-          return new Response(JSON.stringify({ offline: true, items: [] }), {
-            headers: { 'Content-Type': 'application/json' },
-            status: 200,
-          });
-        })
-    );
-    return;
-  }
-
-  // 2. Navigation (HTML Pages): Network-First, fallback to cached index.html
+  // 1. Navigation requests (HTML pages like /register, /login, /listings):
+  // Network-First with guaranteed HTML Response fallback
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html') || caches.match('/'))
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && networkResponse.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (err) {
+          const cache = await caches.open(CACHE_NAME);
+          const cached =
+            (await cache.match(request)) ||
+            (await cache.match('/index.html')) ||
+            (await cache.match('/'));
+
+          if (cached) {
+            return cached;
+          }
+
+          // Fallback Response if neither network nor cache succeeded
+          return new Response(
+            `<!DOCTYPE html>
+            <html lang="mn">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Vmax.mn | Холболтоо шалгана уу</title>
+              <style>
+                body { font-family: -apple-system, sans-serif; background: #0a0a0f; color: #fff; text-align: center; padding: 50px 20px; }
+                button { background: #863bff; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 16px; }
+              </style>
+            </head>
+            <body>
+              <h2>Интернэт холболтоо шалгана уу</h2>
+              <p>Хуудсыг ачаалахад алдаа гарлаа.</p>
+              <button onclick="window.location.reload()">Дахин ачаалах</button>
+            </body>
+            </html>`,
+            {
+              status: 200,
+              headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            }
+          );
+        }
+      })()
     );
     return;
   }
 
-  // 3. Static Assets & Images: Stale-While-Revalidate
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+  // 2. API requests (/api/...):
+  // Pass through to network, never return undefined
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request).catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        return new Response(
+          JSON.stringify({ offline: true, error: 'Сүлжээний холболтгүй байна.' }),
+          {
+            status: 503,
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
           }
-          return networkResponse;
-        })
-        .catch(() => cachedResponse);
+        );
+      })
+    );
+    return;
+  }
 
-      return cachedResponse || fetchPromise;
-    })
+  // 3. Static assets & media: Cache-first / Stale-while-revalidate
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      if (cached) {
+        // Revalidate in background
+        fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse));
+            }
+          })
+          .catch(() => {});
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetch(request);
+        if (networkResponse && networkResponse.status === 200) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch (err) {
+        // Return clean empty 404 response instead of undefined
+        return new Response('', { status: 404, statusText: 'Not Found' });
+      }
+    })()
   );
 });
 

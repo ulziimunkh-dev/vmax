@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -146,15 +146,23 @@ const Register = () => {
         )}
 
         <div className="space-y-3 mb-4">
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="w-full bg-white text-gray-900 border border-slate-200 font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
-          >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
-          </button>
+          <div className="w-full flex justify-center [&>div]:w-full [&>div>iframe]:!w-full [&>div>iframe]:!mx-auto">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                if (credentialResponse.credential) {
+                  await handleGoogleSuccess(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                setError('Google нэвтрэлт амжилтгүй боллоо.');
+              }}
+              theme="outline"
+              size="large"
+              width="100%"
+              text="signup_with"
+              shape="rectangular"
+            />
+          </div>
 
           {/* Facebook Login Button (Temporarily commented out)
           <button
