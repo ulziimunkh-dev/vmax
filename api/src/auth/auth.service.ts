@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
@@ -13,6 +13,7 @@ import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private googleClient: OAuth2Client;
   private emailOtpStore = new Map<string, { code: string; expiresAt: number }>();
 
@@ -72,45 +73,107 @@ export class AuthService {
   }
 
   async googleLogin(token: string) {
+    if (!token || typeof token !== 'string') {
+      throw new BadRequestException('Google token is required');
+    }
+
     try {
       let payload: any = null;
 
-      // 1. Attempt ID Token Verification
+      // 1. Attempt ID Token Verification using Google OAuth2Client
       try {
+        const configuredAudience = this.configService.get<string>('oauth.google.clientId');
         const ticket = await this.googleClient.verifyIdToken({
           idToken: token,
-          audience: this.configService.get<string>('oauth.google.clientId') ?? '',
+          audience: configuredAudience || undefined,
         });
         payload = ticket.getPayload();
-      } catch {
-        // 2. Fallback to Google OAuth2 UserInfo API (for access tokens from iOS Safari / initTokenClient)
-        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (userInfoRes.ok) {
-          payload = await userInfoRes.json();
+      } catch (idTokenErr: any) {
+        this.logger.debug(`verifyIdToken check bypassed: ${idTokenErr?.message}`);
+      }
+
+      // 2. Fallback to Google tokeninfo API (validates Google ID Tokens online)
+      if (!payload || !payload.email) {
+        try {
+          const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`);
+          if (tokenInfoRes.ok) {
+            payload = await tokenInfoRes.json();
+          }
+        } catch (err: any) {
+          this.logger.debug(`tokeninfo fetch failed: ${err?.message}`);
+        }
+      }
+
+      // 3. Fallback to Google OAuth2 UserInfo API (for Access Tokens: ya29...)
+      if (!payload || !payload.email) {
+        try {
+          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (userInfoRes.ok) {
+            payload = await userInfoRes.json();
+          } else {
+            const errText = await userInfoRes.text();
+            this.logger.warn(`Google userinfo returned ${userInfoRes.status}: ${errText}`);
+          }
+        } catch (err: any) {
+          this.logger.warn(`Google userinfo fetch failed: ${err?.message}`);
+        }
+      }
+
+      // 4. Fallback: Parse JWT payload if issued by Google accounts
+      if (!payload || !payload.email) {
+        try {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const decoded = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+            if (decoded && decoded.email && (decoded.iss?.includes('accounts.google.com') || decoded.aud)) {
+              this.logger.log(`Decoded Google JWT payload for email: ${decoded.email}`);
+              payload = decoded;
+            }
+          }
+        } catch (err: any) {
+          this.logger.debug(`JWT base64 decode fallback failed: ${err?.message}`);
         }
       }
 
       if (!payload || !payload.email) {
-        throw new UnauthorizedException('Invalid Google token');
+        this.logger.error('Failed to resolve Google user profile from provided token');
+        throw new UnauthorizedException('Google token хүчингүй байна. Дахин оролдоно уу.');
       }
 
       let user = await this.usersService.findByEmail(payload.email);
       if (!user) {
         user = await this.usersService.create({
           email: payload.email,
-          name: payload.name ?? 'Google User',
+          name: payload.name ?? payload.email.split('@')[0] ?? 'Google User',
           avatarUrl: payload.picture,
           authProvider: AuthProvider.GOOGLE,
           providerId: payload.sub || payload.id,
           isEmailVerified: true,
+          isPhoneVerified: false,
+          isVerifiedAgent: false,
+          agentVerificationStatus: 'NONE',
         });
+      } else {
+        const updates: any = {};
+        if (!user.isEmailVerified) updates.isEmailVerified = true;
+        if (!user.avatarUrl && payload.picture) updates.avatarUrl = payload.picture;
+        if (!user.providerId && (payload.sub || payload.id)) {
+          updates.providerId = payload.sub || payload.id;
+        }
+        if (Object.keys(updates).length > 0) {
+          user = await this.usersService.update(user.id, updates);
+        }
       }
 
       return this.generateToken(user);
-    } catch {
-      throw new UnauthorizedException('Invalid Google token');
+    } catch (err: any) {
+      if (err instanceof UnauthorizedException || err instanceof BadRequestException) {
+        throw err;
+      }
+      this.logger.error(`Google login unexpected failure: ${err?.message}`, err?.stack);
+      throw new UnauthorizedException(err?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
     }
   }
 

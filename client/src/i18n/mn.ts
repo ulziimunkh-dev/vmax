@@ -211,7 +211,7 @@ const mn = {
     phone: 'Утас',
     phoneLoginTab: '📱 Утасны дугаараар',
     emailLoginTab: '✉️ Имэйл & Нууц үг',
-    phonePlaceholder: 'Утасны дугаар (Жишээ: 89767700)',
+    phonePlaceholder: 'Утасны дугаар (Жишээ: 99001122)',
     sendSmsCode: 'Баталгаажуулах код авах / Нэвтрэх',
     sendSmsInstruction: 'Verify.mn баталгаажуулалт',
     verifySmsDesc: 'Та өөрийн дугаараас дараах тусгай дугаарт мессеж илгээн нэвтэрнэ үү:',

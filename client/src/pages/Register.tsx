@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -27,46 +28,56 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleAuth = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-    if (typeof window === 'undefined' || (!(window as any).google?.accounts?.id && !(window as any).google?.accounts?.oauth2)) {
-      setError('Google Identity Services ачаалагдаж байна. Түр хүлээнэ үү.');
-      return;
-    }
-
-    if (!clientId) {
-      setError('Google Client ID тохируулагдаагүй байна.');
-      return;
-    }
-
+  const handleGoogleSuccess = async (token: string) => {
+    setLoading(true);
+    setError('');
     try {
-      if ((window as any).google?.accounts?.oauth2) {
+      const res = await authAPI.googleLogin(token);
+      const { user, access_token } = res.data;
+      loginStore(user, access_token);
+      navigate('/');
+    } catch (err: any) {
+      const msg = err.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const triggerGoogleLogin = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      if (tokenResponse?.access_token) {
+        handleGoogleSuccess(tokenResponse.access_token);
+      }
+    },
+    onError: (errorResponse: any) => {
+      if (errorResponse?.error === 'popup_closed_by_user') {
+        return;
+      }
+      setError(`Google нэвтрэлт амжилтгүй боллоо: ${errorResponse?.error_description || errorResponse?.error || 'Цонх хаагдсан эсвэл зөвшөөрөл олгосонгүй'}`);
+    },
+  });
+
+  const handleGoogleAuth = () => {
+    setError('');
+    try {
+      triggerGoogleLogin();
+    } catch {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2 && clientId) {
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: clientId,
           scope: 'email profile openid',
-          callback: async (tokenResponse: any) => {
+          callback: (tokenResponse: any) => {
             if (tokenResponse?.access_token) {
-              setLoading(true);
-              setError('');
-              try {
-                const res = await authAPI.googleLogin(tokenResponse.access_token);
-                const { user, access_token } = res.data;
-                loginStore(user, access_token);
-                navigate('/');
-              } catch (err: any) {
-                setError(err.response?.data?.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
-              } finally {
-                setLoading(false);
-              }
+              handleGoogleSuccess(tokenResponse.access_token);
             }
           },
         });
         tokenClient.requestAccessToken({ prompt: 'consent' });
-        return;
+      } else {
+        setError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа. Хуудсаа дахин ачаална уу.');
       }
-    } catch {
-      setError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа.');
     }
   };
 

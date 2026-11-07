@@ -55,7 +55,12 @@ export const authAPI = {
   resetPassword: (data: any) => api.post('/auth/reset-password', data),
 
   // Social Logins
-  googleLogin: (credential: string) => api.post('/auth/google', { credential }),
+  googleLogin: (tokenOrCredential: string) =>
+    api.post('/auth/google', {
+      token: tokenOrCredential,
+      credential: tokenOrCredential,
+      access_token: tokenOrCredential,
+    }),
   facebookLogin: (accessToken: string) => api.post('/auth/facebook', { accessToken }),
   appleLogin: (identityToken: string) => api.post('/auth/apple', { identityToken }),
 

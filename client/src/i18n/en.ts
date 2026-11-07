@@ -213,7 +213,7 @@ const en: Translations = {
     phone: 'Phone Number',
     phoneLoginTab: '📱 Phone Number',
     emailLoginTab: '✉️ Email & Password',
-    phonePlaceholder: 'Phone number (e.g. 89767700)',
+    phonePlaceholder: 'Phone number (e.g. 99123456)',
     sendSmsCode: 'Get SMS Code / Login',
     sendSmsInstruction: 'Verify.mn SMS Verification',
     verifySmsDesc: 'Please send an SMS from your phone to complete verification:',

@@ -40,7 +40,8 @@ export class AuthController {
 
   @Post('google')
   googleLogin(@Body() googleAuthDto: GoogleAuthDto) {
-    return this.authService.googleLogin(googleAuthDto.token);
+    const token = googleAuthDto.token || googleAuthDto.credential || googleAuthDto.access_token;
+    return this.authService.googleLogin(token as string);
   }
 
   @Post('facebook')
