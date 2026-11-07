@@ -1,7 +1,25 @@
 import axios from 'axios';
 
+export const getBaseUrl = (): string => {
+  let url = (import.meta.env.VITE_API_URL || '').trim();
+  if (!url) {
+    return '/api';
+  }
+  // Auto-prefix https:// if provided domain without protocol (e.g. api-production-e009.up.railway.app)
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    url = `https://${url}`;
+  }
+  // Trim trailing slash
+  url = url.replace(/\/+$/, '');
+  // Ensure it ends with /api
+  if (!url.endsWith('/api') && !url.includes('/api/')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
