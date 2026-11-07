@@ -1,46 +1,70 @@
 import axios from 'axios';
 
-let raw = (import.meta.env.VITE_API_URL || '/api').trim();
-if (raw.endsWith('/')) {
-  raw = raw.slice(0, -1);
-}
-
-// Auto-prefix https:// if user provided domain without protocol (e.g. api-production-e009.up.railway.app)
-if (raw && !raw.startsWith('http://') && !raw.startsWith('https://') && !raw.startsWith('/')) {
-  raw = `https://${raw}`;
-}
-
-const baseURL =
-  raw.startsWith('http') && !raw.endsWith('/api')
-    ? `${raw}/api`
-    : raw;
-
-const api = axios.create({ baseURL });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('vmax_token');
-  if (token && config.headers) { config.headers.Authorization = `Bearer ${token}`; }
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
-export const authAPI = {
-  register: (data: any) => api.post('/auth/register', data),
-  login: (data: any) => api.post('/auth/login', data),
-  googleLogin: (token: string) => api.post('/auth/google', { token }),
-  facebookLogin: (accessToken: string) => api.post('/auth/facebook', { accessToken }),
-  appleLogin: (idToken: string, user?: any) => api.post('/auth/apple', { idToken, user }),
-  getProfile: () => api.get('/auth/profile'),
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      // window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
+export const authAPI = {
+  login: (data: any) => api.post('/auth/login', data),
+  register: (data: any) => api.post('/auth/register', data),
+  getProfile: () => api.get('/auth/profile'),
   updateProfile: (data: any) => api.patch('/auth/profile', data),
+  changePassword: (data: any) => api.post('/auth/change-password', data),
+
+  // Phone Login via Verify.mn MO SMS
+  createPhoneLoginSession: (phone: string) => api.post('/auth/phone-login/session', { phone }),
+  checkPhoneLoginSession: (sessionId: string) => api.get(`/auth/phone-login/session/${sessionId}`),
+  sandboxApprovePhoneLogin: (sessionId: string) => api.post(`/auth/phone-login/sandbox-approve/${sessionId}`),
+
+  // Authenticated Phone Verification
   createPhoneSession: (phone?: string) => api.post('/auth/phone-session', { phone }),
   checkPhoneSession: (sessionId: string) => api.get(`/auth/phone-session/${sessionId}`),
   verifyPhone: (code?: string, phone?: string) => api.post('/auth/verify-phone', { code, phone }),
-  verifyEmail: () => api.post('/auth/verify-email'),
+  sendPhoneOtp: (phone: string) => api.post('/auth/send-phone-otp', { phone }),
+  verifyPhoneOtp: (phone: string, code: string) => api.post('/auth/verify-phone-otp', { phone, code }),
+
+  // Email Verification & Notifications
+  sendEmailOtp: () => api.post('/auth/send-email-otp'),
+  verifyEmail: (code?: string) => api.post('/auth/verify-email', { code }),
+  sendVerificationEmail: () => api.post('/auth/send-email-otp'),
+
+  // Password reset
+  requestPasswordReset: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (data: any) => api.post('/auth/reset-password', data),
+
+  // Social Logins
+  googleLogin: (credential: string) => api.post('/auth/google', { credential }),
+  facebookLogin: (accessToken: string) => api.post('/auth/facebook', { accessToken }),
+  appleLogin: (identityToken: string) => api.post('/auth/apple', { identityToken }),
+
+  // Agent verification
   requestAgentVerification: (data: { agencyName?: string; agentLicenseNo?: string }) =>
     api.post('/auth/request-agent-verification', data),
 };
 
-export const uploadAPI = {
+export const uploadsAPI = {
   uploadFile: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -67,6 +91,8 @@ export const uploadAPI = {
     return api.post(`/uploads/listings/${listingId}/video`, formData);
   },
 };
+
+export const uploadAPI = uploadsAPI;
 
 
 export const locationsAPI = {
@@ -97,5 +123,29 @@ export const projectsAPI = {
   remove: (id: string) => api.delete(`/projects/${id}`),
 };
 
-export default api;
+export const aiAPI = {
+  chat: (data: { message: string; history?: any[] }) => api.post('/ai/chat', data),
+  generateDescription: (data: {
+    type: string;
+    category?: string;
+    district: string;
+    khoroo?: string;
+    location?: string;
+    areaSqm: number;
+    rooms?: number;
+    floor?: number;
+    totalFloors?: number;
+    price?: number;
+    highlights?: string[];
+  }) => api.post('/ai/generate-description', data),
+  estimatePrice: (data: {
+    type: string;
+    category?: string;
+    district: string;
+    khoroo?: string;
+    areaSqm: number;
+    price?: number;
+  }) => api.post('/ai/estimate-price', data),
+};
 
+export default api;

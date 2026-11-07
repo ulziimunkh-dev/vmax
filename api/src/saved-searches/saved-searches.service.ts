@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SavedSearch } from './saved-search.entity';
 import { Listing } from '../listings/listing.entity';
+import { User } from '../users/user.entity';
 
 @Injectable()
 export class SavedSearchesService {
@@ -12,6 +13,8 @@ export class SavedSearchesService {
   constructor(
     @InjectRepository(SavedSearch)
     private savedSearchesRepository: Repository<SavedSearch>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -163,9 +166,27 @@ export class SavedSearchesService {
         );
 
         for (const alert of matchingAlerts) {
-          const recipient = alert.email || `User #${alert.userId}`;
+          // Check if user has verified email before sending notification
+          let isVerified = false;
+          let userEmail = alert.email;
+          if (alert.userId) {
+            const user = await this.usersRepository.findOne({ where: { id: alert.userId } });
+            if (user && user.isEmailVerified) {
+              isVerified = true;
+              userEmail = user.email;
+            }
+          }
+
+          if (!isVerified) {
+            this.logger.log(
+              `⚠️ [EMAIL ALERT SKIPPED] User for search alert ${alert.id} (${alert.userId || alert.email}) email is not verified.`
+            );
+            continue;
+          }
+
+          const recipient = userEmail || `User #${alert.userId}`;
           this.logger.log(
-            `📧 [INSTANT SINGLE ALERT SENT] Notified ${recipient}: New property match "${listing.title}" (${listing.price} ₮)`
+            `📧 [INSTANT SINGLE ALERT SENT] Notified verified email ${recipient}: New property match "${listing.title}" (${listing.price} ₮)`
           );
 
           // Mark as triggered and inactive (One-time alert per subscription)
@@ -174,9 +195,8 @@ export class SavedSearchesService {
           await this.savedSearchesRepository.save(alert);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Failed to check saved search alerts: ${error.message}`);
     }
   }
 }
-

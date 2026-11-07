@@ -36,6 +36,7 @@ import {
 import { PriceInput } from '@/components/common/PriceInput';
 import { parsePrice } from '@/utils/formatPrice';
 import { ImageEditorModal } from '@/components/common/ImageEditorModal';
+import { AiListingAssistant } from '@/components/ai/AiListingAssistant';
 import { useAuthStore } from '@/store/useAuthStore';
 import { getImageUrl } from '@/utils/imageUrl';
 import { loginWithFacebook } from '@/utils/facebookAuth';
@@ -1944,6 +1945,26 @@ const CreateListing = () => {
                 </div>
               )}
             </div>
+
+                        {/* AI Assistant for Description and Price Estimation */}
+            <AiListingAssistant
+              type={type}
+              category={category}
+              district={district}
+              khoroo={khoroo}
+              location={title || location}
+              areaSqm={areaSqm}
+              rooms={rooms}
+              floor={floor}
+              totalFloors={totalFloors}
+              price={parsePrice(price)}
+              highlights={[
+                condition ? condition : null,
+                windowDirections ? `${windowDirections} харсан цонхтой` : null,
+                garage ? 'Дулаан зогсоолтой' : null,
+              ].filter(Boolean) as string[]}
+              onDescriptionGenerated={(desc: string) => setDescription(desc)}
+            />
 
             <div>
               <label className="block text-xs font-semibold text-nebula-text mb-1">Тайлбар</label>

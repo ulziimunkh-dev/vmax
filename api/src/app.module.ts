@@ -14,6 +14,8 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import { SmsModule } from './sms/sms.module';
 import { ProjectsModule } from './projects/projects.module';
+import { FurnitureModule } from './furniture/furniture.module';
+import { AiModule } from './ai/ai.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -65,8 +67,8 @@ import configuration from './config/configuration';
     SavedSearchesModule,
     SmsModule,
     ProjectsModule,
+    FurnitureModule,
+    AiModule,
   ],
 })
 export class AppModule {}
-
-

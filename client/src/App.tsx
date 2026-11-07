@@ -17,12 +17,16 @@ import CompareListings from '@/pages/CompareListings';
 import Projects from '@/pages/Projects';
 import ProjectDetail from '@/pages/ProjectDetail';
 import CreateProject from '@/pages/CreateProject';
+import Furniture from '@/pages/Furniture';
+import FurnitureDetail from '@/pages/FurnitureDetail';
+import CreateFurnitureProfile from '@/pages/CreateFurnitureProfile';
 import AboutUs from '@/pages/AboutUs';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import { CompareFloatingBar } from '@/components/listings/CompareFloatingBar';
 import { PWAInstallPrompt } from '@/components/pwa/PWAInstallPrompt';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { VmaxAIChat } from '@/components/ai/VmaxAIChat';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
 import api from '@/services/api';
@@ -72,12 +76,16 @@ const App = () => {
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectDetail />} />
               <Route path="/create-project" element={<CreateProject />} />
+              <Route path="/furniture" element={<Furniture />} />
+              <Route path="/furniture/:id" element={<FurnitureDetail />} />
+              <Route path="/create-furniture-profile" element={<CreateFurnitureProfile />} />
               <Route path="/listings/:id/edit" element={<CreateListing />} />
               <Route path="/listings/:id" element={<ListingDetail />} />
             </Routes>
           </main>
           <CompareFloatingBar />
           <PWAInstallPrompt />
+          <VmaxAIChat />
           <MobileBottomNav />
           <Footer />
         </div>

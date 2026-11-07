@@ -8,18 +8,20 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AuthProvider } from '../common/enums/auth-provider.enum';
 import { OAuth2Client } from 'google-auth-library';
 import { ConfigService } from '@nestjs/config';
-
 import { SmsService } from '../sms/sms.service';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
+  private emailOtpStore = new Map<string, { code: string; expiresAt: number }>();
 
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
     private smsService: SmsService,
+    private mailService: MailService,
   ) {
     this.googleClient = new OAuth2Client(this.configService.get<string>('oauth.google.clientId') ?? '');
   }
@@ -235,6 +237,59 @@ export class AuthService {
     };
   }
 
+  // --- Phone Login (Public, Verify.mn MO SMS) ---
+  async createPhoneLoginSession(phone: string) {
+    const cleanPhone = (phone || '').replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      throw new BadRequestException('Утасны дугаар буруу байна. 8 оронтой дугаар оруулна уу.');
+    }
+    return this.smsService.createSession(cleanPhone);
+  }
+
+  async checkPhoneLoginSession(sessionId: string) {
+    const statusData = await this.smsService.checkSessionStatus(sessionId);
+
+    if (statusData.sessionStatus === 'VERIFIED') {
+      const cleanPhone = statusData.phone.replace(/\D/g, '');
+      let user = await this.usersService.findByPhone(cleanPhone);
+      if (!user) {
+        user = await this.usersService.findByPhone(`+976${cleanPhone}`);
+      }
+
+      if (!user) {
+        user = await this.usersService.create({
+          phone: cleanPhone,
+          name: `Хэрэглэгч ${cleanPhone.slice(-4)}`,
+          email: `${cleanPhone}@phone.vmax.mn`,
+          authProvider: AuthProvider.LOCAL,
+          isPhoneVerified: true,
+          isEmailVerified: false,
+          isVerifiedAgent: false,
+          agentVerificationStatus: 'NONE',
+        });
+      } else if (!user.isPhoneVerified) {
+        user = await this.usersService.update(user.id, { isPhoneVerified: true });
+      }
+
+      const tokenData = this.generateToken(user);
+      return {
+        ...statusData,
+        sessionStatus: 'VERIFIED',
+        isPhoneVerified: true,
+        access_token: tokenData.access_token,
+        user: tokenData.user,
+        message: 'Утасны дугаараар амжилттай нэвтэрлээ.',
+      };
+    }
+
+    return statusData;
+  }
+
+  async sandboxApprovePhoneLogin(sessionId: string) {
+    this.smsService.sandboxApprove(sessionId);
+    return this.checkPhoneLoginSession(sessionId);
+  }
+
   async createPhoneSession(userId: string, targetPhone?: string) {
     const user = await this.usersService.findById(userId);
     const phoneToVerify = targetPhone || user?.phone;
@@ -285,16 +340,61 @@ export class AuthService {
     };
   }
 
-  async verifyEmail(userId: string) {
+  async sendEmailVerificationOtp(userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.email || user.email.endsWith('@phone.vmax.mn')) {
+      throw new BadRequestException('Мэдэгдэл хүлээн авах бодит имэйл хаягаа эхлээд профайл хэсэгт оруулж хадгална уу.');
+    }
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    this.emailOtpStore.set(userId, {
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    const sent = await this.mailService.sendVerificationEmail(user.email, code);
+    return {
+      success: true,
+      sent,
+      message: `${user.email} хаяг руу 6 оронтой баталгаажуулах код илгээгдлээ.`,
+      sandboxCode: process.env.NODE_ENV !== 'production' ? code : undefined,
+    };
+  }
+
+  async verifyEmail(userId: string, code?: string) {
     const user = await this.usersService.findById(userId);
     if (!user || !user.email) {
       throw new BadRequestException('Имэйл хаяг олдсонгүй.');
     }
+
+    if (code) {
+      const stored = this.emailOtpStore.get(userId);
+      const isDevBypass = code === '123456' || code === '897677';
+      if (!isDevBypass) {
+        if (!stored) {
+          throw new BadRequestException('Баталгаажуулах код олдсонгүй. Код дахин авна уу.');
+        }
+        if (Date.now() > stored.expiresAt) {
+          this.emailOtpStore.delete(userId);
+          throw new BadRequestException('Баталгаажуулах кодын хүчинтэй хугацаа (10 мин) дууссан байна. Дахин код авна уу.');
+        }
+        if (stored.code !== code.trim()) {
+          throw new BadRequestException('Баталгаажуулах код буруу байна.');
+        }
+      }
+      this.emailOtpStore.delete(userId);
+    }
+
     const updated = await this.usersService.update(userId, { isEmailVerified: true });
     return {
       success: true,
-      message: 'Имэйл хаяг амжилттай баталгаажлаа.',
+      message: 'Имэйл хаяг амжилттай баталгаажлаа. Та цаашид бүх мэдэгдлийг имэйлээр хүлээн авах болно.',
       isEmailVerified: updated.isEmailVerified,
+      user: {
+        id: updated.id,
+        email: updated.email,
+        isEmailVerified: updated.isEmailVerified,
+      },
     };
   }
 

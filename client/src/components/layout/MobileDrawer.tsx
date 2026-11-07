@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Building2,
+  Layers,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -51,6 +52,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
       icon: <Building2 size={18} className="text-plasma" />,
       badge: '3D',
       badgeColor: 'bg-plasma/20 text-plasma border-plasma/30',
+    },
+    {
+      label: '🛋️ Тавилга & Засал (Реелүүд)',
+      to: '/furniture',
+      icon: <Layers size={18} className="text-aurora" />,
+      badge: 'Шинэ',
+      badgeColor: 'bg-aurora/20 text-aurora border-aurora/30',
     },
     {
       label: 'Багцууд (VIP, Баталгаажсан)',

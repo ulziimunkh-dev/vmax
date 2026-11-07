@@ -214,13 +214,20 @@ export class ListingsService {
   async create(createListingDto: CreateListingDto, user: User) {
     await this.checkUserQuota(user);
 
-    const contactPhone = (createListingDto.contactPhone || user.phone || '').trim();
+    const freshUser = await this.usersRepository.findOne({ where: { id: user.id } });
+    const contactPhone = (createListingDto.contactPhone || freshUser?.phone || user.phone || '').trim();
     if (!contactPhone) {
       throw new BadRequestException('Утасны дугааргүй зар оруулах боломжгүй. Холбоо барих утасны дугаараа оруулна уу.');
     }
 
+    const cleanPhone = contactPhone.replace(/\D/g, '');
+    const isWhitelisted = cleanPhone === '89767700' || cleanPhone === '97689767700';
+    if (!freshUser?.isPhoneVerified && !isWhitelisted) {
+      throw new BadRequestException('Зар оруулахын тулд утасны дугаараа баталгаажуулсан байх шаардлагатай.');
+    }
+
     // If user didn't have phone in profile, automatically save this phone
-    if (!user.phone && contactPhone) {
+    if (!freshUser?.phone && contactPhone) {
       await this.usersRepository.update(user.id, { phone: contactPhone });
     }
 

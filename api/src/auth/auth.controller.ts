@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, Patch, Param } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,6 +22,22 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  // --- Phone Login (Public, Verify.mn MO SMS) ---
+  @Post('phone-login/session')
+  createPhoneLoginSession(@Body() body: { phone: string }) {
+    return this.authService.createPhoneLoginSession(body?.phone);
+  }
+
+  @Get('phone-login/session/:sessionId')
+  checkPhoneLoginSession(@Param('sessionId') sessionId: string) {
+    return this.authService.checkPhoneLoginSession(sessionId);
+  }
+
+  @Post('phone-login/sandbox-approve/:sessionId')
+  sandboxApprovePhoneLogin(@Param('sessionId') sessionId: string) {
+    return this.authService.sandboxApprovePhoneLogin(sessionId);
+  }
+
   @Post('google')
   googleLogin(@Body() googleAuthDto: GoogleAuthDto) {
     return this.authService.googleLogin(googleAuthDto.token);
@@ -37,7 +53,6 @@ export class AuthController {
     return this.authService.appleLogin(body.idToken, body.user);
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@CurrentUser() user: any) {
@@ -50,6 +65,7 @@ export class AuthController {
     return this.authService.updateProfile(user.id, updateProfileDto);
   }
 
+  // --- Logged-in User Phone Verification Session ---
   @UseGuards(JwtAuthGuard)
   @Post('phone-session')
   createPhoneSession(@CurrentUser() user: any, @Body() body?: { phone?: string }) {
@@ -69,10 +85,17 @@ export class AuthController {
     return this.authService.verifyPhone(user.id, body?.code, body?.phone);
   }
 
+  // --- Email Verification ---
+  @UseGuards(JwtAuthGuard)
+  @Post('send-email-otp')
+  sendEmailOtp(@CurrentUser() user: any) {
+    return this.authService.sendEmailVerificationOtp(user.id);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('verify-email')
-  verifyEmail(@CurrentUser() user: any) {
-    return this.authService.verifyEmail(user.id);
+  verifyEmail(@CurrentUser() user: any, @Body() body?: { code?: string }) {
+    return this.authService.verifyEmail(user.id, body?.code);
   }
 
   @UseGuards(JwtAuthGuard)

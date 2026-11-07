@@ -1,22 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { loginWithFacebook } from '@/utils/facebookAuth';
-
-const FacebookIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-  </svg>
-);
-
-const AppleIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 170 170" fill="currentColor">
-    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.13-1.9-14.35-6.08-3.48-2.83-7.4-7.57-11.77-14.23-7.5-11.41-13.15-24.12-16.96-38.12-3.8-14-5.71-26.96-5.71-38.87 0-14.56 3.6-26.77 10.79-36.63 7.2-9.87 16.42-14.88 27.67-15.04 4.57 0 9.77 1.18 15.6 3.55 5.82 2.37 9.87 3.55 12.14 3.55 1.95 0 6.09-1.24 12.42-3.73 6.33-2.49 11.63-3.61 15.91-3.37 11.85.98 21.03 5.34 27.56 13.08-10.43 6.31-15.54 15.34-15.33 27.09.22 9.13 3.7 16.74 10.44 22.84 6.74 6.1 14.89 9.38 24.46 9.84-2.39 7.07-5.75 14.55-10.08 22.45zM119.22 31.86c0-7.39 2.65-14.51 7.95-21.36 5.3-6.85 11.96-10.5 20-10.96.22.98.33 1.96.33 2.94 0 7.28-2.73 14.46-8.18 21.54-5.45 7.08-12.06 10.8-19.85 11.16-.07-1.1-.25-2.2-.25-3.32z"/>
-  </svg>
-);
+import { Phone, Mail, Lock, Smartphone, RefreshCw, CheckCircle2, MessageSquare, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const { t } = useI18n();
@@ -25,6 +13,23 @@ const Login = () => {
   const targetRedirect = searchParams.get('redirect') || '/';
   const loginStore = useAuthStore((state) => state.login);
 
+  const [authMethod, setAuthMethod] = useState<'phone' | 'email'>('phone');
+
+  // Phone Login State
+  const [phone, setPhone] = useState('');
+  const [phoneSession, setPhoneSession] = useState<{
+    sessionId: string;
+    shortcode: string;
+    text: string;
+    smsUri: string;
+    displayInstruction: string;
+    expiresAt: string;
+    isSandbox?: boolean;
+  } | null>(null);
+  const [phoneVerifiedSuccess, setPhoneVerifiedSuccess] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
+
+  // Email Login State
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -33,7 +38,79 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isAppleDevice = typeof window !== 'undefined' && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  // 3-second Polling for Phone Login Session Verification
+  useEffect(() => {
+    let pollTimer: any;
+
+    if (phoneSession?.sessionId && !phoneVerifiedSuccess) {
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await authAPI.checkPhoneLoginSession(phoneSession.sessionId);
+          if (res.data?.sessionStatus === 'VERIFIED') {
+            setPhoneVerifiedSuccess(true);
+            const { user, access_token } = res.data;
+            if (user && access_token) {
+              loginStore(user, access_token);
+              setTimeout(() => {
+                navigate(targetRedirect);
+              }, 1200);
+            }
+          } else if (res.data?.sessionStatus === 'EXPIRED') {
+            setError('Баталгаажуулах сессийн хугацаа дууссан байна. Дахин оролдоно уу.');
+            setPhoneSession(null);
+          }
+        } catch (err: any) {
+          console.error('Phone login polling error:', err);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, [phoneSession, phoneVerifiedSuccess, targetRedirect, loginStore, navigate]);
+
+  const handleStartPhoneLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setError('Утасны дугаар буруу байна. 8 оронтой дугаар оруулна уу.');
+      return;
+    }
+
+    setError('');
+    setPhoneLoading(true);
+    try {
+      const res = await authAPI.createPhoneLoginSession(cleanPhone);
+      setPhoneSession(res.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа.');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleSandboxApprove = async () => {
+    if (!phoneSession?.sessionId) return;
+    setPhoneLoading(true);
+    try {
+      const res = await authAPI.sandboxApprovePhoneLogin(phoneSession.sessionId);
+      if (res.data?.sessionStatus === 'VERIFIED') {
+        setPhoneVerifiedSuccess(true);
+        const { user, access_token } = res.data;
+        if (user && access_token) {
+          loginStore(user, access_token);
+          setTimeout(() => {
+            navigate(targetRedirect);
+          }, 1000);
+        }
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Тест баталгаажуулалтад алдаа гарлаа.');
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
 
   const handleGoogleAuth = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -49,7 +126,6 @@ const Login = () => {
     }
 
     try {
-      // 1. iOS Safari & Mobile Compatible OAuth2 Token Client
       if ((window as any).google?.accounts?.oauth2) {
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: clientId,
@@ -75,7 +151,6 @@ const Login = () => {
         return;
       }
 
-      // 2. ID Token Prompt Fallback
       (window as any).google.accounts.id.initialize({
         client_id: clientId,
         callback: async (response: any) => {
@@ -101,45 +176,6 @@ const Login = () => {
     }
   };
 
-  const handleFacebookAuth = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      const accessToken = await loginWithFacebook();
-      const response = await authAPI.facebookLogin(accessToken);
-      const { user, access_token } = response.data;
-      loginStore(user, access_token);
-      navigate(targetRedirect);
-    } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Facebook-ээр нэвтрэхэд алдаа гарлаа.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAppleAuth = async () => {
-    setError('');
-    setLoading(true);
-
-    try {
-      // Initiate Apple Web Sign-In or native iOS Apple ID auth
-      const mockAppleToken = 'apple_mock_id_token_demo';
-      const response = await authAPI.appleLogin(mockAppleToken, {
-        name: { firstName: 'iPhone', lastName: 'User' },
-        email: 'iphone.user@icloud.com',
-      });
-
-      const { user, access_token } = response.data;
-      loginStore(user, access_token);
-      navigate('/');
-    } catch {
-      setError('Apple-аар нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -161,7 +197,7 @@ const Login = () => {
       } else if (typeof msg === 'string') {
         setError(msg);
       } else {
-        setError('Login failed. Please check your credentials and try again.');
+        setError('Нэвтрэхэд алдаа гарлаа. Мэдээллээ шалгаад дахин оролдоно уу.');
       }
     } finally {
       setLoading(false);
@@ -169,91 +205,237 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 pt-16">
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card w-full max-w-md p-8 rounded-2xl border-glow">
-        <h2 className="text-3xl font-heading font-bold text-center mb-8 text-glow">{t.auth.login}</h2>
+    <div className="min-h-[80vh] flex items-center justify-center px-4 pt-16 pb-12">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card w-full max-w-md p-6 sm:p-8 rounded-3xl border-glow">
+        <h2 className="text-3xl font-heading font-black text-center mb-6 text-glow">{t.auth.login}</h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 text-sm text-center font-medium">
+          <div className="mb-5 p-3.5 bg-red-500/20 border border-red-500/40 rounded-xl text-red-300 text-xs sm:text-sm text-center font-medium">
             {error}
           </div>
         )}
 
-        <div className="space-y-3">
-          {/* Apple Sign-In Button (Temporarily commented out until Apple Service ID setup)
-          {(isAppleDevice || true) && (
+        {/* Tab Switcher */}
+        <div className="grid grid-cols-2 p-1 bg-void/70 border border-white/10 rounded-2xl mb-6">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMethod('phone');
+              setError('');
+            }}
+            className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-1.5 transition-all ${
+              authMethod === 'phone'
+                ? 'bg-gradient-to-r from-plasma to-nova text-white shadow-md'
+                : 'text-nebula-text hover:text-starlight'
+            }`}
+          >
+            <Smartphone size={16} />
+            <span>{t.auth.phoneLoginTab}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMethod('email');
+              setError('');
+            }}
+            className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-1.5 transition-all ${
+              authMethod === 'email'
+                ? 'bg-gradient-to-r from-plasma to-nova text-white shadow-md'
+                : 'text-nebula-text hover:text-starlight'
+            }`}
+          >
+            <Mail size={16} />
+            <span>{t.auth.emailLoginTab}</span>
+          </button>
+        </div>
+
+        {/* --- Phone Login Flow --- */}
+        {authMethod === 'phone' && (
+          <div className="space-y-4">
+            {!phoneSession ? (
+              <form onSubmit={handleStartPhoneLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-1.5">
+                    {t.auth.phone} (MO SMS Баталгаажуулалт)
+                  </label>
+                  <div className="relative">
+                    <Phone size={18} className="absolute left-3.5 top-3.5 text-plasma" />
+                    <input
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={t.auth.phonePlaceholder}
+                      className="w-full bg-void/50 border border-white/15 rounded-xl py-3 pl-11 pr-4 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all text-sm font-mono tracking-wide"
+                    />
+                  </div>
+                  <p className="text-[11px] text-nebula-text mt-1.5 leading-relaxed">
+                    Утасны дугаараа оруулаад 144773 тусгай дугаарт мессеж илгээн шууд нууц үггүйгээр баталгаажуулж нэвтэрнэ.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={phoneLoading}
+                  className="w-full bg-gradient-to-r from-plasma to-nova text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all duration-300 disabled:opacity-50 flex items-center justify-center space-x-2 text-sm"
+                >
+                  {phoneLoading ? (
+                    <RefreshCw size={18} className="animate-spin" />
+                  ) : (
+                    <MessageSquare size={18} />
+                  )}
+                  <span>{phoneLoading ? 'Уншиж байна...' : t.auth.sendSmsCode}</span>
+                </button>
+              </form>
+            ) : (
+              /* Verify.mn MO SMS Prompt Box */
+              <div className="p-5 bg-void/80 border border-plasma/40 rounded-2xl space-y-4 text-center">
+                {phoneVerifiedSuccess ? (
+                  <div className="py-6 space-y-3">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center border border-emerald-500/40 animate-bounce">
+                      <CheckCircle2 size={36} />
+                    </div>
+                    <h3 className="text-lg font-bold text-starlight">{t.auth.verifiedPhoneSuccess}</h3>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <span className="text-xs font-bold text-plasma flex items-center space-x-1.5">
+                        <Smartphone size={16} />
+                        <span>{t.auth.sendSmsInstruction}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhoneSession(null);
+                          setError('');
+                        }}
+                        className="text-xs text-nebula-text hover:text-white flex items-center space-x-1 transition-colors"
+                      >
+                        <ArrowLeft size={12} />
+                        <span>{t.auth.changePhone}</span>
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-nebula-text leading-relaxed">
+                      {t.auth.verifySmsDesc}
+                    </p>
+
+                    <div className="bg-plasma/10 border border-plasma/30 rounded-xl p-3.5 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-nebula-text">{t.auth.shortcodeLabel}</span>
+                        <span className="text-starlight font-black text-sm font-mono tracking-wider bg-white/10 px-2 py-0.5 rounded">
+                          {phoneSession.shortcode}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-nebula-text">{t.auth.textLabel}</span>
+                        <span className="text-plasma font-black text-base font-mono tracking-widest bg-plasma/20 px-3 py-1 rounded-lg border border-plasma/40">
+                          {phoneSession.text}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Mobile SMS button */}
+                    <a
+                      href={phoneSession.smsUri}
+                      className="w-full inline-flex items-center justify-center space-x-2 py-3 bg-gradient-to-r from-plasma to-nova text-white font-bold rounded-xl shadow-md hover:shadow-plasma/30 transition-all text-xs sm:text-sm"
+                    >
+                      <MessageSquare size={16} />
+                      <span>{t.auth.openSmsApp}</span>
+                    </a>
+
+                    {/* Polling Indicator */}
+                    <div className="flex items-center justify-center space-x-2 text-[11px] text-cyan-300 py-1">
+                      <RefreshCw size={14} className="animate-spin text-cyan-400" />
+                      <span>{t.auth.waitingSms}</span>
+                    </div>
+
+                    {/* Sandbox / Dev Fast Track */}
+                    <button
+                      type="button"
+                      onClick={handleSandboxApprove}
+                      disabled={phoneLoading}
+                      className="w-full py-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 rounded-xl text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+                    >
+                      {t.auth.sandboxApprove}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* --- Email Login Flow --- */}
+        {authMethod === 'email' && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-nebula-text mb-1.5">{t.auth.email}</label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-3.5 top-3.5 text-nebula-text" />
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder={t.auth.email}
+                  className="w-full bg-void/50 border border-white/15 rounded-xl py-3 pl-11 pr-4 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-nebula-text mb-1.5">{t.auth.password}</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3.5 top-3.5 text-nebula-text" />
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder={t.auth.password}
+                  className="w-full bg-void/50 border border-white/15 rounded-xl py-3 pl-11 pr-4 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all text-sm"
+                />
+              </div>
+            </div>
+
             <button
-              type="button"
-              onClick={handleAppleAuth}
-              className="w-full bg-black text-white text-white-force font-semibold py-3 rounded-xl flex items-center justify-center space-x-2 border border-white/20 hover:bg-slate-900 transition-all shadow-md active:scale-95"
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-plasma to-nova text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all duration-300 disabled:opacity-50 text-sm"
             >
-              <AppleIcon />
-              <span className="text-white text-white-force">Apple-аар нэвтрэх</span>
+              {loading ? '...' : t.auth.login}
             </button>
-          )}
-          */}
+          </form>
+        )}
+
+        {/* Google Login Alternative */}
+        <div className="mt-6">
+          <div className="flex items-center py-2 mb-4">
+            <div className="flex-grow border-t border-white/10"></div>
+            <span className="px-3 text-nebula-text text-xs uppercase tracking-wider font-semibold">{t.auth.or}</span>
+            <div className="flex-grow border-t border-white/10"></div>
+          </div>
 
           <button
             type="button"
             onClick={handleGoogleAuth}
             disabled={loading}
-            className="w-full bg-white text-gray-900 border border-slate-200 font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors shadow-sm active:scale-95 cursor-pointer"
+            className="w-full bg-white text-gray-900 border border-slate-200 font-semibold py-3 rounded-xl flex items-center justify-center space-x-2.5 hover:bg-gray-50 transition-colors shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm"
           >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            <span className="text-slate-800 font-semibold text-sm">{t.auth.continueGoogle}</span>
+            <span className="text-slate-800">{t.auth.continueGoogle}</span>
           </button>
-
-          {/* Facebook OAuth Button (Temporarily commented out)
-          <button
-            type="button"
-            onClick={handleFacebookAuth}
-            disabled={loading}
-            className="w-full bg-[#1877F2] text-white font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-[#0c66db] transition-colors shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
-          >
-            <FacebookIcon />
-            <span className="font-semibold text-sm">{t.auth.continueFacebook}</span>
-          </button>
-          */}
-
-
-          <div className="flex items-center py-4">
-            <div className="flex-grow border-t border-white/10"></div>
-            <span className="px-4 text-nebula-text text-sm">{t.auth.or}</span>
-            <div className="flex-grow border-t border-white/10"></div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder={t.auth.email}
-              className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all"
-            />
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              placeholder={t.auth.password}
-              className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all"
-            />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-plasma to-nova text-white-force font-medium py-3 rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all duration-300 disabled:opacity-50"
-            >
-              {loading ? '...' : t.auth.login}
-            </button>
-          </form>
         </div>
 
-        <p className="mt-6 text-center text-nebula-text text-sm">
-          {t.auth.newUser} <Link to="/register" className="text-plasma font-semibold hover:underline transition-colors">{t.auth.register}</Link>
+        <p className="mt-6 text-center text-nebula-text text-xs sm:text-sm">
+          {t.auth.newUser}{' '}
+          <Link to="/register" className="text-plasma font-bold hover:underline transition-colors">
+            {t.auth.register}
+          </Link>
         </p>
       </motion.div>
     </div>

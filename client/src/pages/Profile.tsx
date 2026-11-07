@@ -53,6 +53,13 @@ const Profile = () => {
   const [submittingAgentReq, setSubmittingAgentReq] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
 
+  // Email OTP Verification State
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [emailOtpLoading, setEmailOtpLoading] = useState(false);
+  const [emailOtpError, setEmailOtpError] = useState('');
+  const [emailOtpSuccess, setEmailOtpSuccess] = useState(false);
+
   // Verify.mn MO SMS Verification State
   const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
   const [sessionData, setSessionData] = useState<{
@@ -139,17 +146,49 @@ const Profile = () => {
     }
   };
 
-  const handleVerifyEmail = async () => {
-    setVerifyingEmail(true);
+  const handleOpenEmailModal = async () => {
+    if (!user?.email || user.email.endsWith('@phone.vmax.mn')) {
+      setMessage('Мэдэгдэл хүлээн авах бодит имэйл хаягаа эхлээд "Засварлах" товчоор оруулж хадгална уу.');
+      return;
+    }
+    setShowEmailModal(true);
+    setEmailOtpCode('');
+    setEmailOtpError('');
+    setEmailOtpSuccess(false);
+    setEmailOtpLoading(true);
     try {
-      const res = await authAPI.verifyEmail();
-      setUser({ ...user!, isEmailVerified: true });
-      setMessage(res.data?.message || 'Имэйл амжилттай баталгаажлаа.');
-      setTimeout(() => setMessage(''), 4000);
+      const res = await authAPI.sendEmailOtp();
+      if (res.data?.sandboxCode) {
+        setEmailOtpCode(res.data.sandboxCode);
+      }
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Баталгаажуулахад алдаа гарлаа');
+      setEmailOtpError(err.response?.data?.message || 'Баталгаажуулах код илгээхэд алдаа гарлаа.');
     } finally {
-      setVerifyingEmail(false);
+      setEmailOtpLoading(false);
+    }
+  };
+
+  const handleConfirmEmailOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailOtpCode || emailOtpCode.trim().length < 6) {
+      setEmailOtpError('6 оронтой баталгаажуулах кодыг оруулна уу.');
+      return;
+    }
+    setEmailOtpLoading(true);
+    setEmailOtpError('');
+    try {
+      await authAPI.verifyEmail(emailOtpCode.trim());
+      setEmailOtpSuccess(true);
+      setUser({ ...user!, isEmailVerified: true });
+      setMessage('🎉 Имэйл амжилттай баталгаажлаа! Та үл хөдлөх хөрөнгийн чухал мэдэгдлүүдийг имэйлээр авах болно.');
+      setTimeout(() => {
+        setShowEmailModal(false);
+        setEmailOtpSuccess(false);
+      }, 1500);
+    } catch (err: any) {
+      setEmailOtpError(err.response?.data?.message || 'Баталгаажуулах код буруу эсвэл хугацаа дууссан байна.');
+    } finally {
+      setEmailOtpLoading(false);
     }
   };
 
@@ -392,7 +431,16 @@ const Profile = () => {
                   <div className="flex items-center justify-between text-starlight bg-void/50 p-3 rounded-xl border border-white/5">
                     <div className="flex items-center space-x-3 overflow-hidden">
                       <Mail size={18} className="text-plasma flex-shrink-0" />
-                      <span className="text-xs sm:text-sm truncate">{user?.email}</span>
+                      <div className="truncate">
+                        <span className="text-xs sm:text-sm font-medium">
+                          {user?.email?.endsWith('@phone.vmax.mn') ? 'Имэйл оруулаагүй байна' : user?.email}
+                        </span>
+                        <div className="text-[10px] text-nebula-text">
+                          {user?.isEmailVerified
+                            ? '✅ Имэйл мэдэгдэл авна (Санал & шинэ зар)'
+                            : '⚠️ Мэдэгдэл авахын тулд баталгаажуулна уу'}
+                        </div>
+                      </div>
                     </div>
                     {user?.isEmailVerified ? (
                       <span className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[11px] font-bold border border-emerald-500/30 flex-shrink-0">
@@ -402,11 +450,11 @@ const Profile = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={handleVerifyEmail}
-                        disabled={verifyingEmail}
+                        onClick={handleOpenEmailModal}
+                        disabled={verifyingEmail || emailOtpLoading}
                         className="px-2 py-0.5 rounded-md bg-plasma/20 hover:bg-plasma text-plasma hover:text-white text-[11px] font-bold transition-all border border-plasma/40 flex-shrink-0"
                       >
-                        {verifyingEmail ? '...' : 'Баталгаажуулах'}
+                        {emailOtpLoading ? '...' : 'Баталгаажуулах'}
                       </button>
                     )}
                   </div>
@@ -810,6 +858,94 @@ const Profile = () => {
                   </div>
                 )}
               </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {/* Email 6-Digit OTP Verification Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card max-w-sm w-full p-6 rounded-2xl border border-plasma/40 bg-cosmic shadow-2xl relative"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
+                  <Mail size={18} />
+                </div>
+                <h3 className="text-base font-bold text-starlight">Имэйл баталгаажуулах</h3>
+              </div>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="text-nebula-text hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {emailOtpSuccess ? (
+              <div className="py-6 text-center space-y-3">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto animate-bounce">
+                  <CheckCircle2 size={32} />
+                </div>
+                <h4 className="text-lg font-bold text-emerald-400">Амжилттай баталгаажлаа!</h4>
+                <p className="text-xs text-nebula-text">Та одоо зар болон хөрөнгийн чухал мэдэгдлүүдийг имэйлээр хүлээн авна.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleConfirmEmailOtp} className="space-y-4">
+                <div className="p-3.5 bg-void/80 border border-white/10 rounded-xl text-center space-y-2">
+                  <p className="text-xs text-nebula-text">
+                    <strong className="text-white">{user?.email}</strong> хаяг руу 6 оронтой код илгээгдлээ.
+                  </p>
+                  <p className="text-[11px] text-nebula-text">
+                    Имэйл ирэхгүй бол Spam хавтасаа шалгана уу.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-nebula-text mb-1.5 text-center">
+                    6 оронтой баталгаажуулах код
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    value={emailOtpCode}
+                    onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="123456"
+                    className="w-full text-center text-2xl font-mono font-bold tracking-widest bg-void/60 border border-plasma/40 rounded-xl py-3 text-plasma focus:outline-none focus:border-plasma focus:ring-1 focus:ring-plasma transition-all"
+                  />
+                </div>
+
+                {emailOtpError && (
+                  <div className="p-2.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-400 text-xs font-semibold text-center">
+                    ⚠️ {emailOtpError}
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={emailOtpLoading}
+                    className="flex-1 py-3 bg-gradient-to-r from-plasma to-nova text-white font-bold rounded-xl text-xs hover:shadow-lg hover:shadow-plasma/30 transition-all flex items-center justify-center space-x-1.5"
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{emailOtpLoading ? 'Шалгаж байна...' : 'Баталгаажуулах'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenEmailModal}
+                    disabled={emailOtpLoading}
+                    className="px-3 py-3 bg-void/50 hover:bg-white/10 text-starlight text-xs font-semibold rounded-xl border border-white/10 transition-all"
+                    title="Код дахин авах"
+                  >
+                    Дахин авах
+                  </button>
+                </div>
+              </form>
             )}
           </motion.div>
         </div>

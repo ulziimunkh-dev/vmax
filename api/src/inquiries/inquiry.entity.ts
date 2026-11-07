@@ -7,8 +7,8 @@ export class Inquiry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  name: string;
+  @Column({ nullable: true })
+  name?: string;
 
   @Column()
   email: string;

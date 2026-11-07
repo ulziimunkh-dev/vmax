@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Building2,
   ShieldCheck,
+  Layers,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -120,6 +121,20 @@ const Navbar: React.FC = () => {
                   <span>Шинэ төслүүд</span>
                   <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-plasma/20 text-plasma border border-plasma/30 uppercase">
                     3D
+                  </span>
+                </Link>
+
+                <Link
+                  to="/furniture"
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${location.pathname.startsWith('/furniture')
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-nebula-text hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                  <Layers size={15} className="text-aurora" />
+                  <span>Тавилга & Засал</span>
+                  <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-aurora/20 text-aurora border border-aurora/30 uppercase">
+                    Шинэ
                   </span>
                 </Link>
 
