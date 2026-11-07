@@ -119,7 +119,16 @@ const Profile = () => {
       setSessionData(res.data);
       setShowPhoneOtpModal(true);
     } catch (err: any) {
-      setMessage(err.response?.data?.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа');
+      const msg = err.response?.data?.message;
+      if (Array.isArray(msg)) {
+        setMessage(msg.join(', '));
+      } else if (typeof msg === 'string') {
+        setMessage(msg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setMessage('Сервертэй холбогдож чадсангүй. Backend сервер ажиллаж байгаа эсэхийг шалгана уу.');
+      } else {
+        setMessage(err.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа');
+      }
     } finally {
       setVerifyingPhone(false);
     }

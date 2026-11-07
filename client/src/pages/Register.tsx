@@ -38,7 +38,15 @@ const Register = () => {
       navigate('/');
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+      if (Array.isArray(msg)) {
+        setError(msg.join(', '));
+      } else if (typeof msg === 'string') {
+        setError(msg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Сервертэй холбогдож чадсангүй (Network Error). Backend сервер (порт 5000) ажиллаж байгаа эсэхийг шалгана уу.');
+      } else {
+        setError(err.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+      }
     } finally {
       setLoading(false);
     }

@@ -681,7 +681,16 @@ const CreateListing = () => {
       setSessionData(res.data);
       setShowVerifyModal(true);
     } catch (err: any) {
-      setStep1Error(err.response?.data?.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа');
+      const msg = err.response?.data?.message;
+      if (Array.isArray(msg)) {
+        setStep1Error(msg.join(', '));
+      } else if (typeof msg === 'string') {
+        setStep1Error(msg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setStep1Error('Сервертэй холбогдож чадсангүй. Backend сервер ажиллаж байгаа эсэхийг шалгана уу.');
+      } else {
+        setStep1Error(err.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа');
+      }
     } finally {
       setIsVerifyingPhone(false);
     }

@@ -85,7 +85,16 @@ const Login = () => {
       const res = await authAPI.createPhoneLoginSession(cleanPhone);
       setPhoneSession(res.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа.');
+      const msg = err.response?.data?.message;
+      if (Array.isArray(msg)) {
+        setError(msg.join(', '));
+      } else if (typeof msg === 'string') {
+        setError(msg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Сервертэй холбогдож чадсангүй. Backend сервер (порт 5000) ажиллаж байгаа эсэхийг шалгана уу.');
+      } else {
+        setError(err.message || 'Баталгаажуулах хүсэлт үүсгэхэд алдаа гарлаа.');
+      }
     } finally {
       setPhoneLoading(false);
     }
@@ -123,7 +132,15 @@ const Login = () => {
       navigate(targetRedirect);
     } catch (err: any) {
       const msg = err.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+      if (Array.isArray(msg)) {
+        setError(msg.join(', '));
+      } else if (typeof msg === 'string') {
+        setError(msg);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Сервертэй холбогдож чадсангүй (Network Error). Backend сервер (порт 5000) ажиллаж байгаа эсэхийг шалгана уу.');
+      } else {
+        setError(err.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+      }
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { FacebookAuthDto } from './dto/facebook-auth.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { PhoneLoginSessionDto, CreatePhoneSessionDto, VerifyPhoneDto } from './dto/phone-auth.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
@@ -24,7 +25,7 @@ export class AuthController {
 
   // --- Phone Login (Public, Verify.mn MO SMS) ---
   @Post('phone-login/session')
-  createPhoneLoginSession(@Body() body: { phone: string }) {
+  createPhoneLoginSession(@Body() body: PhoneLoginSessionDto) {
     return this.authService.createPhoneLoginSession(body?.phone);
   }
 
@@ -69,7 +70,7 @@ export class AuthController {
   // --- Logged-in User Phone Verification Session ---
   @UseGuards(JwtAuthGuard)
   @Post('phone-session')
-  createPhoneSession(@CurrentUser() user: any, @Body() body?: { phone?: string }) {
+  createPhoneSession(@CurrentUser() user: any, @Body() body?: CreatePhoneSessionDto) {
     return this.authService.createPhoneSession(user.id, body?.phone);
   }
 
@@ -82,7 +83,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('verify-phone')
-  verifyPhone(@CurrentUser() user: any, @Body() body?: { code?: string; phone?: string }) {
+  verifyPhone(@CurrentUser() user: any, @Body() body?: VerifyPhoneDto) {
     return this.authService.verifyPhone(user.id, body?.code, body?.phone);
   }
 
