@@ -22,7 +22,7 @@ export interface Listing {
   id: string;
   title: string;
   description: string;
-  type: 'sale' | 'rent' | 'SALE' | 'RENT' | string;
+  type: 'sale' | 'rent' | 'SALE' | 'RENT' | 'DAILY_RENT' | string;
   category: 'apartment' | 'house' | 'commercial' | 'APARTMENT' | 'HOUSE' | 'COMMERCIAL' | string;
 
   price: number;

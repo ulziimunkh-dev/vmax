@@ -11,6 +11,7 @@ import { useRecentVisits } from '@/hooks/useRecentVisits';
 import { SocialShareModal } from '@/components/listings/SocialShareModal';
 import { RecentVisits } from '@/components/listings/RecentVisits';
 import { ReelsFeedModal } from '@/components/listings/ReelsFeedModal';
+import { StayBookingCard } from '@/components/listings/StayBookingCard';
 import PropertyMap from '@/components/map/PropertyMap';
 import { formatRelativeTime, formatDateFull } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
@@ -705,11 +706,17 @@ const ListingDetail = () => {
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex items-center space-x-2 mb-3">
                     <span className={`px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold border shadow-sm ${
-                      String(listing.type).toLowerCase() === 'sale'
+                      String(listing.type).toUpperCase() === 'DAILY_RENT'
+                        ? 'bg-amber-500/15 text-amber-500 dark:text-amber-300 border-amber-500/30'
+                        : String(listing.type).toLowerCase() === 'sale'
                         ? 'bg-plasma/15 text-plasma border-plasma/30'
                         : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                     }`}>
-                      {String(listing.type).toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
+                      {String(listing.type).toUpperCase() === 'DAILY_RENT'
+                        ? 'Өдрөөр түрээслэх (Stay)'
+                        : String(listing.type).toLowerCase() === 'sale'
+                        ? t.listings.sale
+                        : t.listings.rent}
                     </span>
 
                     {/* Publication Relative Time Badge */}
@@ -745,8 +752,11 @@ const ListingDetail = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora whitespace-nowrap tracking-wide">
-                      {formatPriceMongolianWords(listing.price)}
+                    <div className="text-3xl font-heading font-bold text-aurora text-glow-aurora whitespace-nowrap tracking-wide flex items-baseline gap-2">
+                      <span>{formatPriceMongolianWords(listing.price)}</span>
+                      {String(listing.type).toUpperCase() === 'DAILY_RENT' && (
+                        <span className="text-sm font-semibold text-amber-400">/ хоног</span>
+                      )}
                     </div>
                   )}
 
@@ -1097,6 +1107,13 @@ const ListingDetail = () => {
 
           {/* Sidebar Contact Info Card */}
           <div className="md:col-span-1 space-y-6">
+            {String(listing.type).toUpperCase() === 'DAILY_RENT' && (
+              <StayBookingCard
+                listing={listing}
+                revealedPhone={revealedPhone}
+                onRevealPhone={handleRevealPhone}
+              />
+            )}
             <div className="glass-card p-6 rounded-3xl sticky top-24 border border-white/10 dark:border-white/10 shadow-2xl backdrop-blur-xl bg-white/90 dark:bg-void/80">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-heading font-bold text-slate-900 dark:text-white flex items-center gap-2">

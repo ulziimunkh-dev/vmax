@@ -118,7 +118,7 @@ const Navbar: React.FC = () => {
                     }`}
                 >
                   <Building2 size={15} className="text-plasma" />
-                  <span>Шинэ төслүүд</span>
+                  <span>{t.nav.projects}</span>
                   <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-plasma/20 text-plasma border border-plasma/30 uppercase">
                     3D
                   </span>
@@ -132,9 +132,9 @@ const Navbar: React.FC = () => {
                     }`}
                 >
                   <Layers size={15} className="text-aurora" />
-                  <span>Тавилга & Засал</span>
+                  <span>{t.nav.furniture}</span>
                   <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-aurora/20 text-aurora border border-aurora/30 uppercase">
-                    Шинэ
+                    New
                   </span>
                 </Link>
 
@@ -146,7 +146,7 @@ const Navbar: React.FC = () => {
                     }`}
                 >
                   <Scale size={15} className="text-cyan-400" />
-                  <span>Харьцуулах</span>
+                  <span>{t.nav.compare}</span>
                   {compareListings.length > 0 && (
                     <span className="px-1.5 py-0.2 text-[10px] font-black rounded-full bg-plasma text-white">
                       {compareListings.length}
@@ -203,10 +203,10 @@ const Navbar: React.FC = () => {
               {/* Create Listing Primary CTA Button */}
               <Link
                 to="/create-listing"
-                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-semibold text-sm shadow-md shadow-plasma/25 hover:shadow-lg hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all"
+                className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-semibold text-sm shadow-md shadow-plasma/25 hover:shadow-lg hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap flex-shrink-0"
               >
-                <Plus size={16} className="stroke-[2.5]" />
-                <span>{t.nav.createListing}</span>
+                <Plus size={16} className="stroke-[2.5] flex-shrink-0" />
+                <span className="whitespace-nowrap">{t.nav.createListing}</span>
               </Link>
 
               {/* User Account / Profile Section */}

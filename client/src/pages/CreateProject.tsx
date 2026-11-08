@@ -312,18 +312,18 @@ export const CreateProject: React.FC = () => {
       </div>
 
       {/* 🤝 Company Partnership & Official Cooperation Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/20 via-cosmic/80 to-nova/20 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
-        <div className="absolute -right-8 -top-8 w-40 h-40 bg-plasma/25 rounded-full blur-2xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/10 via-purple-50/60 to-indigo-50/40 dark:from-plasma/15 dark:via-cosmic/70 dark:to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
+        <div className="absolute -right-8 -top-8 w-40 h-40 bg-plasma/15 dark:bg-plasma/25 rounded-full blur-2xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5 max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-plasma/20 border border-plasma/40 text-plasma text-[11px] font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-plasma/15 dark:bg-plasma/20 border border-plasma/30 dark:border-plasma/40 text-plasma text-[11px] font-black uppercase tracking-wider">
               <Handshake size={13} />
               <span>Барилгын компаниудтай хамтран ажиллах</span>
             </div>
-            <h3 className="text-base sm:text-lg font-heading font-black text-starlight tracking-tight">
+            <h3 className="text-base sm:text-lg font-heading font-black text-slate-900 dark:text-starlight tracking-tight">
               Барилгын компани, захиалагч нартай албан ёсоор хамтран ажиллана
             </h3>
-            <p className="text-xs text-nebula-text leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-nebula-text leading-relaxed font-medium">
               Хэрэв танай байгууллага, барилгын компани төслөө Vmax платформд албан ёсоор байршуулах, гэрээ байгуулах, 3D аялал бэлтгэх болон онцгой сурталчилгааны нөхцөлөөр хамтран ажиллахыг хүсвэл манай харилцагчийн албатай холбогдоно уу.
             </p>
           </div>
@@ -331,14 +331,14 @@ export const CreateProject: React.FC = () => {
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
             <a
               href="tel:+97689767700"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white-force font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Phone size={15} />
               <span>Холбогдох (+976 8976-7700)</span>
             </a>
             <a
               href="mailto:contact@vmax.mn?subject=Барилгын%20компани%20хамтран%20ажиллах%20хүсэлт"
-              className="px-4 py-2.5 rounded-xl bg-void/70 hover:bg-white/10 border border-white/15 text-starlight hover:text-white font-semibold text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-void/70 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-300 dark:border-white/15 text-slate-900 dark:text-starlight hover:text-plasma font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <Mail size={15} className="text-aurora" />
               <span>Имэйл бичих</span>

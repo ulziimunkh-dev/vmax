@@ -4,11 +4,13 @@ import { motion } from 'framer-motion';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@/i18n';
 
 
 export const Pricing: React.FC = () => {
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [plans, setPlans] = useState<any[]>([]);
   const [status, setStatus] = useState<any>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -110,13 +112,13 @@ export const Pricing: React.FC = () => {
           className="inline-flex items-center space-x-2 bg-plasma/10 border border-plasma/30 px-4 py-1.5 rounded-full text-plasma text-xs font-bold"
         >
           <Crown size={16} />
-          <span>Vmax.mn Гишүүнчлэлийн багцууд</span>
+          <span>{t.pricing.title}</span>
         </motion.div>
         <h1 className="text-4xl md:text-5xl font-black font-heading text-starlight tracking-tight">
           Үл хөдлөх хөрөнгийн борлуулалтаа <span className="text-plasma">3X хурдасга</span>
         </h1>
         <p className="text-nebula-text text-sm md:text-base">
-          Агент, зуучлагч, агентлагуудад зориулсан тусгай эрх болон зарын хязгаарыг сонгон борлуулалтаа нэмэгдүүлээрэй.
+          {t.pricing.subtitle}
         </p>
       </div>
 
@@ -242,8 +244,8 @@ export const Pricing: React.FC = () => {
                 {loadingPlan === plan.id
                   ? 'Боловсруулж байна...'
                   : isCurrent
-                  ? 'Одоогийн идэвхтэй багц'
-                  : 'Сонгох & Ахиулах'}
+                  ? t.pricing.currentPlan
+                  : t.pricing.choosePlan}
               </button>
             </motion.div>
           );

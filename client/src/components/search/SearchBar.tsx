@@ -247,6 +247,22 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             >
               {t.listings.rent}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setType('DAILY_RENT');
+                if (onSearch) {
+                  onSearch({ query, type: 'DAILY_RENT', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
+                }
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 ${
+                type === 'DAILY_RENT'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white-force shadow-md shadow-amber-500/30'
+                  : 'text-slate-600 dark:text-nebula-text hover:text-amber-500'
+              }`}
+            >
+              <span>Өдрөөр (Stay)</span>
+            </button>
           </div>
 
           {/* Advanced Filter Toggle Button */}

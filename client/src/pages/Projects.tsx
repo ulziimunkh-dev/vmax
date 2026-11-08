@@ -164,18 +164,18 @@ export const Projects: React.FC = () => {
       </div>
 
       {/* 🤝 Project Cooperation & Partnership Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/15 via-cosmic/70 to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-plasma/20 rounded-full blur-2xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/10 via-purple-50/60 to-indigo-50/40 dark:from-plasma/15 dark:via-cosmic/70 dark:to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-plasma/15 dark:bg-plasma/20 rounded-full blur-2xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-plasma/20 border border-plasma/40 text-plasma text-[11px] font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-plasma/15 dark:bg-plasma/20 border border-plasma/30 dark:border-plasma/40 text-plasma text-[11px] font-black uppercase tracking-wider">
               <Handshake size={13} />
               <span>Барилга угсралт & Захиалагч нарт</span>
             </div>
-            <h3 className="text-lg sm:text-xl font-heading font-black text-starlight tracking-tight">
+            <h3 className="text-lg sm:text-xl font-heading font-black text-slate-900 dark:text-starlight tracking-tight">
               Төсөл, хотхоноо Vmax дээр нийтэлж хамтран ажиллах уу?
             </h3>
-            <p className="text-xs sm:text-sm text-nebula-text leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-nebula-text leading-relaxed font-medium">
               Та шинээр ашиглалтад орж буй болон баригдаж буй төслөө 3D виртуал аялал, 6% зээлийн мэдээлэлтэйгээр зах зээлд өргөн хүрээнд сурталчлахыг хүсвэл бидэнтэй холбогдоорой.
             </p>
           </div>
@@ -183,21 +183,21 @@ export const Projects: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <a
               href="tel:+97689767700"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white-force font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Phone size={15} />
               <span>Холбогдох (8976-7700)</span>
             </a>
             <a
               href="mailto:contact@vmax.mn?subject=Төсөл%20хамтран%20ажиллах%20хүсэлт"
-              className="px-4 py-2.5 rounded-xl bg-void/60 hover:bg-white/10 border border-white/15 text-starlight hover:text-white font-semibold text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-void/60 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-300 dark:border-white/15 text-slate-900 dark:text-starlight hover:text-plasma font-semibold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <Mail size={15} className="text-aurora" />
               <span>Имэйл илгээх</span>
             </a>
             <Link
               to="/create-project"
-              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-plasma/30 text-plasma hover:text-white font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-white dark:bg-white/10 hover:bg-slate-50 dark:hover:bg-white/15 border border-slate-300 dark:border-plasma/30 text-slate-900 dark:text-plasma hover:text-plasma font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <span>Төсөл оруулах</span>
               <ArrowRight size={14} />

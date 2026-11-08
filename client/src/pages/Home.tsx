@@ -228,18 +228,18 @@ const Home = () => {
           </div>
 
           {/* 🤝 Project Cooperation & Partnership Banner on Home */}
-          <div className="mt-6 relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/15 via-cosmic/70 to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
-            <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-plasma/20 rounded-full blur-2xl pointer-events-none" />
+          <div className="mt-6 relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/10 via-purple-50/60 to-indigo-50/40 dark:from-plasma/15 dark:via-cosmic/70 dark:to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
+            <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-plasma/15 dark:bg-plasma/20 rounded-full blur-2xl pointer-events-none" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
               <div className="space-y-1.5 max-w-2xl">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-plasma/20 border border-plasma/40 text-plasma text-[11px] font-bold uppercase tracking-wider">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-plasma/15 dark:bg-plasma/20 border border-plasma/30 dark:border-plasma/40 text-plasma text-[11px] font-black uppercase tracking-wider">
                   <Handshake size={13} />
                   <span>Барилга угсралт & Захиалагч нарт</span>
                 </div>
-                <h3 className="text-lg sm:text-xl font-heading font-black text-starlight tracking-tight">
+                <h3 className="text-lg sm:text-xl font-heading font-black text-slate-900 dark:text-starlight tracking-tight">
                   Барилгын төсөл, хотхоноо Vmax дээр байршуулж хамтран ажиллах
                 </h3>
-                <p className="text-xs sm:text-sm text-nebula-text leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-nebula-text leading-relaxed font-medium">
                   Хотхоны албан ёсны үнэ, 3D аялал, өрөөний төлөвлөлтөө нийтлэн зорилтот худалдан авагчдад шууд хүргэхээр хамтран ажиллах бол бидэнтэй холбогдоорой.
                 </p>
               </div>
@@ -247,14 +247,14 @@ const Home = () => {
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 <a
                   href="tel:+97689767700"
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white-force font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Phone size={15} />
                   <span>Холбогдох (8976-7700)</span>
                 </a>
                 <Link
                   to="/create-project"
-                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-plasma/40 text-starlight hover:text-white font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-white dark:bg-white/10 hover:bg-slate-50 dark:hover:bg-white/15 border border-slate-300 dark:border-plasma/40 text-slate-900 dark:text-starlight hover:text-plasma font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>Төсөл нийтлэх</span>
                   <ArrowRight size={14} />

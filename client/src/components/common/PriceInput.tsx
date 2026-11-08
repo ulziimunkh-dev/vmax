@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DollarSign, X, Sparkles } from 'lucide-react';
 import { formatPriceWithCommas, parsePrice, formatPriceMongolianWords } from '@/utils/formatPrice';
+import { useI18n } from '@/i18n';
 
 export interface PriceInputProps {
   value: string | number | undefined | null;
@@ -14,7 +15,7 @@ export interface PriceInputProps {
   required?: boolean;
   showWordsBadge?: boolean;
   showQuickAmounts?: boolean;
-  mode?: 'sale' | 'rent' | 'general';
+  mode?: 'sale' | 'rent' | 'daily' | 'general';
   size?: 'sm' | 'md' | 'lg';
   id?: string;
   name?: string;
@@ -24,7 +25,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   value,
   onChange,
   label,
-  placeholder = 'Үнэ оруулах...',
+  placeholder,
   className = '',
   inputClassName = '',
   error,
@@ -37,6 +38,8 @@ export const PriceInput: React.FC<PriceInputProps> = ({
   id,
   name,
 }) => {
+  const { t } = useI18n();
+  const defaultPlaceholder = placeholder || t.priceInput.enterPrice;
   const [displayValue, setDisplayValue] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -89,7 +92,14 @@ export const PriceInput: React.FC<PriceInputProps> = ({
     lg: 18,
   };
 
-  const quickAmounts = mode === 'rent'
+  const quickAmounts = mode === 'daily'
+    ? [
+        { label: '+50 мянга', value: 50_000 },
+        { label: '+100 мянга', value: 100_000 },
+        { label: '+200 мянга', value: 200_000 },
+        { label: '+500 мянга', value: 500_000 },
+      ]
+    : mode === 'rent'
     ? [
         { label: '+500 мянга', value: 500_000 },
         { label: '+1 сая', value: 1_000_000 },
@@ -136,7 +146,7 @@ export const PriceInput: React.FC<PriceInputProps> = ({
           pattern="[0-9,]*"
           value={displayValue}
           onChange={handleInputChange}
-          placeholder={placeholder}
+          placeholder={defaultPlaceholder}
           disabled={disabled}
           className={`block w-full bg-void/50 border ${
             error ? 'border-rose-500 ring-1 ring-rose-500' : 'border-white/10 focus:border-plasma focus:ring-1 focus:ring-plasma'

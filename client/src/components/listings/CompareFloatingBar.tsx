@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Scale, X, ArrowRight, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCompareStore } from '@/store/useCompareStore';
+import { useI18n } from '@/i18n';
 import { getImageUrl } from '@/utils/imageUrl';
 
 export const CompareFloatingBar: React.FC = () => {
   const { compareListings, removeFromCompare, clearCompare } = useCompareStore();
+  const { t } = useI18n();
 
   if (compareListings.length === 0) return null;
 
@@ -26,13 +28,13 @@ export const CompareFloatingBar: React.FC = () => {
             </div>
             <div>
               <h4 className="text-starlight font-bold text-sm flex items-center space-x-2">
-                <span>Үл хөдлөх хөрөнгө харьцуулах</span>
+                <span>{t.compare.barTitle}</span>
                 <span className="px-2 py-0.5 bg-plasma text-white text-xs font-black rounded-full">
                   {compareListings.length}/4
                 </span>
               </h4>
               <p className="text-nebula-text text-xs">
-                {compareListings.length < 2 ? 'Дахин 1-ийг сонгож харьцуулна уу' : 'Зэрэгцүүлэн харьцуулахад бэлэн'}
+                {compareListings.length < 2 ? t.compare.addOneMore : t.compare.readyToCompare}
               </p>
             </div>
           </div>
@@ -51,7 +53,7 @@ export const CompareFloatingBar: React.FC = () => {
                   <button
                     onClick={() => removeFromCompare(id)}
                     className="absolute inset-0 bg-void/80 text-red-400 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                    title="Хасах"
+                    title={t.compare.remove}
                   >
                     <X size={16} />
                   </button>
@@ -65,7 +67,7 @@ export const CompareFloatingBar: React.FC = () => {
             <button
               onClick={clearCompare}
               className="p-2.5 text-nebula-text hover:text-red-400 hover:bg-void/50 rounded-xl transition-all"
-              title="Цэвэрлэх"
+              title={t.compare.clearAll}
             >
               <Trash2 size={18} />
             </button>
@@ -74,7 +76,7 @@ export const CompareFloatingBar: React.FC = () => {
               to="/compare"
               className="px-5 py-2.5 bg-gradient-to-r from-plasma to-aurora text-white-force text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-plasma/30 transition-all flex items-center space-x-2 active:scale-95"
             >
-              <span>Харьцуулах</span>
+              <span>{t.compare.compareBtn}</span>
               <ArrowRight size={16} />
             </Link>
           </div>

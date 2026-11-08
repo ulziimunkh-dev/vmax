@@ -1,6 +1,7 @@
 export enum ListingType {
   SALE = 'SALE',
   RENT = 'RENT',
+  DAILY_RENT = 'DAILY_RENT',
 }
 
 export enum ListingCategory {
@@ -10,7 +11,6 @@ export enum ListingCategory {
   COMMERCIAL = 'COMMERCIAL',
   RESORT = 'RESORT',
 }
-
 
 export enum ListingStatus {
   ACTIVE = 'ACTIVE',
@@ -23,4 +23,3 @@ export enum PromotionTier {
   VIP = 'VIP',
   TOP_URGENT = 'TOP_URGENT',
 }
-

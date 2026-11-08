@@ -89,7 +89,12 @@ export class ListingsExcelService {
         no: idx + 1,
         id: item.id,
         title: item.title,
-        type: item.type === ListingType.RENT ? 'Түрээслүүлнэ' : 'Зарна',
+        type:
+          item.type === ListingType.DAILY_RENT
+            ? 'Өдрөөр түрээслүүлнэ'
+            : item.type === ListingType.RENT
+            ? 'Түрээслүүлнэ'
+            : 'Зарна',
         category: this.mapCategoryToMn(item.category),
         price: item.price,
         areaSqm: item.areaSqm,
@@ -270,8 +275,12 @@ export class ListingsExcelService {
 
       try {
         const typeRaw = row.getCell(typeCol).value?.toString().toLowerCase() || '';
-        const isRent = typeRaw.includes('түрээс') || typeRaw.includes('rent');
-        const type = isRent ? ListingType.RENT : ListingType.SALE;
+        let type = ListingType.SALE;
+        if (typeRaw.includes('өдөр') || typeRaw.includes('хоног') || typeRaw.includes('stay') || typeRaw.includes('daily')) {
+          type = ListingType.DAILY_RENT;
+        } else if (typeRaw.includes('түрээс') || typeRaw.includes('rent')) {
+          type = ListingType.RENT;
+        }
 
         const catRaw = row.getCell(catCol).value?.toString() || '';
         const category = this.mapCategoryToEnum(catRaw);

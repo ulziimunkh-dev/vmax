@@ -3,12 +3,14 @@ import { Bot, Sparkles, Send, X, ArrowRight, Building2, MapPin, Minimize2, Maxim
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { aiAPI } from '@/services/api';
+import { useI18n } from '@/i18n';
 import { getImageUrl } from '@/utils/imageUrl';
 
 interface Message {
   id: string;
   sender: 'user' | 'ai';
   text: string;
+  quickLinks?: Array<{ label: string; url: string; external?: boolean }>;
   recommendations?: {
     listings?: any[];
     projects?: any[];
@@ -16,13 +18,22 @@ interface Message {
 }
 
 const PRESET_PROMPTS = [
-  'Хан-Уул дүүрэгт 3 өрөө байр хайх',
-  'Ипотекийн 6% зээлтэй шинэ төслүүд',
-  '150 саяын төсөвтэй байр',
-  'Яармагт түрээсийн байр',
+  '🏢 Шинэ төсөл, хотхонууд',
+  '🛋️ Тавилга, интерьер газрууд',
+  '🏞️ Газар, зуслангийн газрууд',
+  '🏨 Хоногоор түрээслэх байр',
+  '✨ Сайтын давуу талууд',
+  '📝 Зар хэрхэн оруулах вэ?',
+  '💎 Багцын үнэ, тариф',
+  '📩 Имэйл мэдэгдлийн тухай',
+  'Хан-Уул 2 өрөө байр',
+  '📱 Утас баталгаажуулах',
+  '🎬 15s Reels бичлэгийн тухай',
+  '📞 Холбоо барих мэдээлэл',
 ];
 
 export const VmaxAIChat: React.FC = () => {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +41,15 @@ export const VmaxAIChat: React.FC = () => {
     {
       id: 'welcome',
       sender: 'ai',
-      text: 'Сайн байна уу! 👋 Би Vmax платформын үл хөдлөх хөрөнгийн ухаалаг AI туслах байна.\n\nТа өөрийн хүссэн байршил, төсөв, өрөөний тоо эсвэл зээлийн нөхцөлөө бичээд хайгаарай. Танд хамгийн тохиромжтой үл хөдлөхийг олж өгье!',
+      text: 'Сайн байна уу! 👋 Би Vmax ухаалаг туслах байна.\n\nБи танд дараах чиглэлээр тусалж чадна:\n• 🏢 **Шинэ төсөл, хотхонууд** (Ашиглалтад орох хугацаа, 6% ипотек)\n• 🛋️ **Тавилга & Интерьер газрууд** (Дэлгүүрийн каталог, профайл)\n• 🏞️ **Газар, зуслангийн байршлууд** (Өмчлөх, эзэмших эрхтэй газрууд)\n• 🏨 **Хоногоор түрээслэх (Daily Rent)** & богино хугацааны захиалга\n• 🏠 **Үл хөдлөх хөрөнгө хайх** (Борлуулах, түрээслэх орон сууц, хаус)\n• ✨ **Сайтын давуу талууд, үнийн багц, зар нийтлэх заавар**\n\nТанд юугаар туслах вэ?',
+      quickLinks: [
+        { label: '🏢 Шинэ төслүүд', url: '/projects' },
+        { label: '🛋️ Тавилгын каталог', url: '/furniture' },
+        { label: '🏞️ Газрын бүх зарууд', url: '/?category=LAND' },
+        { label: '🏨 Хоногоор түрээслэх', url: '/?type=DAILY_RENT' },
+        { label: '📝 Зар оруулах', url: '/create-listing' },
+        { label: '💎 Үнийн багц', url: '/pricing' },
+      ],
     },
   ]);
 
@@ -66,6 +85,7 @@ export const VmaxAIChat: React.FC = () => {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
         text: res.data.reply,
+        quickLinks: res.data.quickLinks,
         recommendations: res.data.recommendations,
       };
       setMessages((prev) => [...prev, aiReply]);
@@ -73,7 +93,7 @@ export const VmaxAIChat: React.FC = () => {
       const errorReply: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: 'Уучлаарай, холболтонд алдаа гарлаа. Та дахин оролдоно уу.',
+        text: t.aiAssistant.networkError,
       };
       setMessages((prev) => [...prev, errorReply]);
     } finally {
@@ -90,14 +110,14 @@ export const VmaxAIChat: React.FC = () => {
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsOpen(!isOpen)}
           className="relative p-3.5 sm:px-4 sm:py-3.5 rounded-full bg-gradient-to-r from-plasma via-nova to-pink-500 text-white text-white-force shadow-xl shadow-plasma/40 flex items-center gap-2 border border-white/25 cursor-pointer backdrop-blur-md group"
-          aria-label="Vmax AI Туслах"
+          aria-label={t.aiAssistant.buttonLabel}
         >
           <div className="relative">
             <Bot size={22} className="text-white text-white-force group-hover:rotate-12 transition-transform" />
             <Sparkles size={11} className="absolute -top-1.5 -right-1.5 text-yellow-300 animate-pulse" />
           </div>
           <span className="hidden sm:inline font-bold text-sm tracking-wide text-white text-white-force">
-            Vmax AI
+            {t.aiAssistant.buttonLabel}
           </span>
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-white/40 animate-ping absolute -top-1 -right-1" />
         </motion.button>
@@ -122,15 +142,15 @@ export const VmaxAIChat: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white">
-                      Vmax AI Зөвлөх
+                      {t.aiAssistant.advisorTitle}
                     </h3>
                     <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-plasma/15 text-plasma border border-plasma/25">
-                      Smart 2.0
+                      {t.aiAssistant.versionBadge}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 dark:text-nebula-text flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Онлайн • Үл хөдлөх хөрөнгийн зөвлөгч
+                    {t.aiAssistant.onlineStatus}
                   </p>
                 </div>
               </div>
@@ -159,6 +179,36 @@ export const VmaxAIChat: React.FC = () => {
                     }`}
                   >
                     {m.text}
+
+                    {/* Quick Link Action Pills */}
+                    {m.quickLinks && m.quickLinks.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-slate-200/60 dark:border-white/10">
+                        {m.quickLinks.map((link, idx) => (
+                          link.external ? (
+                            <a
+                              key={idx}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-plasma/10 hover:bg-plasma/20 text-plasma border border-plasma/30 transition-all cursor-pointer shadow-sm hover:scale-102"
+                            >
+                              <span>{link.label}</span>
+                              <ArrowRight size={12} />
+                            </a>
+                          ) : (
+                            <Link
+                              key={idx}
+                              to={link.url}
+                              onClick={() => setIsOpen(false)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-plasma/15 to-nova/15 hover:from-plasma hover:to-nova hover:text-white dark:hover:text-white text-plasma dark:text-plasma border border-plasma/30 transition-all cursor-pointer shadow-sm group hover:scale-102"
+                            >
+                              <span>{link.label}</span>
+                              <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                            </Link>
+                          )
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Recommendation Cards Carousel */}
@@ -249,7 +299,7 @@ export const VmaxAIChat: React.FC = () => {
                   <div className="w-6 h-6 rounded-lg bg-plasma/20 flex items-center justify-center text-plasma animate-spin">
                     <Sparkles size={14} />
                   </div>
-                  <span>AI үл хөдлөхүүдийг судалж байна...</span>
+                  <span>{t.aiAssistant.searching}</span>
                 </div>
               )}
 
@@ -279,7 +329,7 @@ export const VmaxAIChat: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Хүсэлтээ бичнэ үү (Жишээ: 150 саяын 3 өрөө)..."
+                placeholder={t.aiAssistant.inputPlaceholder}
                 disabled={loading}
                 className="flex-1 bg-white dark:bg-void/80 border border-slate-200 dark:border-white/15 rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-plasma transition-colors"
               />

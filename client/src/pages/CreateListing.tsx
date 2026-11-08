@@ -257,6 +257,9 @@ const CreateListing = () => {
     }
   }, [user?.phone, user?.isPhoneVerified]);
   const [description, setDescription] = useState('');
+  const [maxGuests, setMaxGuests] = useState('2');
+  const [checkInTime, setCheckInTime] = useState('14:00');
+  const [checkOutTime, setCheckOutTime] = useState('12:00');
   const [price, setPrice] = useState('');
   const [isSaleDiscountEnabled, setIsSaleDiscountEnabled] = useState(false);
   const [originalPriceInput, setOriginalPriceInput] = useState('');
@@ -778,6 +781,12 @@ const CreateListing = () => {
       if (terrain) attrPayload.terrain = terrain;
       if (roadDistance) attrPayload.roadDistance = roadDistance;
       if (landUtilities.length > 0) attrPayload.landUtilities = landUtilities;
+      if (type === 'DAILY_RENT') {
+        attrPayload.maxGuests = Number(maxGuests) || 2;
+        attrPayload.checkInTime = checkInTime;
+        attrPayload.checkOutTime = checkOutTime;
+        attrPayload.isStay = true;
+      }
 
       const finalImages = uploadedUrls.length > 0 ? uploadedUrls : imagePreviews;
 
@@ -1048,11 +1057,42 @@ const CreateListing = () => {
           <div className="space-y-4">
             <h3 className="text-xl text-starlight font-bold mb-4">Ерөнхий мэдээлэл</h3>
             <div>
-              <label className="block text-xs font-semibold text-nebula-text mb-1">Зарын төрөл</label>
-              <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight focus:outline-none focus:border-plasma">
-                <option value="SALE">{t.listings.sale}</option>
-                <option value="RENT">{t.listings.rent}</option>
-              </select>
+              <label className="block text-xs font-semibold text-nebula-text mb-1.5">Зарын төрөл</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setType('SALE')}
+                  className={`py-3 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                    type === 'SALE'
+                      ? 'bg-gradient-to-r from-plasma to-nova text-white-force border-plasma/40 shadow-lg shadow-plasma/25'
+                      : 'bg-void/50 border-white/10 text-nebula-text hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  {t.listings.sale} (Зарах)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType('RENT')}
+                  className={`py-3 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                    type === 'RENT'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white-force border-emerald-500/40 shadow-lg shadow-emerald-500/25'
+                      : 'bg-void/50 border-white/10 text-nebula-text hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  {t.listings.rent} (Түрээслэх)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType('DAILY_RENT')}
+                  className={`py-3 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer flex items-center justify-center gap-1 ${
+                    type === 'DAILY_RENT'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white-force border-amber-500/40 shadow-lg shadow-amber-500/25'
+                      : 'bg-void/50 border-white/10 text-nebula-text hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <span>🌙 Өдрөөр (Stay)</span>
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-semibold text-nebula-text mb-1">Ангилал</label>
@@ -1824,14 +1864,65 @@ const CreateListing = () => {
               }}
             />
 
+            {type === 'DAILY_RENT' && (
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3">
+                <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🛎️</span>
+                  <span>Өдрөөр түрээслэх (Stay) тохиргоо</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-nebula-text mb-1">Зочдын тоо</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={maxGuests}
+                      onChange={(e) => setMaxGuests(e.target.value)}
+                      placeholder="2"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-nebula-text mb-1">Ирэх цаг (Check-in)</label>
+                    <input
+                      type="text"
+                      value={checkInTime}
+                      onChange={(e) => setCheckInTime(e.target.value)}
+                      placeholder="14:00"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-nebula-text mb-1">Гарах цаг (Check-out)</label>
+                    <input
+                      type="text"
+                      value={checkOutTime}
+                      onChange={(e) => setCheckOutTime(e.target.value)}
+                      placeholder="12:00"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <PriceInput
                 value={price}
                 onChange={setPrice}
-                label={isSaleDiscountEnabled ? "Хямдралтай үнэ (₮)" : "Үнэ (₮)"}
-                placeholder="Жишээ: 850,000,000"
+                label={
+                  type === 'DAILY_RENT'
+                    ? "Хоногийн түрээсийн үнэ (₮)"
+                    : isSaleDiscountEnabled
+                    ? "Хямдралтай үнэ (₮)"
+                    : type === 'RENT'
+                    ? "Сарын түрээсийн үнэ (₮)"
+                    : "Нийт үнэ (₮)"
+                }
+                placeholder={type === 'DAILY_RENT' ? "Жишээ: 120,000" : "Жишээ: 850,000,000"}
                 showQuickAmounts
-                mode={type === 'RENT' ? 'rent' : 'sale'}
+                mode={type === 'DAILY_RENT' ? 'daily' : type === 'RENT' ? 'rent' : 'sale'}
                 required
               />
               <div>
@@ -1882,13 +1973,13 @@ const CreateListing = () => {
             </div>
 
             {/* Limited-Time Sale Discount Option */}
-            <div className="bg-gradient-to-r from-plasma/10 to-amber-500/10 border border-plasma/30 rounded-2xl p-4 space-y-4">
+            <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">🔥</span>
+                <div className="flex items-center space-x-2.5">
+                  <span className="text-xl">🔥</span>
                   <div>
-                    <h4 className="text-sm font-semibold text-starlight">Хугацаатай хямдрал зарлах</h4>
-                    <p className="text-xs text-nebula-text">Зард хямдралын тэмдэглэгээ ба үндсэн үнийн зураасан цуцлалт харагдана</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-starlight">Хугацаатай хямдрал зарлах</h4>
+                    <p className="text-xs text-slate-600 dark:text-nebula-text">Зард хямдралын тэмдэглэгээ ба үндсэн үнийн зураасан цуцлалт харагдана</p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -1901,7 +1992,7 @@ const CreateListing = () => {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-void/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-starlight after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-plasma"></div>
+                  <div className="w-11 h-6 bg-slate-300 dark:bg-void/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                 </label>
               </div>
 

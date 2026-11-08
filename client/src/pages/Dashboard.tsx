@@ -108,9 +108,9 @@ const Dashboard = () => {
             <ListingExcelActions onSuccess={fetchListings} />
             <button
               onClick={() => navigate('/create-listing')}
-              className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-sm shadow-lg shadow-plasma/25 hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all w-fit cursor-pointer"
+              className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-sm shadow-lg shadow-plasma/25 hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all w-fit cursor-pointer whitespace-nowrap flex-shrink-0"
             >
-            <span>+ Шинэ зар нийтлэх</span>
+              <span className="whitespace-nowrap">+ Шинэ зар нийтлэх</span>
             </button>
           </div>
         </motion.div>

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Download, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, Loader2, ShieldCheck } from 'lucide-react';
 import { listingsAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useI18n } from '@/i18n';
 
 interface ExcelManagerModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuthStore();
+  const { t } = useI18n();
   const cleanPhone = (user?.phone || '').replace(/\D/g, '');
   const isSuperAdmin = cleanPhone.endsWith('89767700');
 
@@ -49,7 +51,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
       console.error(err);
-      const errorMsg = err.response?.data?.message || 'Экспорт хийхэд алдаа гарлаа.';
+      const errorMsg = err.response?.data?.message || 'Export failed';
       alert(errorMsg);
     } finally {
       setExporting(false);
@@ -68,9 +70,9 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Загвар файл татахад алдаа гарлаа.');
+      alert('Template download failed');
     }
   };
 
@@ -104,7 +106,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
         success: false,
         importedCount: 0,
         failedCount: 1,
-        errors: [{ row: 0, title: file.name, reason: err.response?.data?.message || 'Серверийн алдаа гарлаа' }],
+        errors: [{ row: 0, title: file.name, reason: err.response?.data?.message || 'Server error' }],
       });
     } finally {
       setUploading(false);
@@ -122,14 +124,14 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-bold text-starlight flex items-center gap-2">
-                <span>Excel Зар Удирдлага</span>
+                <span>{t.excelManager.title}</span>
                 {isSuperAdmin && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-plasma/20 text-plasma border border-plasma/30">
-                    <ShieldCheck size={12} /> Админ
+                    <ShieldCheck size={12} /> Admin
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-nebula-text">Бөөнөөр зар оруулах болон системээс татаж авах</p>
+              <p className="text-xs text-nebula-text">Bulk listing upload & export</p>
             </div>
           </div>
           <button
@@ -150,7 +152,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 : 'text-nebula-text hover:text-starlight hover:bg-white/5'
             }`}
           >
-            📤 Зар Импортлох (Оруулах)
+            {t.excelManager.importTab}
           </button>
           <button
             onClick={() => { setActiveTab('export'); setResult(null); }}
@@ -160,7 +162,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 : 'text-nebula-text hover:text-starlight hover:bg-white/5'
             }`}
           >
-            📥 Зар Экспортлох (Татах)
+            {t.excelManager.exportTab}
           </button>
         </div>
 
@@ -189,25 +191,25 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               {file ? (
                 <div>
                   <p className="text-sm font-semibold text-starlight">{file.name}</p>
-                  <p className="text-xs text-plasma">{(file.size / 1024).toFixed(1)} KB сонгогдсон</p>
+                  <p className="text-xs text-plasma">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm font-medium text-starlight">Excel файл чирж тавих эсвэл товшиж сонгоно уу</p>
-                  <p className="text-xs text-nebula-text mt-0.5">.xlsx, .xls, .csv файл дэмжинэ</p>
+                  <p className="text-sm font-medium text-starlight">{t.excelManager.dragDrop}</p>
+                  <p className="text-xs text-nebula-text mt-0.5">{t.excelManager.orBrowse} (.xlsx, .xls, .csv)</p>
                 </div>
               )}
             </div>
 
             {/* Template download link */}
             <div className="flex items-center justify-between text-xs px-1">
-              <span className="text-nebula-text">Зөв бүтэцтэй загвар хэрэгтэй юу?</span>
+              <span className="text-nebula-text">Template:</span>
               <button
                 type="button"
                 onClick={handleDownloadTemplate}
                 className="text-aurora hover:underline font-semibold flex items-center gap-1 cursor-pointer"
               >
-                <Download size={13} /> Загвар файл татах
+                <Download size={13} /> {t.excelManager.templateDownload}
               </button>
             </div>
 
@@ -222,12 +224,12 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
                   {result.importedCount > 0 ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                  <span>{result.importedCount} зар амжилттай нэмэгдлээ! {result.failedCount > 0 && `(${result.failedCount} алдаатай)`}</span>
+                  <span>{result.importedCount} {t.excelManager.successImport} {result.failedCount > 0 && `(${result.failedCount} ${t.excelManager.failedImport})`}</span>
                 </div>
                 {result.errors.length > 0 && (
                   <div className="mt-2 text-xs space-y-1 max-h-24 overflow-y-auto">
                     {result.errors.slice(0, 5).map((err, i) => (
-                      <p key={i}>• Мөр {err.row}: {err.title} — {err.reason}</p>
+                      <p key={i}>• Row {err.row}: {err.title} — {err.reason}</p>
                     ))}
                   </div>
                 )}
@@ -241,7 +243,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 onClick={onClose}
                 className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-cosmic hover:bg-cosmic/80 text-starlight border border-white/10 transition cursor-pointer"
               >
-                Хаах
+                {t.common.cancel}
               </button>
               <button
                 type="button"
@@ -251,10 +253,10 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               >
                 {uploading ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" /> Хуулж байна...
+                    <Loader2 size={16} className="animate-spin" /> {t.common.loading}
                   </>
                 ) : (
-                  'Импорт эхлүүлэх'
+                  t.excelManager.uploadBtn
                 )}
               </button>
             </div>
@@ -264,14 +266,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
         {/* TAB 2: EXPORT */}
         {activeTab === 'export' && (
           <div className="mt-5 space-y-4">
-            <p className="text-xs text-nebula-text leading-relaxed">
-              {isSuperAdmin
-                ? 'Систем дээрх нийт зар эсвэл зөвхөн өөрийн оруулсан заруудыг Excel форматаар татаж аван тайлан, зах зээлийн шинжилгээ хийх боломжтой.'
-                : 'Та өөрийн бүртгэлтэй оруулсан заруудаа Excel форматаар татаж аван тайлан бэлтгэх боломжтой.'}
-            </p>
-
             <div className={`grid gap-3 pt-2 ${isSuperAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
-              {/* Зөвхөн 89767700 дугаартай хэрэглэгчид "Бүх зар татах" товч харагдана */}
               {isSuperAdmin && (
                 <button
                   type="button"
@@ -282,17 +277,15 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                   <div className="flex items-center justify-between mb-2">
                     <Download size={22} className="text-plasma" />
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-plasma/20 text-plasma uppercase tracking-wide border border-plasma/30">
-                      Админ
+                      Admin
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-starlight">Бүх зар татах</h4>
-                    <p className="text-[11px] text-nebula-text">Систем дээрх нийт бүх идэвхтэй зарын өгөгдөл</p>
+                    <h4 className="text-sm font-bold text-starlight">{t.excelManager.exportAll}</h4>
                   </div>
                 </button>
               )}
 
-              {/* Өөрийн зар татах товчлуур */}
               <button
                 type="button"
                 disabled={exporting}
@@ -301,15 +294,14 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               >
                 <Download size={22} className="text-aurora mb-2" />
                 <div>
-                  <h4 className="text-sm font-bold text-starlight">Өөрийн зар татах</h4>
-                  <p className="text-[11px] text-nebula-text">Таны нэвтэрсэн хаягийн зарууд</p>
+                  <h4 className="text-sm font-bold text-starlight">{t.excelManager.exportMy}</h4>
                 </div>
               </button>
             </div>
 
             {exporting && (
               <div className="flex items-center justify-center gap-2 py-3 text-xs text-plasma">
-                <Loader2 size={16} className="animate-spin" /> Excel файл үүсгэж байна, түр хүлээнэ үү...
+                <Loader2 size={16} className="animate-spin" /> {t.common.loading}
               </div>
             )}
 
@@ -318,7 +310,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               onClick={onClose}
               className="w-full py-2.5 mt-2 rounded-xl text-xs font-semibold bg-cosmic hover:bg-cosmic/80 text-starlight border border-white/10 transition cursor-pointer"
             >
-              Хаах
+              {t.common.cancel}
             </button>
           </div>
         )}

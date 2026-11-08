@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, Check, Mail, Filter } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useI18n } from '@/i18n';
 import api from '@/services/api';
 import type { SearchFilterParams } from './SearchBar';
 
@@ -13,6 +14,7 @@ interface Props {
 
 export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters }) => {
   const { user, token } = useAuthStore();
+  const { t } = useI18n();
   const [email] = useState(user?.email || '');
   const [title, setTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +26,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !user.email) {
-      setError('Мэдэгдэл захиалахын тулд нэвтэрсэн байх шаардлагатай.');
+      setError(t.savedSearch.loginRequired);
       return;
     }
 
@@ -35,7 +37,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
       await api.post('/saved-searches', {
         userId: user.id,
         email: user.email,
-        title: title || 'Тохируулсан хайлтын мэдэгдэл',
+        title: title || t.savedSearch.alertTitlePlaceholder,
         filters: {
           query: filters.query,
           type: filters.type,
@@ -60,7 +62,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
         onClose();
       }, 3000);
     } catch {
-      setError('Мэдэгдэл захиалахад алдаа гарлаа. Нэвтэрсэн эсэхээ шалгаад дахин оролдоно уу.');
+      setError('An error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -88,15 +90,15 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
               <div className="w-16 h-16 bg-plasma/20 text-plasma rounded-full flex items-center justify-center mx-auto border border-plasma/40">
                 <Bell size={32} />
               </div>
-              <h3 className="text-2xl font-bold text-starlight">Нэвтрэх шаардлагатай</h3>
+              <h3 className="text-2xl font-bold text-starlight">{t.savedSearch.loginRequired}</h3>
               <p className="text-nebula-text text-sm max-w-sm mx-auto">
-                Шинэ зарын мэдэгдэл хүлээн авахын тулд та системд өөрийн бүртгэлээрээ нэвтэрсэн байх шаардлагатай.
+                {t.savedSearch.subtitle}
               </p>
               <a
                 href="/login"
                 className="inline-block px-8 py-3 bg-gradient-to-r from-plasma to-aurora text-white font-bold rounded-xl shadow-lg shadow-plasma/30 hover:scale-105 transition-all text-sm"
               >
-                Нэвтрэх / Бүртгүүлэх
+                {t.nav.login} / {t.nav.register}
               </a>
             </div>
           ) : isSuccess ? (
@@ -104,9 +106,9 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
               <div className="w-16 h-16 bg-aurora/20 text-aurora rounded-full flex items-center justify-center mx-auto border border-aurora/40">
                 <Check size={32} />
               </div>
-              <h3 className="text-2xl font-bold text-starlight">Мэдэгдэл амжилттай захиалагдлаа!</h3>
+              <h3 className="text-2xl font-bold text-starlight">{t.savedSearch.savedSuccess}</h3>
               <p className="text-nebula-text text-sm max-w-sm mx-auto">
-                Таны сонгосон хайлтын шалгуурт тохирох зар ормогц бид баталгаажсан <strong>{user.email}</strong> хаяг руу шууд 1 удаа имэйл мэдэгдэл илгээнэ. Мэдэгдэл 7 хоног хүчинтэй.
+                <strong>{user.email}</strong>
               </p>
             </div>
           ) : (
@@ -117,10 +119,10 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-starlight font-heading">
-                    Хайлтад тохирох зар ормогц мэдээлэх
+                    {t.savedSearch.title}
                   </h3>
                   <p className="text-nebula-text text-xs">
-                    7 хоногийн хугацаанд тохирох 1 дэх зар системд ормогц шууд имэйл мэдэгдэл очно.
+                    {t.savedSearch.subtitle}
                   </p>
                 </div>
               </div>
@@ -129,7 +131,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
               <div className="bg-void/60 border border-white/10 rounded-2xl p-4 mb-6">
                 <div className="flex items-center space-x-2 text-xs font-semibold text-plasma mb-2">
                   <Filter size={14} />
-                  <span>СОНГОСОН ДЭЛГЭРЭНГҮЙ ШАЛГУУР:</span>
+                  <span>FILTER CRITERIA:</span>
                 </div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   {filters.district && (
@@ -144,17 +146,17 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
                   )}
                   {filters.type && (
                     <span className="px-2.5 py-1 bg-nova/20 text-nova rounded-lg border border-nova/30">
-                      {filters.type === 'sale' ? '🏷️ Худалдах' : '🔑 Түрээслэх'}
+                      {filters.type === 'sale' ? t.listings.sale : t.listings.rent}
                     </span>
                   )}
                   {filters.bedrooms && (
                     <span className="px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-lg border border-amber-500/30">
-                      🛏️ {filters.bedrooms} өрөө
+                      🛏️ {filters.bedrooms} {t.listings.bedrooms}
                     </span>
                   )}
                   {(filters.areaMin || filters.areaMax) && (
                     <span className="px-2.5 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg border border-cyan-500/30">
-                      📐 {filters.areaMin || '0'} - {filters.areaMax || '∞'} м.кв
+                      📐 {filters.areaMin || '0'} - {filters.areaMax || '∞'} {t.listings.sqm}
                     </span>
                   )}
                   {(filters.priceMin || filters.priceMax) && (
@@ -167,15 +169,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
                       🏗️ {filters.constructionType}
                     </span>
                   )}
-                  {!filters.district && !filters.category && !filters.type && !filters.priceMin && !filters.bedrooms && (
-                    <span className="text-nebula-text italic">Бүх шинэ заруудын мэдэгдэл</span>
-                  )}
                 </div>
-              </div>
-
-              {/* Notification terms badge */}
-              <div className="mb-4 p-3 bg-plasma/10 border border-plasma/30 rounded-xl text-plasma text-xs leading-relaxed">
-                ℹ️ <strong>Мэдэгдлийн журам:</strong> Мэдэгдэл нь захиалснаас хойш <strong>7 хоногийн хугацаанд хүчинтэй</strong> байх ба тохирох зар нийтлэгдмэгц таны имэйл рүү <strong>1 удаа</strong> мэдээлэл илгээгдэнэ.
               </div>
 
               {error && (
@@ -188,7 +182,7 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
                 <div>
                   <label className="block text-xs font-semibold text-starlight mb-1.5 flex items-center space-x-1">
                     <Mail size={14} className="text-plasma" />
-                    <span>Баталгаажсан имэйл хаяг:</span>
+                    <span>{t.contactCard.yourEmail}:</span>
                   </label>
                   <input
                     type="email"
@@ -200,13 +194,13 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
 
                 <div>
                   <label className="block text-xs font-semibold text-nebula-text mb-1.5">
-                    Захиалгын нэр (Заавал биш):
+                    {t.savedSearch.alertTitle}:
                   </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Жишээ: Хан-Уул 3 өрөө байрны зар"
+                    placeholder={t.savedSearch.alertTitlePlaceholder}
                     className="w-full bg-void/70 border border-white/10 rounded-xl px-4 py-3 text-starlight placeholder-nebula-text text-sm focus:outline-none focus:border-plasma transition-all"
                   />
                 </div>
@@ -214,10 +208,10 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 bg-gradient-to-r from-plasma to-aurora text-white font-bold rounded-xl shadow-lg shadow-plasma/30 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+                  className="w-full py-3.5 bg-gradient-to-r from-plasma to-aurora text-white font-bold rounded-xl shadow-lg shadow-plasma/30 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   <Bell size={18} />
-                  <span>{isSubmitting ? 'Хадгалж байна...' : 'Мэдэгдэл захиалах (7 хоног)'}</span>
+                  <span>{isSubmitting ? t.savedSearch.saving : t.savedSearch.saveBtn}</span>
                 </button>
               </form>
             </div>
@@ -229,4 +223,3 @@ export const SaveSearchAlertModal: React.FC<Props> = ({ isOpen, onClose, filters
 };
 
 export default SaveSearchAlertModal;
-

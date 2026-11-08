@@ -129,13 +129,21 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
             <div className="absolute bottom-2.5 left-3 z-20 flex items-center space-x-1.5 pointer-events-none">
               <span
                 className={`px-3 py-1 rounded-xl text-xs font-extrabold shadow-md border backdrop-blur-md text-white text-white-force flex items-center gap-1.5 transition-transform ${
-                  listing.type?.toLowerCase() === 'sale'
+                  listing.type?.toUpperCase() === 'DAILY_RENT'
+                    ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 border-amber-300/40 shadow-amber-500/30'
+                    : listing.type?.toLowerCase() === 'sale'
                     ? 'bg-gradient-to-r from-plasma to-nova border-white/25 shadow-plasma/30'
                     : 'bg-gradient-to-r from-emerald-500 to-teal-600 border-white/25 shadow-emerald-500/30'
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-white text-white-force animate-pulse" />
-                <span className="text-white text-white-force">{listing.type?.toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}</span>
+                <span className="text-white text-white-force">
+                  {listing.type?.toUpperCase() === 'DAILY_RENT'
+                    ? 'ӨДРӨӨР (STAY)'
+                    : listing.type?.toLowerCase() === 'sale'
+                    ? t.listings.sale
+                    : t.listings.rent}
+                </span>
               </span>
 
               {/* 90s Reel Walkthrough Badge next to type tag */}
@@ -169,6 +177,11 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
               <span className="text-2xl font-heading font-bold text-aurora text-glow-aurora">
                 {formatPriceMongolianWords(listing.price)}
               </span>
+              {listing.type?.toUpperCase() === 'DAILY_RENT' && (
+                <span className="text-xs font-bold text-amber-500 dark:text-amber-300 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-md">
+                  / хоног
+                </span>
+              )}
 
               {listing.originalPrice && Number(listing.originalPrice) > Number(listing.price) && (
                 <>
