@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Listing } from '@/types';
 import { SocialShareModal } from '@/components/listings/SocialShareModal';
 import { PromoteListingModal } from '@/components/listings/PromoteListingModal';
+import { ListingExcelActions } from '@/components/listings/ListingExcelActions';
 import { formatRelativeTime, formatDateFull } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
 
@@ -103,12 +104,15 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => navigate('/create-listing')}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-sm shadow-lg shadow-plasma/25 hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all w-fit"
-          >
+          <div className="flex items-center gap-3 flex-wrap">
+            <ListingExcelActions onSuccess={fetchListings} />
+            <button
+              onClick={() => navigate('/create-listing')}
+              className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-sm shadow-lg shadow-plasma/25 hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all w-fit cursor-pointer"
+            >
             <span>+ Шинэ зар нийтлэх</span>
-          </button>
+            </button>
+          </div>
         </motion.div>
 
         {/* Engagement Summary Analytics Widgets */}

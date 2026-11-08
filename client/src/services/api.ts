@@ -137,6 +137,21 @@ export const listingsAPI = {
   publish: (id: string) => api.patch(`/listings/${id}/publish`),
   promote: (id: string) => api.patch(`/listings/${id}/promote`),
   share: (id: string) => api.post(`/listings/${id}/share`),
+  exportExcel: (myOnly?: boolean) =>
+    api.get('/listings/export/excel', {
+      params: { myOnly },
+      responseType: 'blob',
+    }),
+  downloadTemplate: () =>
+    api.get('/listings/import/template', {
+      responseType: 'blob',
+    }),
+  importExcel: (formData: FormData) =>
+    api.post('/listings/import/excel', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
 };
 
 export const projectsAPI = {
