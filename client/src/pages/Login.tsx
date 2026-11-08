@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -143,43 +143,6 @@ const Login = () => {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const triggerGoogleLogin = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      if (tokenResponse?.access_token) {
-        handleGoogleSuccess(tokenResponse.access_token);
-      }
-    },
-    onError: (errorResponse: any) => {
-      if (errorResponse?.error === 'popup_closed_by_user') {
-        return;
-      }
-      setError(`Google нэвтрэлт амжилтгүй боллоо: ${errorResponse?.error_description || errorResponse?.error || 'Цонх хаагдсан эсвэл зөвшөөрөл олгосонгүй'}`);
-    },
-  });
-
-  const handleGoogleAuth = () => {
-    setError('');
-    try {
-      triggerGoogleLogin();
-    } catch {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '474155590838-p7h6dsl91e883rmdsu5naqg9seevtv5v.apps.googleusercontent.com';
-      if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2 && clientId) {
-        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: 'email profile openid',
-          callback: (tokenResponse: any) => {
-            if (tokenResponse?.access_token) {
-              handleGoogleSuccess(tokenResponse.access_token);
-            }
-          },
-        });
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      } else {
-        setError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа. Хуудсаа дахин ачаална уу.');
-      }
     }
   };
 

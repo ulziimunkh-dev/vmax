@@ -9,8 +9,18 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null, token: localStorage.getItem('vmax_token') || null, isAuthenticated: !!localStorage.getItem('vmax_token'),
-  login: (user, token) => { localStorage.setItem('vmax_token', token); set({ user, token, isAuthenticated: true }); },
-  logout: () => { localStorage.removeItem('vmax_token'); set({ user: null, token: null, isAuthenticated: false }); },
+  user: null,
+  token: localStorage.getItem('vmax_token') || localStorage.getItem('token') || null,
+  isAuthenticated: !!(localStorage.getItem('vmax_token') || localStorage.getItem('token')),
+  login: (user, token) => {
+    localStorage.setItem('vmax_token', token);
+    localStorage.setItem('token', token);
+    set({ user, token, isAuthenticated: true });
+  },
+  logout: () => {
+    localStorage.removeItem('vmax_token');
+    localStorage.removeItem('token');
+    set({ user: null, token: null, isAuthenticated: false });
+  },
   setUser: (user) => set({ user }),
 }));

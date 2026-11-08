@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -49,43 +49,6 @@ const Register = () => {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const triggerGoogleLogin = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      if (tokenResponse?.access_token) {
-        handleGoogleSuccess(tokenResponse.access_token);
-      }
-    },
-    onError: (errorResponse: any) => {
-      if (errorResponse?.error === 'popup_closed_by_user') {
-        return;
-      }
-      setError(`Google нэвтрэлт амжилтгүй боллоо: ${errorResponse?.error_description || errorResponse?.error || 'Цонх хаагдсан эсвэл зөвшөөрөл олгосонгүй'}`);
-    },
-  });
-
-  const handleGoogleAuth = () => {
-    setError('');
-    try {
-      triggerGoogleLogin();
-    } catch {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '474155590838-p7h6dsl91e883rmdsu5naqg9seevtv5v.apps.googleusercontent.com';
-      if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2 && clientId) {
-        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: 'email profile openid',
-          callback: (tokenResponse: any) => {
-            if (tokenResponse?.access_token) {
-              handleGoogleSuccess(tokenResponse.access_token);
-            }
-          },
-        });
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      } else {
-        setError('Google нэвтрэлт эхлүүлэхэд алдаа гарлаа. Хуудсаа дахин ачаална уу.');
-      }
     }
   };
 
@@ -146,27 +109,23 @@ const Register = () => {
         )}
 
         <div className="space-y-3 mb-4">
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="w-full bg-white text-gray-900 border border-slate-200 font-semibold py-3 rounded-xl flex items-center justify-center space-x-2.5 hover:bg-gray-50 transition-colors shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm"
-          >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            <span className="text-slate-800 font-semibold">{t.auth.continueGoogle}</span>
-          </button>
-
-          {/* Facebook Login Button (Temporarily commented out)
-          <button
-            type="button"
-            onClick={handleFacebookAuth}
-            disabled={loading}
-            className="w-full bg-[#1877F2] text-white font-medium py-3 rounded-xl flex items-center justify-center space-x-2 hover:bg-[#0c66db] transition-colors shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
-          >
-            <FacebookIcon />
-            <span className="font-semibold text-sm">{t.auth.continueFacebook}</span>
-          </button>
-          */}
+          <div className="w-full flex justify-center [&>div]:w-full [&>div>iframe]:!w-full [&>div>iframe]:!mx-auto">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                if (credentialResponse.credential) {
+                  await handleGoogleSuccess(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                setError('Google бүртгэл амжилтгүй боллоо.');
+              }}
+              theme="outline"
+              size="large"
+              width="380"
+              text="signup_with"
+              shape="rectangular"
+            />
+          </div>
 
           <div className="flex items-center py-2">
             <div className="flex-grow border-t border-white/10"></div>
