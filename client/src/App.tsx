@@ -29,13 +29,34 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { VmaxAIChat } from '@/components/ai/VmaxAIChat';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
-import api from '@/services/api';
+import api, { authAPI } from '@/services/api';
 
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 
 const App = () => {
-  const { token, setUser, logout } = useAuthStore();
+  const { token, setUser, logout, login } = useAuthStore();
   const { mode } = useThemeStore();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const accessToken = hashParams.get('access_token');
+      if (accessToken) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        authAPI.googleLogin(accessToken).then((res) => {
+          const { user: authUser, access_token: jwtToken } = res.data;
+          login(authUser, jwtToken);
+          const target = sessionStorage.getItem('oauth_target_redirect');
+          if (target) {
+            sessionStorage.removeItem('oauth_target_redirect');
+            window.location.href = target;
+          }
+        }).catch((err) => {
+          console.error('Google OAuth hash login failed:', err);
+        });
+      }
+    }
+  }, [login]);
 
   useEffect(() => {
     if (mode === 'light') {

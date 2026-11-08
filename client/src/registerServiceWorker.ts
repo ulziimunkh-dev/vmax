@@ -3,6 +3,16 @@
  */
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    // In local development, avoid stale cache interference by unregistering SW
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      return;
+    }
+
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')

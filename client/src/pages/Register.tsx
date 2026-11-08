@@ -71,7 +71,7 @@ const Register = () => {
     try {
       triggerGoogleLogin();
     } catch {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '474155590838-p7h6dsl91e883rmdsu5naqg9seevtv5v.apps.googleusercontent.com';
       if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2 && clientId) {
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: clientId,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { useI18n } from '@/i18n';
 import { authAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -165,7 +165,7 @@ const Login = () => {
     try {
       triggerGoogleLogin();
     } catch {
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '474155590838-p7h6dsl91e883rmdsu5naqg9seevtv5v.apps.googleusercontent.com';
       if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2 && clientId) {
         const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: clientId,
@@ -427,15 +427,23 @@ const Login = () => {
             <div className="flex-grow border-t border-white/10"></div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="w-full bg-white text-gray-900 border border-slate-200 font-semibold py-3 rounded-xl flex items-center justify-center space-x-2.5 hover:bg-gray-50 transition-colors shadow-sm active:scale-95 cursor-pointer text-xs sm:text-sm"
-          >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            <span className="text-slate-800 font-semibold">{t.auth.continueGoogle}</span>
-          </button>
+          <div className="w-full flex justify-center [&>div]:w-full [&>div>iframe]:!w-full [&>div>iframe]:!mx-auto">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                if (credentialResponse.credential) {
+                  await handleGoogleSuccess(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                setError('Google нэвтрэлт амжилтгүй боллоо.');
+              }}
+              theme="outline"
+              size="large"
+              width="380"
+              text="continue_with"
+              shape="rectangular"
+            />
+          </div>
         </div>
 
         <p className="mt-6 text-center text-nebula-text text-xs sm:text-sm">
