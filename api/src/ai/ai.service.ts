@@ -3,8 +3,53 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Listing } from '../listings/listing.entity';
 import { Project } from '../projects/project.entity';
-import { ListingStatus } from '../listings/enums/listing.enums';
+import { ListingStatus, ListingCategory, ListingType } from '../listings/enums/listing.enums';
 import { AiChatDto, GenerateDescriptionDto, EstimatePriceDto } from './dto/ai.dto';
+
+interface ExtractedCriteria {
+  district?: string;
+  subLocation?: string;
+  subLocationLabel?: string;
+  category?: ListingCategory;
+  categoryLabel?: string;
+  type?: ListingType;
+  roomsCount?: number;
+  budgetMax?: number;
+  isMortgage6?: boolean;
+}
+
+const SUB_LOCATIONS: { name: string; aliases: string[]; district: string }[] = [
+  { name: 'Зайсан', aliases: ['зайсан', 'зайсанд', 'зайсангийн', 'zaisan'], district: 'Хан-Уул' },
+  { name: 'Яармаг', aliases: ['яармаг', 'яармагт', 'яармагаас', 'яармагийн', 'yarmag'], district: 'Хан-Уул' },
+  { name: 'Нисэх', aliases: ['нисэх', 'нисэхэд', 'нисэхийн', 'niseh'], district: 'Хан-Уул' },
+  { name: 'River Garden', aliases: ['river garden', 'ривер гарден', 'ривер', 'river'], district: 'Хан-Уул' },
+  { name: '120 мянгат', aliases: ['120 мянгат', '120-д', '120', '120-т'], district: 'Хан-Уул' },
+  { name: 'Хүннү 2222', aliases: ['хүннү 2222', 'хүннү', 'hunnu'], district: 'Хан-Уул' },
+  { name: 'Маршал Таун', aliases: ['маршал таун', 'маршал', 'marshal'], district: 'Хан-Уул' },
+  { name: 'King Tower', aliases: ['king tower', 'кинг тауэр', 'кинг'], district: 'Хан-Уул' },
+  { name: 'Alpha Zone', aliases: ['alpha zone', 'альфа зон', 'alpha'], district: 'Хан-Уул' },
+  { name: 'Bella Vista', aliases: ['bella vista', 'белла виста'], district: 'Хан-Уул' },
+  { name: 'Сансар', aliases: ['сансар', 'сансарт', 'сансарын', 'sansar'], district: 'Баянзүрх' },
+  { name: 'Баянмонгол', aliases: ['баянмонгол', 'баян монгол', 'bayanmongol'], district: 'Баянзүрх' },
+  { name: 'Encanto Town', aliases: ['encanto', 'энканто'], district: 'Баянзүрх' },
+  { name: 'Төв талбай', aliases: ['төв талбай', 'сб талбай', 'их дэлгүүр', 'цирк'], district: 'Сүхбаатар' },
+  { name: 'Бэлх / Сэлх', aliases: ['бэлх', 'сэлх', 'бэлхэд'], district: 'Сүхбаатар' },
+  { name: '3, 4-р хороолол', aliases: ['3-р хороолол', '4-р хороолол', '3, 4', '3 4', '3 4-р хороолол'], district: 'Баянгол' },
+  { name: '10-р хороолол', aliases: ['10-р хороолол', '10 хороолол'], district: 'Баянгол' },
+  { name: '1-р хороолол', aliases: ['1-р хороолол', '1 хороолол', 'саппоро', 'драгон'], district: 'Сонгинохайрхан' },
+];
+
+const DISTRICTS: { name: string; aliases: string[] }[] = [
+  { name: 'Хан-Уул', aliases: ['хан-уул', 'хан уул', 'хануул', 'худ'] },
+  { name: 'Баянзүрх', aliases: ['баянзүрх', 'баян зүрх', 'бзд'] },
+  { name: 'Сүхбаатар', aliases: ['сүхбаатар', 'сүх баатар', 'сбд'] },
+  { name: 'Баянгол', aliases: ['баянгол', 'баян гол', 'бгд'] },
+  { name: 'Сонгинохайрхан', aliases: ['сонгинохайрхан', 'сонгино хайрхан', 'схд'] },
+  { name: 'Чингэлтэй', aliases: ['чингэлтэй', 'чд'] },
+  { name: 'Багануур', aliases: ['багануур'] },
+  { name: 'Багахангай', aliases: ['багахангай'] },
+  { name: 'Налайх', aliases: ['налайх'] },
+];
 
 @Injectable()
 export class AiService {
@@ -29,85 +74,23 @@ export class AiService {
 
   /**
    * 1. AI Real Estate Consultant Chat
-   * Parses intent, finds matching listings & projects, calculates mortgage estimates.
+   * Parses intent, performs intelligent database SQL search, calculates mortgage estimates.
    */
   async chat(dto: AiChatDto) {
     const rawMsg = (dto.message || '').trim();
     const queryLower = rawMsg.toLowerCase();
 
-    // Check if an external LLM key is configured (Gemini or OpenAI)
+    // 1. Extract criteria from user query
+    const criteria = this.extractCriteria(rawMsg, queryLower);
+
+    // 2. Perform intelligent SQL search across active database listings
+    const { items: matchingListings, notes } = await this.searchListings(criteria);
+
+    // 3. Perform intelligent SQL search across projects
+    const matchingProjects = await this.searchProjects(criteria);
+
+    // 4. Try Gemini LLM if configured
     const geminiKey = process.env.GEMINI_API_KEY;
-    const openAiKey = process.env.OPENAI_API_KEY;
-
-    // Fetch active listings and projects from DB to supply context
-    const [listings, projects] = await Promise.all([
-      this.listingRepo.find({
-        where: { status: ListingStatus.ACTIVE },
-        take: 12,
-        order: { createdAt: 'DESC' },
-      }),
-      this.projectRepo.find({
-        take: 8,
-        order: { createdAt: 'DESC' },
-      }),
-    ]);
-
-    // Extract search filters from query
-    const targetDistrict = Object.keys(this.districtBenchmarks).find((d) =>
-      queryLower.includes(d.toLowerCase()) || queryLower.includes(d.toLowerCase().replace('-', ' ')),
-    );
-
-    const isRent = queryLower.includes('түрээс') || queryLower.includes('хөлсл');
-    const isMortgage6 = queryLower.includes('6%') || queryLower.includes('ипотек') || queryLower.includes('зээл');
-
-    // Extract numbers if budget or room mentioned (e.g., "150 сая", "2 өрөө")
-    let budgetMax: number | null = null;
-    const millionMatch = rawMsg.match(/(\d+(?:\.\d+)?)\s*(?:сая|say)/i);
-    if (millionMatch) {
-      budgetMax = parseFloat(millionMatch[1]) * 1000000;
-    }
-
-    let roomsCount: number | null = null;
-    const roomMatch = rawMsg.match(/(\d+)\s*(?:өрөө|oroo)/i);
-    if (roomMatch) {
-      roomsCount = parseInt(roomMatch[1], 10);
-    }
-
-    // Filter relevant listings
-    let matchingListings = listings.filter((l) => {
-      let matches = true;
-      if (targetDistrict && !l.district.includes(targetDistrict)) matches = false;
-      if (isRent && String(l.type).toLowerCase() !== 'rent') matches = false;
-      if (!isRent && queryLower.includes('зар') && String(l.type).toLowerCase() === 'rent') matches = false;
-      if (budgetMax && l.price > budgetMax * 1.2) matches = false;
-      if (roomsCount && l.attributes?.bedrooms && Number(l.attributes.bedrooms) !== roomsCount) matches = false;
-      return matches;
-    });
-
-    if (matchingListings.length === 0 && listings.length > 0) {
-      // Fallback to top featured or urgent listings
-      matchingListings = listings.slice(0, 3);
-    } else {
-      matchingListings = matchingListings.slice(0, 4);
-    }
-
-    // Filter relevant projects
-    let matchingProjects = projects.filter((p) => {
-      let matches = true;
-      if (targetDistrict && !p.district.includes(targetDistrict)) matches = false;
-      const has6Mortgage = p.paymentTerms && p.paymentTerms.some((t) => t.includes('6%'));
-      if (isMortgage6 && !has6Mortgage) matches = false;
-      if (budgetMax && p.startingPrice && p.startingPrice > budgetMax * 1.2) matches = false;
-      return matches;
-    });
-
-    if (matchingProjects.length === 0 && projects.length > 0) {
-      matchingProjects = projects.slice(0, 2);
-    } else {
-      matchingProjects = matchingProjects.slice(0, 3);
-    }
-
-    // If Gemini API Key exists, use real Gemini LLM with RAG context
     if (geminiKey) {
       try {
         const reply = await this.callGemini(rawMsg, matchingListings, matchingProjects);
@@ -118,20 +101,13 @@ export class AiService {
             projects: matchingProjects,
           },
         };
-      } catch (err) {
+      } catch (err: any) {
         this.logger.warn(`Gemini call failed, falling back to smart built-in engine: ${err.message}`);
       }
     }
 
-    // Smart Built-in NLP Response Generation (100% Free, Zero Cost)
-    const replyText = this.generateSmartChatReply(rawMsg, {
-      district: targetDistrict,
-      isRent,
-      isMortgage6,
-      budgetMax,
-      roomsCount,
-      matchingCount: matchingListings.length + matchingProjects.length,
-    });
+    // 5. Smart Built-in NLP Response Generation (100% Free, Zero Cost)
+    const replyText = this.generateSmartChatReply(rawMsg, criteria, matchingListings, matchingProjects, notes);
 
     return {
       reply: replyText,
@@ -140,6 +116,264 @@ export class AiService {
         projects: matchingProjects,
       },
     };
+  }
+
+  private extractCriteria(rawMsg: string, queryLower: string): ExtractedCriteria {
+    const criteria: ExtractedCriteria = {};
+
+    // 1. Sub-locations / Landmarks (e.g. Zaisan, Yarmag, Sansar)
+    for (const sub of SUB_LOCATIONS) {
+      if (sub.aliases.some((alias) => queryLower.includes(alias))) {
+        criteria.subLocation = sub.name.toLowerCase();
+        criteria.subLocationLabel = sub.name;
+        criteria.district = sub.district;
+        break;
+      }
+    }
+
+    // 2. District (if not already set by sub-location)
+    if (!criteria.district) {
+      for (const d of DISTRICTS) {
+        if (d.aliases.some((alias) => queryLower.includes(alias))) {
+          criteria.district = d.name;
+          break;
+        }
+      }
+    }
+
+    // 3. Category
+    if (/хаус|амины сууц|хашаа байшин|зуслан|коттеж|villa/i.test(queryLower)) {
+      criteria.category = ListingCategory.HOUSE;
+      criteria.categoryLabel = 'Хаус / Амины сууц';
+    } else if (/үйлчилгээ|оффис|ресторан|дэлгүүр|агуулах|үйлдвэр|обьект|эмнэлэг|commercial/i.test(queryLower)) {
+      criteria.category = ListingCategory.COMMERCIAL;
+      criteria.categoryLabel = 'Үйлчилгээ / Оффис';
+    } else if (/газар|хашаа газар|газрын/i.test(queryLower)) {
+      criteria.category = ListingCategory.LAND;
+      criteria.categoryLabel = 'Газар / Хашаа';
+    } else if (/байр|орон сууц|апартмент|пентхаус|өрөө|apartment/i.test(queryLower)) {
+      criteria.category = ListingCategory.APARTMENT;
+      criteria.categoryLabel = 'Орон сууц';
+    }
+
+    // 4. Rooms count
+    const numRoomMatch = queryLower.match(/([1-9])\s*(?:өрөө|oroo)/i);
+    if (numRoomMatch) {
+      criteria.roomsCount = parseInt(numRoomMatch[1], 10);
+      if (!criteria.category) {
+        criteria.category = ListingCategory.APARTMENT;
+        criteria.categoryLabel = 'Орон сууц';
+      }
+    } else {
+      const wordRoomMatch = queryLower.match(/(нэг|хоёр|гурван|дөрвөн|таван|зургаан)\s*(?:өрөө|oroo)/i);
+      if (wordRoomMatch) {
+        const wordMap: Record<string, number> = {
+          нэг: 1, хоёр: 2, гурван: 3, дөрвөн: 4, таван: 5, зургаан: 6
+        };
+        criteria.roomsCount = wordMap[wordRoomMatch[1].toLowerCase()];
+        if (!criteria.category) {
+          criteria.category = ListingCategory.APARTMENT;
+          criteria.categoryLabel = 'Орон сууц';
+        }
+      }
+    }
+
+    // 5. Transaction type
+    if (/түрээс|түрээсл|хөлсл|сараар|rent/i.test(queryLower)) {
+      criteria.type = ListingType.RENT;
+    } else if (/худалда|авах|авна|зарна|зар|шинэ|бэлэн|sale/i.test(queryLower)) {
+      criteria.type = ListingType.SALE;
+    }
+
+    // 6. Budget
+    const billionMatch = queryLower.match(/(\d+(?:\.\d+)?)\s*(?:тэрбум|terbum)/i);
+    if (billionMatch) {
+      criteria.budgetMax = parseFloat(billionMatch[1]) * 1000000000;
+    } else {
+      const millionMatch = queryLower.match(/(\d+(?:\.\d+)?)\s*(?:сая|say|саяд|саяын|sayad)/i);
+      if (millionMatch) {
+        criteria.budgetMax = parseFloat(millionMatch[1]) * 1000000;
+      }
+    }
+
+    // 7. Mortgage
+    if (/6%|ипотек|зээл/i.test(queryLower)) {
+      criteria.isMortgage6 = true;
+    }
+
+    return criteria;
+  }
+
+  private async searchListings(criteria: ExtractedCriteria): Promise<{ items: Listing[]; notes: string[] }> {
+    const notes: string[] = [];
+
+    const buildQuery = (opts: {
+      useSubLoc: boolean;
+      useDistrict: boolean;
+      useCategory: boolean;
+      useType: boolean;
+      useRooms: boolean;
+      budgetMultiplier: number;
+    }) => {
+      const qb = this.listingRepo.createQueryBuilder('listing');
+      qb.where('listing.status = :status', { status: ListingStatus.ACTIVE });
+
+      if (opts.useType && criteria.type) {
+        qb.andWhere('listing.type = :type', { type: criteria.type });
+      }
+
+      if (opts.useCategory && criteria.category) {
+        qb.andWhere('listing.category = :category', { category: criteria.category });
+      }
+
+      if (opts.useDistrict && criteria.district) {
+        qb.andWhere('listing.district ILIKE :district', { district: `%${criteria.district}%` });
+      }
+
+      if (opts.useSubLoc && criteria.subLocation) {
+        qb.andWhere(
+          '(listing.location ILIKE :subLoc OR listing.title ILIKE :subLoc OR listing.description ILIKE :subLoc)',
+          { subLoc: `%${criteria.subLocation}%` },
+        );
+      }
+
+      if (opts.useRooms && criteria.roomsCount) {
+        const r = criteria.roomsCount;
+        qb.andWhere(
+          "(listing.attributes->>'rooms' = :rStr OR listing.attributes->>'bedrooms' = :rStr OR listing.title ILIKE :rPattern1 OR listing.title ILIKE :rPattern2)",
+          {
+            rStr: String(r),
+            rPattern1: `%${r} өрөө%`,
+            rPattern2: `%${r}өрөө%`,
+          },
+        );
+      }
+
+      if (criteria.budgetMax) {
+        qb.andWhere('listing.price <= :budgetMax', { budgetMax: criteria.budgetMax * opts.budgetMultiplier });
+      }
+
+      qb.orderBy('listing.isPromoted', 'DESC');
+      qb.addOrderBy('listing.createdAt', 'DESC');
+      qb.take(6);
+      return qb;
+    };
+
+    // Stage 1: Strict search with all criteria
+    let items = await buildQuery({
+      useSubLoc: true,
+      useDistrict: true,
+      useCategory: true,
+      useType: true,
+      useRooms: true,
+      budgetMultiplier: 1.1,
+    }).getMany();
+
+    if (items.length > 0) {
+      return { items, notes };
+    }
+
+    // Stage 2: Relax subLocation if set (broaden to entire district)
+    if (criteria.subLocation) {
+      items = await buildQuery({
+        useSubLoc: false,
+        useDistrict: true,
+        useCategory: true,
+        useType: true,
+        useRooms: true,
+        budgetMultiplier: 1.15,
+      }).getMany();
+
+      if (items.length > 0) {
+        notes.push(`Яг **${criteria.subLocationLabel}** дээр тохирох зар хараахан гараагүй тул **${criteria.district}** дүүрэг дэх хамгийн ойр төстэй хувилбаруудыг харуулж байна.`);
+        return { items, notes };
+      }
+    }
+
+    // Stage 3: Relax budget (+30%)
+    if (criteria.budgetMax) {
+      items = await buildQuery({
+        useSubLoc: false,
+        useDistrict: true,
+        useCategory: true,
+        useType: true,
+        useRooms: true,
+        budgetMultiplier: 1.35,
+      }).getMany();
+
+      if (items.length > 0) {
+        notes.push(`Заасан төсөвтэй хамгийн ойр үнийн саналуудыг шүүж гаргалаа.`);
+        return { items, notes };
+      }
+    }
+
+    // Stage 4: Relax district to citywide if specified room and category
+    if (criteria.roomsCount || criteria.category) {
+      items = await buildQuery({
+        useSubLoc: false,
+        useDistrict: false,
+        useCategory: true,
+        useType: true,
+        useRooms: !!criteria.roomsCount,
+        budgetMultiplier: 1.5,
+      }).getMany();
+
+      if (items.length > 0) {
+        notes.push(`Энэ бүсэд одоогоор зар цөөн байгаа тул нийслэл хот даяарх хамгийн тохиромжтой хувилбаруудыг үзүүлж байна.`);
+        return { items, notes };
+      }
+    }
+
+    // Stage 5: Ultimate fallback: Top active listings in category or active
+    const fallbackQb = this.listingRepo.createQueryBuilder('listing')
+      .where('listing.status = :status', { status: ListingStatus.ACTIVE });
+    if (criteria.category) {
+      fallbackQb.andWhere('listing.category = :category', { category: criteria.category });
+    }
+    fallbackQb.orderBy('listing.isPromoted', 'DESC');
+    fallbackQb.addOrderBy('listing.createdAt', 'DESC');
+    fallbackQb.take(4);
+    items = await fallbackQb.getMany();
+
+    return { items, notes };
+  }
+
+  private async searchProjects(criteria: ExtractedCriteria): Promise<Project[]> {
+    const pqb = this.projectRepo.createQueryBuilder('project');
+
+    if (criteria.district) {
+      pqb.andWhere('project.district ILIKE :district', { district: `%${criteria.district}%` });
+    }
+
+    if (criteria.subLocation) {
+      pqb.andWhere(
+        '(project.name ILIKE :subLoc OR project.addressDetail ILIKE :subLoc OR project.description ILIKE :subLoc)',
+        { subLoc: `%${criteria.subLocation}%` },
+      );
+    }
+
+    if (criteria.isMortgage6) {
+      pqb.andWhere("project.paymentTerms::text ILIKE '%6%'");
+    }
+
+    if (criteria.budgetMax) {
+      pqb.andWhere('project.startingPrice <= :budgetMax', { budgetMax: criteria.budgetMax * 1.3 });
+    }
+
+    pqb.orderBy('project.isFeatured', 'DESC');
+    pqb.addOrderBy('project.createdAt', 'DESC');
+    pqb.take(3);
+
+    let projects = await pqb.getMany();
+
+    if (projects.length === 0) {
+      projects = await this.projectRepo.find({
+        take: 2,
+        order: { isFeatured: 'DESC', createdAt: 'DESC' },
+      });
+    }
+
+    return projects;
   }
 
   /**
@@ -295,34 +529,66 @@ ${floorText} Нарны тусгал маш сайн, уужим цэлгэр с
   // --- Helpers ---
   private generateSmartChatReply(
     query: string,
-    ctx: { district?: string; isRent: boolean; isMortgage6: boolean; budgetMax: number | null; roomsCount: number | null; matchingCount: number },
+    criteria: ExtractedCriteria,
+    listings: Listing[],
+    projects: Project[],
+    notes: string[],
   ): string {
-    const greetings = ['Сайн байна уу! Vmax AI үл хөдлөх хөрөнгийн ухаалаг туслах бэлэн байна. 🏡', 'Тавтай морилно уу! Би танд тохирох байрыг олоход тусалъя. ✨'];
+    const greetings = [
+      'Сайн байна уу! Vmax AI үл хөдлөх хөрөнгийн ухаалаг туслах байна. 🏡',
+      'Тавтай морилно уу! Таны хүсэлтийн дагуу хамгийн тохиромжтой үл хөдлөх хөрөнгүүдийг шүүж гаргалаа. ✨',
+    ];
     const greeting = greetings[Math.floor(Math.random() * greetings.length)];
 
-    let parts: string[] = [greeting];
+    const parts: string[] = [greeting];
 
-    if (ctx.district) {
-      parts.push(`📍 Таны сонирхсон **${ctx.district} дүүрэг** дэх шилдэг сонголтуудыг шүүж гаргалаа.`);
+    // Criteria recognition summary
+    const filterBullets: string[] = [];
+    if (criteria.subLocationLabel) {
+      filterBullets.push(`📍 **Байршил:** ${criteria.district} (${criteria.subLocationLabel})`);
+    } else if (criteria.district) {
+      filterBullets.push(`📍 **Дүүрэг:** ${criteria.district}`);
     }
 
-    if (ctx.budgetMax) {
-      const budgetMil = (ctx.budgetMax / 1000000).toFixed(0);
-      parts.push(`💰 Төсөв: **${budgetMil} сая төгрөг** доторх хамгийн үнэ цэнтэй хувилбарууд.`);
+    if (criteria.categoryLabel) {
+      filterBullets.push(`🏢 **Төрөл:** ${criteria.categoryLabel}${criteria.type === ListingType.RENT ? ' (Түрээс)' : ' (Худалдаа)'}`);
+    } else if (criteria.type) {
+      filterBullets.push(`🏷️ **Гүйлгээний төрөл:** ${criteria.type === ListingType.RENT ? 'Түрээс' : 'Худалдаа'}`);
     }
 
-    if (ctx.roomsCount) {
-      parts.push(`🚪 Хүсэлт: **${ctx.roomsCount} өрөө** орон сууц.`);
+    if (criteria.roomsCount) {
+      filterBullets.push(`🚪 **Өрөөний тоо:** ${criteria.roomsCount} өрөө`);
     }
 
-    if (ctx.isMortgage6) {
-      parts.push(`🏦 Мөн **Ипотекийн 6%-ийн хөнгөлөлттэй зээлд** хамрагдах боломжтой шинэ орон сууц, төслүүдийг багтаасан болно.`);
+    if (criteria.budgetMax) {
+      const budgetMil = (criteria.budgetMax / 1000000).toLocaleString();
+      filterBullets.push(`💰 **Төсөв:** ~${budgetMil} сая төгрөг хүртэл`);
     }
 
-    if (ctx.matchingCount > 0) {
-      parts.push(`Танд зориулан санал болгож буй доорх зарууд болон төслүүдийг сонирхоод үзээрэй. Аль нэг дээр нь даран шууд 3D аялал хийх эсвэл борлуулагчтай нь холбогдох боломжтой:`);
+    if (criteria.isMortgage6) {
+      filterBullets.push(`🏦 **Зээл:** Ипотекийн 6% хөнгөлөлттэй нөхцөл`);
+    }
+
+    if (filterBullets.length > 0) {
+      parts.push(`🔍 **Таны хайлтын үзүүлэлтүүд:**\n` + filterBullets.map((b) => `• ${b}`).join('\n'));
+    }
+
+    // Notes if relaxed
+    if (notes.length > 0) {
+      parts.push(`💡 ${notes.join('\n')}`);
+    }
+
+    // Listings highlight summary
+    if (listings.length > 0) {
+      const listingLines = listings.slice(0, 3).map((l, idx) => {
+        const priceStr = l.price ? `${Number(l.price).toLocaleString()} ₮` : 'Тохиролцоно';
+        const areaStr = l.areaSqm ? ` • ${l.areaSqm} м.кв` : '';
+        return `${idx + 1}. **${l.title}**\n   Үнэ: **${priceStr}**${areaStr} | Байршил: ${l.district || 'УБ'}`;
+      });
+      parts.push(`🏆 **Шилдэг сонголтууд:**\n\n` + listingLines.join('\n\n'));
+      parts.push(`Дэлгэрэнгүй зураг, байршлын газрын зураг болон эзэмшигчийн дугаарыг үзэхийн тулд доорх картууд дээр шууд дарж үзнэ үү!`);
     } else {
-      parts.push(`Танд ойролцоо зах зээлийн хамгийн эрэлттэй шинэ төсөл болон онцлох заруудыг санал болгож байна:`);
+      parts.push(`Одоогоор яг энэ шалгуурт тохирох зар хараахан нийтлэгдээгүй байна. Та шалгуураа бага зэрэг өргөжүүлэн (жишээ нь дүүрэг эсвэл үнийн хязгаарыг өөрчлөх) хайж үзээрэй.`);
     }
 
     return parts.join('\n\n');

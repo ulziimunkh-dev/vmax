@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Download, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, Loader2 } from 'lucide-react';
+import { Download, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, Loader2, ShieldCheck } from 'lucide-react';
 import { listingsAPI } from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface ExcelManagerModalProps {
   isOpen: boolean;
@@ -13,6 +14,10 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { user } = useAuthStore();
+  const cleanPhone = (user?.phone || '').replace(/\D/g, '');
+  const isSuperAdmin = cleanPhone.endsWith('89767700');
+
   const [activeTab, setActiveTab] = useState<'import' | 'export'>('import');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -36,14 +41,16 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `vmax_listings_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const filePrefix = myOnly ? 'vmax_my_listings' : 'vmax_all_listings';
+      link.setAttribute('download', `${filePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Экспорт хийхэд алдаа гарлаа.');
+      const errorMsg = err.response?.data?.message || 'Экспорт хийхэд алдаа гарлаа.';
+      alert(errorMsg);
     } finally {
       setExporting(false);
     }
@@ -105,41 +112,52 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-xl rounded-2xl bg-[#0f0e17] border border-purple-500/20 shadow-2xl p-6 text-white overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/80 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-xl rounded-2xl bg-nebula border border-white/10 shadow-2xl p-6 text-starlight overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-purple-600/20 text-purple-400">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-plasma/15 text-plasma">
               <FileSpreadsheet size={22} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Excel Зар Удирдлага</h2>
-              <p className="text-xs text-gray-400">Бөөнөөр зар оруулах болон системээс татаж авах</p>
+              <h2 className="text-lg font-bold text-starlight flex items-center gap-2">
+                <span>Excel Зар Удирдлага</span>
+                {isSuperAdmin && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-plasma/20 text-plasma border border-plasma/30">
+                    <ShieldCheck size={12} /> Админ
+                  </span>
+                )}
+              </h2>
+              <p className="text-xs text-nebula-text">Бөөнөөр зар оруулах болон системээс татаж авах</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition"
+            className="p-1.5 rounded-lg text-nebula-text hover:text-starlight hover:bg-white/10 transition cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex p-1 mt-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="flex p-1 mt-4 rounded-xl bg-void/50 border border-white/10">
           <button
             onClick={() => { setActiveTab('import'); setResult(null); }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
-              activeTab === 'import' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition cursor-pointer ${
+              activeTab === 'import'
+                ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/25'
+                : 'text-nebula-text hover:text-starlight hover:bg-white/5'
             }`}
           >
             📤 Зар Импортлох (Оруулах)
           </button>
           <button
             onClick={() => { setActiveTab('export'); setResult(null); }}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition ${
-              activeTab === 'export' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition cursor-pointer ${
+              activeTab === 'export'
+                ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-lg shadow-plasma/25'
+                : 'text-nebula-text hover:text-starlight hover:bg-white/5'
             }`}
           >
             📥 Зар Экспортлох (Татах)
@@ -155,7 +173,9 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 ${
-                file ? 'border-purple-500 bg-purple-500/10' : 'border-white/20 hover:border-purple-400/50 bg-white/5'
+                file
+                  ? 'border-plasma bg-plasma/10'
+                  : 'border-white/15 hover:border-plasma/50 bg-void/40'
               }`}
             >
               <input
@@ -165,27 +185,27 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 accept=".xlsx, .xls, .csv"
                 className="hidden"
               />
-              <Upload size={32} className={file ? 'text-purple-400 animate-bounce' : 'text-gray-400'} />
+              <Upload size={32} className={file ? 'text-plasma animate-bounce' : 'text-nebula-text'} />
               {file ? (
                 <div>
-                  <p className="text-sm font-semibold text-white">{file.name}</p>
-                  <p className="text-xs text-purple-300">{(file.size / 1024).toFixed(1)} KB сонгогдсон</p>
+                  <p className="text-sm font-semibold text-starlight">{file.name}</p>
+                  <p className="text-xs text-plasma">{(file.size / 1024).toFixed(1)} KB сонгогдсон</p>
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm font-medium text-gray-200">Excel файл чирж тавих эсвэл товшиж сонгоно уу</p>
-                  <p className="text-xs text-gray-500 mt-0.5">.xlsx, .xls, .csv файл дэмжинэ</p>
+                  <p className="text-sm font-medium text-starlight">Excel файл чирж тавих эсвэл товшиж сонгоно уу</p>
+                  <p className="text-xs text-nebula-text mt-0.5">.xlsx, .xls, .csv файл дэмжинэ</p>
                 </div>
               )}
             </div>
 
             {/* Template download link */}
             <div className="flex items-center justify-between text-xs px-1">
-              <span className="text-gray-400">Зөв бүтэцтэй загвар хэрэгтэй юу?</span>
+              <span className="text-nebula-text">Зөв бүтэцтэй загвар хэрэгтэй юу?</span>
               <button
                 type="button"
                 onClick={handleDownloadTemplate}
-                className="text-purple-400 hover:text-purple-300 font-semibold underline underline-offset-2 flex items-center gap-1 cursor-pointer"
+                className="text-aurora hover:underline font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <Download size={13} /> Загвар файл татах
               </button>
@@ -196,8 +216,8 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               <div
                 className={`p-4 rounded-xl border ${
                   result.importedCount > 0
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                    : 'bg-red-500/10 border-red-500/30 text-red-300'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                    : 'bg-red-500/10 border-red-500/30 text-red-400'
                 }`}
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
@@ -219,7 +239,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-gray-300 transition cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-cosmic hover:bg-cosmic/80 text-starlight border border-white/10 transition cursor-pointer"
               >
                 Хаах
               </button>
@@ -227,7 +247,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
                 type="button"
                 disabled={!file || uploading}
                 onClick={handleImportSubmit}
-                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white-force disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-lg shadow-plasma/25 cursor-pointer"
               >
                 {uploading ? (
                   <>
@@ -244,40 +264,51 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
         {/* TAB 2: EXPORT */}
         {activeTab === 'export' && (
           <div className="mt-5 space-y-4">
-            <p className="text-xs text-gray-300 leading-relaxed">
-              Vmax.mn дээрх нийт зар эсвэл зөвхөн өөрийн оруулсан заруудыг Excel форматаар татаж аван тайлан, зах зээлийн шинжилгээ хийх боломжтой.
+            <p className="text-xs text-nebula-text leading-relaxed">
+              {isSuperAdmin
+                ? 'Систем дээрх нийт зар эсвэл зөвхөн өөрийн оруулсан заруудыг Excel форматаар татаж аван тайлан, зах зээлийн шинжилгээ хийх боломжтой.'
+                : 'Та өөрийн бүртгэлтэй оруулсан заруудаа Excel форматаар татаж аван тайлан бэлтгэх боломжтой.'}
             </p>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                type="button"
-                disabled={exporting}
-                onClick={() => handleExport(false)}
-                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/50 hover:bg-purple-500/10 text-left transition flex flex-col justify-between cursor-pointer"
-              >
-                <Download size={22} className="text-purple-400 mb-2" />
-                <div>
-                  <h4 className="text-sm font-bold text-white">Бүх зар татах</h4>
-                  <p className="text-[11px] text-gray-400">Систем дээрх нийт идэвхтэй зарууд</p>
-                </div>
-              </button>
+            <div className={`grid gap-3 pt-2 ${isSuperAdmin ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {/* Зөвхөн 89767700 дугаартай хэрэглэгчид "Бүх зар татах" товч харагдана */}
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  disabled={exporting}
+                  onClick={() => handleExport(false)}
+                  className="p-4 rounded-xl bg-plasma/10 border border-plasma/30 hover:border-plasma hover:bg-plasma/20 text-left transition flex flex-col justify-between cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Download size={22} className="text-plasma" />
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-plasma/20 text-plasma uppercase tracking-wide border border-plasma/30">
+                      Админ
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-starlight">Бүх зар татах</h4>
+                    <p className="text-[11px] text-nebula-text">Систем дээрх нийт бүх идэвхтэй зарын өгөгдөл</p>
+                  </div>
+                </button>
+              )}
 
+              {/* Өөрийн зар татах товчлуур */}
               <button
                 type="button"
                 disabled={exporting}
                 onClick={() => handleExport(true)}
-                className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-purple-500/50 hover:bg-purple-500/10 text-left transition flex flex-col justify-between cursor-pointer"
+                className="p-4 rounded-xl bg-cosmic hover:bg-cosmic/80 border border-white/10 hover:border-aurora/50 text-left transition flex flex-col justify-between cursor-pointer"
               >
-                <Download size={22} className="text-emerald-400 mb-2" />
+                <Download size={22} className="text-aurora mb-2" />
                 <div>
-                  <h4 className="text-sm font-bold text-white">Өөрийн зар татах</h4>
-                  <p className="text-[11px] text-gray-400">Таны нэвтэрсэн хаягийн зарууд</p>
+                  <h4 className="text-sm font-bold text-starlight">Өөрийн зар татах</h4>
+                  <p className="text-[11px] text-nebula-text">Таны нэвтэрсэн хаягийн зарууд</p>
                 </div>
               </button>
             </div>
 
             {exporting && (
-              <div className="flex items-center justify-center gap-2 py-3 text-xs text-purple-400">
+              <div className="flex items-center justify-center gap-2 py-3 text-xs text-plasma">
                 <Loader2 size={16} className="animate-spin" /> Excel файл үүсгэж байна, түр хүлээнэ үү...
               </div>
             )}
@@ -285,7 +316,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-full py-2.5 mt-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/15 text-gray-300 transition cursor-pointer"
+              className="w-full py-2.5 mt-2 rounded-xl text-xs font-semibold bg-cosmic hover:bg-cosmic/80 text-starlight border border-white/10 transition cursor-pointer"
             >
               Хаах
             </button>

@@ -7,6 +7,7 @@ import {
   UploadedFile,
   UseGuards,
   BadRequestException,
+  ForbiddenException,
   Query,
   Req,
 } from '@nestjs/common';
@@ -17,11 +18,12 @@ import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 
 @Controller('listings')
 export class ListingsExcelController {
-  constructor(private readonly excelService: ListingsExcelService) {}
+  constructor(private readonly excelService: ListingsExcelService) { }
 
   /**
    * 1. EXCEL ТАТАХ (EXPORT)
    * GET /api/listings/export/excel?myOnly=true
+   * Бүх зар татах (myOnly !== 'true') эрх зөвхөн 89767700 дугаартай админд нээлттэй.
    */
   @Get('export/excel')
   @UseGuards(OptionalJwtAuthGuard)
@@ -30,9 +32,20 @@ export class ListingsExcelController {
     @Query('myOnly') myOnly?: string,
     @Req() req?: any,
   ) {
-    const userId = req?.user?.id;
+    const user = req?.user;
+    const cleanPhone = (user?.phone || '').replace(/\D/g, '');
+    const isSuperAdmin = cleanPhone.endsWith('89767700') || cleanPhone.endsWith('89357373');
+
+    // Хэрэв бүх зар татахыг хүсэж байгаа боловч 89767700 дугаартай хэрэглэгч биш бол хориглоно
+    if (myOnly !== 'true' && !isSuperAdmin) {
+      throw new ForbiddenException(
+        'Бүх зарыг экспортлох эрх зөвхөн 89767700 дугаартай хэрэглэгчид олгогдсон. Та өөрийн зарыг татна уу (myOnly=true).',
+      );
+    }
+
+    const userId = user?.id;
     const buffer = await this.excelService.exportListingsToBuffer({
-      userId: myOnly === 'true' && userId ? userId : undefined,
+      userId: myOnly === 'true' && userId ? userId : (isSuperAdmin && myOnly !== 'true' ? undefined : userId),
     });
 
     const filename = `vmax_listings_${new Date().toISOString().slice(0, 10)}.xlsx`;

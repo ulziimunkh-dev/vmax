@@ -123,7 +123,44 @@ export class ListingsService {
     }
 
     if (query.search) {
-      queryBuilder.andWhere('(listing.title ILIKE :search OR listing.description ILIKE :search OR listing.location ILIKE :search OR listing.district ILIKE :search OR listing.khoroo ILIKE :search)', { search: `%${query.search}%` });
+      const rawSearch = query.search.trim();
+
+      // Check if search contains room specification like "2 өрөө", "3 өрөө", "4өрөө"
+      const roomMatch = rawSearch.match(/(\d+)\s*(?:өрөө|oroo)/i);
+      if (roomMatch && query.bedrooms === undefined) {
+        const rNum = parseInt(roomMatch[1], 10);
+        queryBuilder.andWhere(
+          "(listing.attributes->>'rooms' = :rStr OR listing.attributes->>'bedrooms' = :rStr OR listing.title ILIKE :rPattern1 OR listing.title ILIKE :rPattern2)",
+          {
+            rStr: String(rNum),
+            rPattern1: `%${rNum} өрөө%`,
+            rPattern2: `%${rNum}өрөө%`,
+          },
+        );
+      }
+
+      // Split words to allow multi-keyword matching
+      const words = rawSearch
+        .replace(/(\d+)\s*(?:өрөө|oroo)/gi, '')
+        .trim()
+        .split(/\s+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length >= 2);
+
+      if (words.length > 0) {
+        words.forEach((w, idx) => {
+          const param = `search_word_${idx}`;
+          queryBuilder.andWhere(
+            `(listing.title ILIKE :${param} OR listing.description ILIKE :${param} OR listing.location ILIKE :${param} OR listing.district ILIKE :${param} OR listing.khoroo ILIKE :${param})`,
+            { [param]: `%${w}%` },
+          );
+        });
+      } else if (!roomMatch) {
+        queryBuilder.andWhere(
+          '(listing.title ILIKE :search OR listing.description ILIKE :search OR listing.location ILIKE :search OR listing.district ILIKE :search OR listing.khoroo ILIKE :search)',
+          { search: `%${rawSearch}%` },
+        );
+      }
     }
 
     if (sortBy === 'views') {
