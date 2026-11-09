@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Users, Phone, Send, CheckCircle2, Moon, Clock, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { Calendar, Users, Phone, Send, CheckCircle2, Moon, Clock, ShieldCheck, Sparkles, X, Lock } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -69,7 +69,15 @@ export const StayBookingCard: React.FC<StayBookingCardProps> = ({
   const totalPrice = subtotal + cleaningFee;
 
   const rawPhone = listing.contactPhone || listing.attributes?.contactPhone || listing.user?.phone || '8976-7700';
+  const isRevealed = Boolean(revealedPhone);
   const finalPhone = revealedPhone || rawPhone;
+  const displayMaskedPhone = useMemo(() => {
+    const clean = rawPhone.replace(/\D/g, '');
+    if (clean.length >= 8) {
+      return `${clean.slice(0, 4)}-****`;
+    }
+    return '8976-****';
+  }, [rawPhone]);
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +90,7 @@ export const StayBookingCard: React.FC<StayBookingCardProps> = ({
     setErrorMsg('');
 
     const formattedMessage = [
-      `🛎️ [ӨДРӨӨР ТҮРЭЭСЛЭХ / STAY ЗАХИАЛГЫН ХҮСЭЛТ]`,
+      `🛎️ [ХОНОГООР ТҮРЭЭСЛЭХ / STAY ЗАХИАЛГЫН ХҮСЭЛТ]`,
       `📅 Ирэх өдөр: ${checkIn}`,
       `📅 Гарах өдөр: ${checkOut}`,
       `🌙 Нийт хоног: ${nights} хоног`,
@@ -245,16 +253,26 @@ export const StayBookingCard: React.FC<StayBookingCardProps> = ({
         </button>
 
         {/* Secondary Action: Direct Call Host */}
-        <a
-          href={`tel:${finalPhone.replace(/\D/g, '')}`}
-          onClick={() => {
-            if (onRevealPhone) onRevealPhone();
-          }}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer"
-        >
-          <Phone size={15} />
-          <span>{t.stayBooking.callHost} ({finalPhone})</span>
-        </a>
+        {isRevealed ? (
+          <a
+            href={`tel:${finalPhone.replace(/\D/g, '')}`}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer"
+          >
+            <Phone size={15} />
+            <span>{t.stayBooking.callHost} ({finalPhone})</span>
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (onRevealPhone) onRevealPhone();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer"
+          >
+            <Lock size={14} />
+            <span>{t.stayBooking.callHost} ({displayMaskedPhone})</span>
+          </button>
+        )}
       </div>
 
       {/* Booking Inquiry Confirmation Modal */}

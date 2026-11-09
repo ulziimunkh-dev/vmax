@@ -16,6 +16,8 @@ import PropertyMap from '@/components/map/PropertyMap';
 import { formatRelativeTime, formatDateFull } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
 import { formatPriceMongolianWords } from '@/utils/formatPrice';
+import { checkPhoneQuota, recordPhoneView, DAILY_GUEST_PHONE_LIMIT } from '@/utils/phoneQuota';
+import { PhoneQuotaLimitModal } from '@/components/common/PhoneQuotaLimitModal';
 
 
 
@@ -39,6 +41,9 @@ const ListingDetail = () => {
   const [isAuditLoading, setIsAuditLoading] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [guestQuotaRemaining, setGuestQuotaRemaining] = useState<number | null>(null);
 
   const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
   const [inquiryMessage, setInquiryMessage] = useState('');
@@ -116,8 +121,21 @@ const ListingDetail = () => {
     (String(user.id) === String(listing.userId) || (listing.user && String(user.id) === String(listing.user.id)))
   );
 
-  const handleRevealPhone = async () => {
+  const handleRevealPhone = useCallback(async (skipQuotaCheck = false) => {
     if (isPhoneRevealed) return;
+
+    // Check Freemium quota for guests (Option 1)
+    if (!user && !isOwner && !skipQuotaCheck) {
+      if (!id) return;
+      const q = checkPhoneQuota(id, false);
+      if (!q.canView) {
+        setIsQuotaModalOpen(true);
+        return;
+      }
+      const rec = recordPhoneView(id, false);
+      setGuestQuotaRemaining(rec.remaining);
+    }
+
     try {
       const res = await api.post(`/listings/${id}/reveal-contact`, { user });
       setRevealedPhone(res.data.phone);
@@ -125,12 +143,24 @@ const ListingDetail = () => {
       setIsPhoneRevealed(true);
     } catch {
       // Fallback
-      const defaultPhone = listing?.user?.phone || null;
+      const defaultPhone = listing?.contactPhone || listing?.attributes?.contactPhone || listing?.user?.phone || null;
       setRevealedPhone(defaultPhone);
       setPhoneRevealsCount((prev) => prev + 1);
       setIsPhoneRevealed(true);
     }
-  };
+  }, [id, user, isOwner, isPhoneRevealed, listing]);
+
+  // Quota initialization on mount
+  useEffect(() => {
+    if (id && !user && !isOwner) {
+      const q = checkPhoneQuota(id, false);
+      setGuestQuotaRemaining(q.remaining);
+      // Auto-reveal if this listing was already revealed today by this guest
+      if (q.alreadyViewed) {
+        handleRevealPhone(true);
+      }
+    }
+  }, [id, user, isOwner, handleRevealPhone]);
 
   const handleFetchAuditLogs = async () => {
     setIsAuditModalOpen(true);
@@ -1196,14 +1226,29 @@ const ListingDetail = () => {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={handleRevealPhone}
-                          className="w-full flex items-center justify-center space-x-2.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-plasma hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40 hover:scale-[1.01] active:scale-[0.98] group cursor-pointer"
-                        >
-                          <Lock size={18} className="group-hover:hidden text-amber-300 transition-transform" />
-                          <Unlock size={18} className="hidden group-hover:block text-amber-300 transition-transform scale-110" />
-                          <span className="text-sm font-extrabold tracking-wide">{t.contactCard.showPhone}: {displayMaskedPhone}</span>
-                        </button>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => handleRevealPhone()}
+                            className="w-full flex items-center justify-center space-x-2.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-plasma hover:from-violet-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-500/25 transition-all duration-200 hover:shadow-indigo-500/40 hover:scale-[1.01] active:scale-[0.98] group cursor-pointer"
+                          >
+                            <Lock size={18} className="group-hover:hidden text-amber-300 transition-transform" />
+                            <Unlock size={18} className="hidden group-hover:block text-amber-300 transition-transform scale-110" />
+                            <span className="text-sm font-extrabold tracking-wide">{t.contactCard.showPhone}: {displayMaskedPhone}</span>
+                          </button>
+
+                          {!user && !isOwner && guestQuotaRemaining !== null && (
+                            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-nebula-text font-medium pt-0.5">
+                              <span>Өнөөдөр үлдсэн үнэгүй эрх:</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-black border ${
+                                guestQuotaRemaining > 0
+                                  ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                              }`}>
+                                {guestQuotaRemaining}/{DAILY_GUEST_PHONE_LIMIT}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -1461,6 +1506,13 @@ const ListingDetail = () => {
           listings={[listing]}
         />
       )}
+
+      {/* Guest Phone Quota Limit Modal (Option 1 Freemium) */}
+      <PhoneQuotaLimitModal
+        isOpen={isQuotaModalOpen}
+        onClose={() => setIsQuotaModalOpen(false)}
+        listingTitle={listing?.title}
+      />
     </div>
   );
 };
