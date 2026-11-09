@@ -767,7 +767,7 @@ ${floorText} Нарны тусгал маш сайн, уужим цэлгэр с
 
     const typeLabel =
       criteria.type === ListingType.DAILY_RENT
-        ? 'Өдрөөр түрээслэх'
+        ? 'Хоногоор түрээслэх'
         : criteria.type === ListingType.RENT
         ? 'Түрээс'
         : 'Худалдаа';

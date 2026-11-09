@@ -713,7 +713,7 @@ const ListingDetail = () => {
                         : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                     }`}>
                       {String(listing.type).toUpperCase() === 'DAILY_RENT'
-                        ? 'Өдрөөр түрээслэх (Stay)'
+                        ? 'Хоногоор түрээслэх (Stay)'
                         : String(listing.type).toLowerCase() === 'sale'
                         ? t.listings.sale
                         : t.listings.rent}

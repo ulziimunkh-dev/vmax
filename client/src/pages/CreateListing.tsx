@@ -1090,7 +1090,7 @@ const CreateListing = () => {
                       : 'bg-void/50 border-white/10 text-nebula-text hover:text-white hover:border-white/20'
                   }`}
                 >
-                  <span>🌙 Өдрөөр (Stay)</span>
+                  <span>🌙 Хоногоор (Stay)</span>
                 </button>
               </div>
             </div>
@@ -1868,7 +1868,7 @@ const CreateListing = () => {
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3">
                 <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                   <span>🛎️</span>
-                  <span>Өдрөөр түрээслэх (Stay) тохиргоо</span>
+                  <span>Хоногоор түрээслэх (Stay) тохиргоо</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>

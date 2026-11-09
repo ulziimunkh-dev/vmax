@@ -139,7 +139,7 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
                 <span className="w-1.5 h-1.5 rounded-full bg-white text-white-force animate-pulse" />
                 <span className="text-white text-white-force">
                   {listing.type?.toUpperCase() === 'DAILY_RENT'
-                    ? 'ӨДРӨӨР (STAY)'
+                    ? 'ХОНОГООР (STAY)'
                     : listing.type?.toLowerCase() === 'sale'
                     ? t.listings.sale
                     : t.listings.rent}

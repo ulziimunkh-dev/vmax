@@ -91,7 +91,7 @@ export class ListingsExcelService {
         title: item.title,
         type:
           item.type === ListingType.DAILY_RENT
-            ? 'Өдрөөр түрээслүүлнэ'
+            ? 'Хоногоор түрээслүүлнэ'
             : item.type === ListingType.RENT
             ? 'Түрээслүүлнэ'
             : 'Зарна',

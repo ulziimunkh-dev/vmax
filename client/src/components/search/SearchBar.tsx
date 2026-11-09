@@ -261,7 +261,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                   : 'text-slate-600 dark:text-nebula-text hover:text-amber-500'
               }`}
             >
-              <span>Өдрөөр (Stay)</span>
+              <span>Хоногоор (Stay)</span>
             </button>
           </div>
 
