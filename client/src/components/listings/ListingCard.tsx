@@ -56,7 +56,16 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
               : ''
           }`}
       >
-        <Link to={`/listings/${listingId}`}>
+        <Link
+          to={`/listings/${listingId}`}
+          onClick={() => {
+            try {
+              sessionStorage.setItem('vmax_home_scroll_pending', '1');
+            } catch {
+              // ignore storage errors
+            }
+          }}
+        >
           <div className="relative h-48 w-full overflow-hidden">
             {listing.images && listing.images.length > 0 ? (
               <img

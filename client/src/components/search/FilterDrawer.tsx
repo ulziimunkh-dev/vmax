@@ -11,13 +11,15 @@ interface Props {
   onClose: () => void;
   district?: string;
   khoroo?: string;
-  onApply?: (filters: { district?: string; khoroo?: string; priceMin: string; priceMax: string; areaMin: string; areaMax: string }) => void;
+  bedrooms?: string;
+  onApply?: (filters: { district?: string; khoroo?: string; bedrooms?: string; priceMin: string; priceMax: string; areaMin: string; areaMax: string }) => void;
 }
 
-const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict = '', khoroo: initKhoroo = '', onApply }) => {
+const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict = '', khoroo: initKhoroo = '', bedrooms: initBedrooms = '', onApply }) => {
   const { t } = useI18n();
   const [district, setDistrict] = useState(initDistrict);
   const [khoroo, setKhoroo] = useState(initKhoroo);
+  const [bedrooms, setBedrooms] = useState(initBedrooms);
   const [khorooOptions, setKhorooOptions] = useState<string[]>([]);
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
@@ -27,7 +29,8 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
   useEffect(() => {
     setDistrict(initDistrict);
     setKhoroo(initKhoroo);
-  }, [initDistrict, initKhoroo, isOpen]);
+    setBedrooms(initBedrooms);
+  }, [initDistrict, initKhoroo, initBedrooms, isOpen]);
 
   useEffect(() => {
     if (!district) {
@@ -54,7 +57,7 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
 
   const handleApply = () => {
     if (onApply) {
-      onApply({ district, khoroo, priceMin, priceMax, areaMin, areaMax });
+      onApply({ district, khoroo, bedrooms, priceMin, priceMax, areaMin, areaMax });
     }
     onClose();
   };
@@ -62,12 +65,13 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
   const handleReset = () => {
     setDistrict('');
     setKhoroo('');
+    setBedrooms('');
     setPriceMin('');
     setPriceMax('');
     setAreaMin('');
     setAreaMax('');
     if (onApply) {
-      onApply({ district: '', khoroo: '', priceMin: '', priceMax: '', areaMin: '', areaMax: '' });
+      onApply({ district: '', khoroo: '', bedrooms: '', priceMin: '', priceMax: '', areaMin: '', areaMax: '' });
     }
   };
 
@@ -134,6 +138,25 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
                   </select>
                 </motion.div>
               )}
+
+              {/* Rooms Select */}
+              <div>
+                <label className="block text-sm font-semibold text-starlight mb-2">
+                  <span>Өрөөний тоо</span>
+                </label>
+                <select
+                  value={bedrooms}
+                  onChange={(e) => setBedrooms(e.target.value)}
+                  className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-starlight focus:outline-none focus:border-plasma text-sm cursor-pointer"
+                >
+                  <option value="">Бүх өрөө</option>
+                  <option value="1">1 өрөө</option>
+                  <option value="2">2 өрөө</option>
+                  <option value="3">3 өрөө</option>
+                  <option value="4">4 өрөө</option>
+                  <option value="5">5+ өрөө</option>
+                </select>
+              </div>
 
               {/* Price Range */}
               <div>

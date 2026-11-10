@@ -83,6 +83,59 @@ export class ListingsService {
     }
   }
 
+  private extractRoomCountFromText(title?: string, description?: string, category?: string): number | undefined {
+    const roomRe = /(?:^|[^\d])([1-9][0-9]?)\s*(?:-н\s*|-?тай\s*)?(?:өрөө|oroo|uruu)/i;
+    if (title) {
+      const m = title.match(roomRe);
+      if (m) return parseInt(m[1], 10);
+    }
+    if (category !== 'LAND' && description) {
+      const m = description.match(roomRe);
+      if (m) return parseInt(m[1], 10);
+    }
+    return undefined;
+  }
+
+  private applyRoomFilter(
+    queryBuilder: any,
+    roomCount: number,
+    isAtLeast: boolean,
+    paramPrefix: string,
+  ) {
+    const anyRoomTitleRegex = `(^|[^0-9])[1-9][0-9]?[[:space:]]*(-н[[:space:]]*|-?тай[[:space:]]*)?(өрөө|oroo|uruu)`;
+    const targetRegex = isAtLeast
+      ? `(^|[^0-9])([${Math.min(roomCount, 9)}-9]|[1-9][0-9]+)[[:space:]]*(-н[[:space:]]*|-?тай[[:space:]]*)?(өрөө|oroo|uruu)`
+      : `(^|[^0-9])${roomCount}[[:space:]]*(-н[[:space:]]*|-?тай[[:space:]]*)?(өрөө|oroo|uruu)`;
+
+    const op = isAtLeast ? '>=' : '=';
+    const valParam = `${paramPrefix}Val`;
+    const targetRegexParam = `${paramPrefix}TargetRe`;
+    const anyRegexParam = `${paramPrefix}AnyRe`;
+
+    queryBuilder.andWhere(
+      `(
+        (listing.attributes->>'bedrooms' ~ '^[0-9]+$' AND CAST(listing.attributes->>'bedrooms' AS INTEGER) ${op} :${valParam})
+        OR (listing.attributes->>'rooms' ~ '^[0-9]+$' AND CAST(listing.attributes->>'rooms' AS INTEGER) ${op} :${valParam})
+        OR (
+          COALESCE(NULLIF(listing.attributes->>'bedrooms', ''), NULLIF(listing.attributes->>'rooms', ''), '') !~ '^[0-9]+$'
+          AND (
+            listing.title ~* :${targetRegexParam}
+            OR (
+              listing.category != 'LAND'
+              AND listing.title !~* :${anyRegexParam}
+              AND listing.description ~* :${targetRegexParam}
+            )
+          )
+        )
+      )`,
+      {
+        [valParam]: roomCount,
+        [targetRegexParam]: targetRegex,
+        [anyRegexParam]: anyRoomTitleRegex,
+      },
+    );
+  }
+
   async findAll(query: QueryListingDto) {
     const { type, category, location, priceMin, priceMax, areaMin, areaMax, sortBy } = query;
     const page = query.page ?? 1;
@@ -97,7 +150,14 @@ export class ListingsService {
     if (category) queryBuilder.andWhere('listing.category = :category', { category });
     if (query.district) queryBuilder.andWhere('listing.district ILIKE :district', { district: `%${query.district}%` });
     if (location) queryBuilder.andWhere('(listing.location ILIKE :location OR listing.district ILIKE :location OR listing.khoroo ILIKE :location OR listing.title ILIKE :location)', { location: `%${location}%` });
-    if (query.khoroo) queryBuilder.andWhere('listing.khoroo ILIKE :khoroo', { khoroo: `%${query.khoroo}%` });
+    if (query.khoroo) {
+      const kTrim = query.khoroo.trim();
+      const escapedK = kTrim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      queryBuilder.andWhere(
+        '(LOWER(TRIM(listing.khoroo)) = LOWER(:kExact) OR listing.khoroo ~* :kRegex)',
+        { kExact: kTrim, kRegex: `(^|[^0-9])${escapedK}` },
+      );
+    }
 
     if (priceMin !== undefined) queryBuilder.andWhere('listing.price >= :priceMin', { priceMin });
     if (priceMax !== undefined) queryBuilder.andWhere('listing.price <= :priceMax', { priceMax });
@@ -106,13 +166,16 @@ export class ListingsService {
     if (areaMax !== undefined) queryBuilder.andWhere('listing.areaSqm <= :areaMax', { areaMax });
 
     if (query.bedrooms !== undefined) {
-      queryBuilder.andWhere("CAST(listing.attributes->>'bedrooms' AS INTEGER) >= :bedrooms", { bedrooms: query.bedrooms });
+      const reqRooms = Number(query.bedrooms);
+      if (!isNaN(reqRooms) && reqRooms > 0) {
+        this.applyRoomFilter(queryBuilder, reqRooms, reqRooms >= 5, 'bedroomFilter');
+      }
     }
     if (query.bathrooms !== undefined) {
-      queryBuilder.andWhere("CAST(listing.attributes->>'bathrooms' AS INTEGER) >= :bathrooms", { bathrooms: query.bathrooms });
+      queryBuilder.andWhere("listing.attributes->>'bathrooms' ~ '^[0-9]+$' AND CAST(listing.attributes->>'bathrooms' AS INTEGER) >= :bathrooms", { bathrooms: query.bathrooms });
     }
     if (query.yearBuiltMin !== undefined) {
-      queryBuilder.andWhere("CAST(listing.attributes->>'yearBuilt' AS INTEGER) >= :yearBuiltMin", { yearBuiltMin: query.yearBuiltMin });
+      queryBuilder.andWhere("listing.attributes->>'yearBuilt' ~ '^[0-9]+$' AND CAST(listing.attributes->>'yearBuilt' AS INTEGER) >= :yearBuiltMin", { yearBuiltMin: query.yearBuiltMin });
     }
     if (query.constructionType) {
       queryBuilder.andWhere("listing.attributes->>'constructionType' ILIKE :constructionType", { constructionType: `%${query.constructionType}%` });
@@ -125,37 +188,92 @@ export class ListingsService {
     if (query.search) {
       const rawSearch = query.search.trim();
 
-      // Check if search contains room specification like "2 өрөө", "3 өрөө", "4өрөө"
-      const roomMatch = rawSearch.match(/(\d+)\s*(?:өрөө|oroo)/i);
+      // Check if search contains room specification like "2 өрөө", "3 өрөө", "3өрөө", "3 uruu"
+      const roomMatch = rawSearch.match(/(?:^|[^\d])([1-9][0-9]?)\s*(?:-н\s*|-?тай\s*)?(?:өрөө|oroo|uruu)/i);
       if (roomMatch && query.bedrooms === undefined) {
         const rNum = parseInt(roomMatch[1], 10);
-        queryBuilder.andWhere(
-          "(listing.attributes->>'rooms' = :rStr OR listing.attributes->>'bedrooms' = :rStr OR listing.title ILIKE :rPattern1 OR listing.title ILIKE :rPattern2)",
-          {
-            rStr: String(rNum),
-            rPattern1: `%${rNum} өрөө%`,
-            rPattern2: `%${rNum}өрөө%`,
-          },
-        );
+        this.applyRoomFilter(queryBuilder, rNum, false, 'searchRoom');
       }
 
-      // Split words to allow multi-keyword matching
-      const words = rawSearch
-        .replace(/(\d+)\s*(?:өрөө|oroo)/gi, '')
-        .trim()
+      // Extract intent keywords (зарах, түрээслэх, хоногоор)
+      const saleIntentRe = /(?:^|\s)(зарах|зарна|худалдана|худалдах)(?=\s|$|[.,!?])/i;
+      const dailyIntentRe = /(?:^|\s)(хоногоор|хоног)(?=\s|$|[.,!?])/i;
+      const rentIntentRe = /(?:^|\s)(түрээс|түрээслэх|түрээслүүлнэ)(?=\s|$|[.,!?])/i;
+
+      if (!type) {
+        if (dailyIntentRe.test(rawSearch)) {
+          queryBuilder.andWhere('listing.type = :inferredType', { inferredType: 'DAILY_RENT' });
+        } else if (rentIntentRe.test(rawSearch)) {
+          queryBuilder.andWhere('listing.type = :inferredType', { inferredType: 'RENT' });
+        } else if (saleIntentRe.test(rawSearch)) {
+          queryBuilder.andWhere('listing.type = :inferredType', { inferredType: 'SALE' });
+        }
+      }
+
+      const cleanedSearch = rawSearch
+        .replace(/(?:^|[^\d])([1-9][0-9]?)\s*(?:-н\s*|-?тай\s*)?(?:өрөө|oroo|uruu)/gi, ' ')
+        .replace(/(?:^|\s)(зарах|зарна|худалдана|худалдах|хоногоор|түрээслэх|түрээслүүлнэ|түрээс)(?=\s|$|[.,!?])/gi, ' ')
+        .trim();
+
+      const words = cleanedSearch
         .split(/\s+/)
         .map((w) => w.trim())
         .filter((w) => w.length >= 2);
 
+      const districtAliasMap: Record<string, string> = {
+        худ: 'Хан-Уул',
+        бзд: 'Баянзүрх',
+        сбд: 'Сүхбаатар',
+        бгд: 'Баянгол',
+        схд: 'Сонгинохайрхан',
+        чд: 'Чингэлтэй',
+      };
+
+      const categoryKeywordMap: Record<string, string> = {
+        байр: 'APARTMENT',
+        орон: 'APARTMENT',
+        сууц: 'APARTMENT',
+        хаус: 'HOUSE',
+        байшин: 'HOUSE',
+        газар: 'LAND',
+        оффис: 'COMMERCIAL',
+        талбай: 'COMMERCIAL',
+        үйлчилгээ: 'COMMERCIAL',
+        үйлчилгээний: 'COMMERCIAL',
+      };
+
       if (words.length > 0) {
         words.forEach((w, idx) => {
+          const lower = w.toLowerCase();
           const param = `search_word_${idx}`;
-          queryBuilder.andWhere(
-            `(listing.title ILIKE :${param} OR listing.description ILIKE :${param} OR listing.location ILIKE :${param} OR listing.district ILIKE :${param} OR listing.khoroo ILIKE :${param})`,
-            { [param]: `%${w}%` },
-          );
+          const aliasDistrict = districtAliasMap[lower];
+          const mappedCategory = categoryKeywordMap[lower];
+
+          if (aliasDistrict) {
+            const aliasParam = `search_alias_${idx}`;
+            const boundaryParam = `search_alias_re_${idx}`;
+            const escapedWord = lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            queryBuilder.andWhere(
+              `(listing.district ILIKE :${aliasParam} OR listing.title ~* :${boundaryParam} OR listing.location ~* :${boundaryParam})`,
+              {
+                [aliasParam]: `%${aliasDistrict}%`,
+                [boundaryParam]: `(^|[^а-яөүёa-z0-9])${escapedWord}([^а-яөүёa-z0-9]|$)`,
+              },
+            );
+          } else if (mappedCategory) {
+            const catParam = `search_cat_${idx}`;
+            queryBuilder.andWhere(
+              `(listing.category = :${catParam} OR listing.title ILIKE :${param} OR listing.description ILIKE :${param})`,
+              { [catParam]: mappedCategory, [param]: `%${w}%` },
+            );
+          } else {
+            queryBuilder.andWhere(
+              `(listing.title ILIKE :${param} OR listing.description ILIKE :${param} OR listing.location ILIKE :${param} OR listing.district ILIKE :${param} OR listing.khoroo ILIKE :${param})`,
+              { [param]: `%${w}%` },
+            );
+          }
         });
-      } else if (!roomMatch) {
+      } else if (!roomMatch && !dailyIntentRe.test(rawSearch) && !rentIntentRe.test(rawSearch) && !saleIntentRe.test(rawSearch)) {
         queryBuilder.andWhere(
           '(listing.title ILIKE :search OR listing.description ILIKE :search OR listing.location ILIKE :search OR listing.district ILIKE :search OR listing.khoroo ILIKE :search)',
           { search: `%${rawSearch}%` },
@@ -349,13 +467,26 @@ export class ListingsService {
       'Зарын эзэн'
     ).trim();
 
+    const rawAttrs = { ...(createListingDto.attributes || {}) };
+    if (!rawAttrs.rooms && !rawAttrs.bedrooms) {
+      const inferredRooms = this.extractRoomCountFromText(
+        createListingDto.title,
+        createListingDto.description,
+        createListingDto.category,
+      );
+      if (inferredRooms) {
+        rawAttrs.rooms = inferredRooms;
+        rawAttrs.bedrooms = inferredRooms;
+      }
+    }
+
     const listing = this.listingsRepository.create({
       ...createListingDto,
       hasVideo,
       contactPhone,
       contactName,
       attributes: {
-        ...(createListingDto.attributes || {}),
+        ...rawAttrs,
         seller: contactName,
         contactName: contactName,
       },

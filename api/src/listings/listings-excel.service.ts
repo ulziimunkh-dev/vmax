@@ -335,10 +335,18 @@ export class ListingsExcelService {
           images = [mainImgRaw.trim()];
         }
 
+        // Fallback extract room count from title/description when Excel column is empty
+        let resolvedRoomVal = !isNaN(roomVal) && roomVal > 0 ? roomVal : 0;
+        if (resolvedRoomVal === 0 && category !== 'LAND') {
+          const roomRe = /(?:^|[^\d])([1-9][0-9]?)\s*(?:-н\s*|-?тай\s*)?(?:өрөө|oroo|uruu)/i;
+          const tm = title.match(roomRe) || description.match(roomRe);
+          if (tm) resolvedRoomVal = parseInt(tm[1], 10);
+        }
+
         // Attributes
         const attributes: Record<string, any> = {
-          bedrooms: !isNaN(roomVal) && roomVal > 0 ? roomVal : undefined,
-          rooms: !isNaN(roomVal) && roomVal > 0 ? roomVal : undefined,
+          bedrooms: resolvedRoomVal > 0 ? resolvedRoomVal : undefined,
+          rooms: resolvedRoomVal > 0 ? resolvedRoomVal : undefined,
           floor: !isNaN(floorVal) && floorVal > 0 ? floorVal : undefined,
           totalFloors: !isNaN(totalFloorVal) && totalFloorVal > 0 ? totalFloorVal : undefined,
           originalCategory: catRaw,

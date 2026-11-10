@@ -5,7 +5,7 @@ import type { SearchFilterParams } from '@/components/search/SearchBar';
 import ListingGrid from '@/components/listings/ListingGrid';
 import PropertyMap from '@/components/map/PropertyMap';
 import { ReelsFeedModal } from '@/components/listings/ReelsFeedModal';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { Listing, Project } from '@/types';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/i18n';
@@ -14,28 +14,142 @@ import { ProjectCard } from '@/components/projects/ProjectCard';
 import { LayoutGrid, Map, Sparkles, Zap, Scale, ArrowUpDown, Smartphone, Play, Building2, ArrowRight, Handshake, Phone, Mail } from 'lucide-react';
 
 
+const HOME_FILTERS_STORAGE_KEY = 'vmax_home_filters';
+const HOME_SCROLL_KEY = 'vmax_home_scroll';
+const HOME_SCROLL_PENDING_KEY = 'vmax_home_scroll_pending';
+
+const FILTER_KEYS: (keyof SearchFilterParams)[] = [
+  'query',
+  'type',
+  'category',
+  'district',
+  'khoroo',
+  'priceMin',
+  'priceMax',
+  'areaMin',
+  'areaMax',
+  'bedrooms',
+  'bathrooms',
+  'yearBuiltMin',
+  'constructionType',
+  'sortBy',
+];
+
+const DEFAULT_FILTERS: SearchFilterParams = {
+  query: '',
+  type: '',
+  category: '',
+  district: '',
+  khoroo: '',
+  priceMin: '',
+  priceMax: '',
+  areaMin: '',
+  areaMax: '',
+  bedrooms: '',
+  bathrooms: '',
+  yearBuiltMin: '',
+  constructionType: '',
+  sortBy: 'newest',
+};
+
+function hasActiveFilterValues(f: Partial<SearchFilterParams>): boolean {
+  return Boolean(
+    f.query ||
+    f.type ||
+    f.category ||
+    f.district ||
+    f.khoroo ||
+    f.priceMin ||
+    f.priceMax ||
+    f.areaMin ||
+    f.areaMax ||
+    f.bedrooms ||
+    f.bathrooms ||
+    f.yearBuiltMin ||
+    f.constructionType ||
+    (f.sortBy && f.sortBy !== 'newest')
+  );
+}
+
+function searchParamsToFilters(sp: URLSearchParams): SearchFilterParams | null {
+  let found = false;
+  const parsed: SearchFilterParams = { ...DEFAULT_FILTERS };
+  for (const key of FILTER_KEYS) {
+    const val = sp.get(key);
+    if (val) {
+      parsed[key] = val;
+      found = true;
+    }
+  }
+  return found ? parsed : null;
+}
+
+function filtersToURLParams(filters: SearchFilterParams): URLSearchParams {
+  const sp = new URLSearchParams();
+  for (const key of FILTER_KEYS) {
+    const val = filters[key];
+    if (val && !(key === 'sortBy' && val === 'newest')) {
+      sp.set(key, val);
+    }
+  }
+  return sp;
+}
+
+function readStoredFilters(): SearchFilterParams | null {
+  try {
+    const raw = sessionStorage.getItem(HOME_FILTERS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && hasActiveFilterValues(parsed)) {
+      return { ...DEFAULT_FILTERS, ...parsed };
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return null;
+}
+
 const Home = () => {
   const { t } = useI18n();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [listings, setListings] = useState<Listing[]>([]);
   const [filteredListings, setFilteredListings] = useState<Listing[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-  const [sortBy, setSortBy] = useState<string>('newest');
   const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
   const [selectedReelId, setSelectedReelId] = useState<string | undefined>(undefined);
-  const [currentFilters, setCurrentFilters] = useState<SearchFilterParams>({
-    query: '',
-    type: '',
-    category: '',
-    district: '',
-    priceMin: '',
-    priceMax: '',
-    sortBy: 'newest',
+  const [currentFilters, setCurrentFilters] = useState<SearchFilterParams>(() => {
+    const fromUrl = searchParamsToFilters(searchParams);
+    if (fromUrl) return fromUrl;
+    const fromStorage = readStoredFilters();
+    if (fromStorage) return fromStorage;
+    return DEFAULT_FILTERS;
   });
+  const [sortBy, setSortBy] = useState<string>(() => currentFilters.sortBy || 'newest');
 
-  const fetchListings = async (filters: SearchFilterParams = currentFilters) => {
-    setLoading(true);
+  const persistFilters = (filters: SearchFilterParams) => {
+    try {
+      if (hasActiveFilterValues(filters)) {
+        sessionStorage.setItem(HOME_FILTERS_STORAGE_KEY, JSON.stringify(filters));
+      } else {
+        sessionStorage.removeItem(HOME_FILTERS_STORAGE_KEY);
+      }
+    } catch {
+      // ignore storage errors
+    }
+    setSearchParams(filtersToURLParams(filters), { replace: true });
+  };
+
+  const fetchListings = async (filters: SearchFilterParams = currentFilters, pageNum = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const activeSort = filters.sortBy || sortBy || 'newest';
       const res = await listingsAPI.getAll({
@@ -53,30 +167,70 @@ const Home = () => {
         yearBuiltMin: filters.yearBuiltMin ? Number(filters.yearBuiltMin) : undefined,
         constructionType: filters.constructionType || undefined,
         sortBy: activeSort,
+        page: pageNum,
         limit: 50,
       });
 
       const items = res.data?.items || (Array.isArray(res.data) ? res.data : []);
-      setListings(items);
-      setFilteredListings(items);
+      const total = typeof res.data?.total === 'number' ? res.data.total : items.length;
+      setTotalCount(total);
+      setPage(pageNum);
+      if (append) {
+        setListings((prev) => [...prev, ...items]);
+        setFilteredListings((prev) => [...prev, ...items]);
+      } else {
+        setListings(items);
+        setFilteredListings(items);
+      }
     } catch (err) {
       console.error('Failed to load listings from database:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchListings();
+    if (hasActiveFilterValues(currentFilters) && !searchParamsToFilters(searchParams)) {
+      setSearchParams(filtersToURLParams(currentFilters), { replace: true });
+    }
+    fetchListings(currentFilters).then(() => {
+      try {
+        if (sessionStorage.getItem(HOME_SCROLL_PENDING_KEY) === '1') {
+          sessionStorage.removeItem(HOME_SCROLL_PENDING_KEY);
+          const savedScroll = Number(sessionStorage.getItem(HOME_SCROLL_KEY) || '0');
+          if (savedScroll > 0) {
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: savedScroll, behavior: 'auto' });
+            });
+          }
+        }
+      } catch {
+        // ignore storage errors
+      }
+    });
     projectsAPI.getAll({ limit: 3 }).then((res) => {
       setFeaturedProjects(res.data?.items || []);
     }).catch((err) => console.warn('Featured projects load:', err));
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      try {
+        sessionStorage.setItem(HOME_SCROLL_KEY, String(window.scrollY));
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const handleSortChange = (newSort: string) => {
     setSortBy(newSort);
     const updatedFilters = { ...currentFilters, sortBy: newSort };
     setCurrentFilters(updatedFilters);
+    persistFilters(updatedFilters);
     fetchListings(updatedFilters);
   };
 
@@ -84,6 +238,7 @@ const Home = () => {
     const activeSort = filters.sortBy || sortBy || 'newest';
     const mergedFilters = { ...filters, sortBy: activeSort };
     setCurrentFilters(mergedFilters);
+    persistFilters(mergedFilters);
     fetchListings(mergedFilters);
   };
 
@@ -163,7 +318,7 @@ const Home = () => {
     <div className="w-full">
       <HeroSection />
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 -mt-8 sm:-mt-20 relative z-20">
-        <SearchBar onSearch={handleSearch} />
+        <SearchBar onSearch={handleSearch} initialFilters={currentFilters} />
 
         {/* Core Differentiators Highlights Bar */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
@@ -284,7 +439,7 @@ const Home = () => {
                   {t.listings.newListings}
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-plasma/15 text-plasma border border-plasma/30 text-xs font-bold font-mono">
-                  {filteredListings.length}
+                  {totalCount || filteredListings.length}
                 </span>
               </div>
               <p className="text-nebula-text text-xs sm:text-sm mt-1">
@@ -360,7 +515,22 @@ const Home = () => {
 
         {/* View Mode Component Switch */}
         {viewMode === 'grid' ? (
-          <ListingGrid listings={filteredListings} loading={loading} />
+          <>
+            <ListingGrid listings={filteredListings} loading={loading} />
+            {!loading && filteredListings.length < totalCount && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={() => fetchListings(currentFilters, page + 1, true)}
+                  disabled={loadingMore}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-plasma to-nova text-white-force font-bold text-sm shadow-lg shadow-plasma/25 hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+                >
+                  {loadingMore
+                    ? 'Ачаалж байна...'
+                    : `Цааш үзэх (${filteredListings.length} / ${totalCount})`}
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <PropertyMap listings={filteredListings} height="600px" />
         )}

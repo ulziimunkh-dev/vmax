@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Listing } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ExternalLink, X, Home, ArrowRight, Layers, Radar as RadarIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ExternalLink, Layers, Radar as RadarIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { useThemeStore } from '@/store/useThemeStore';
+import { getImageUrl } from '@/utils/imageUrl';
+import { formatPriceMongolianWords } from '@/utils/formatPrice';
 import L from 'leaflet';
 
 interface Props {
@@ -28,6 +29,22 @@ const DISTRICT_COORDS: Record<string, [number, number]> = {
   'Налайх': [47.7700, 107.2500],
 };
 
+function formatMarkerPrice(rawPrice: number): string {
+  const price = Number(rawPrice) || 0;
+  if (price >= 1_000_000_000) {
+    const b = (price / 1_000_000_000).toFixed(2).replace(/\.?0+$/, '');
+    return `${b}Т ₮`;
+  }
+  if (price >= 1_000_000) {
+    const m = (price / 1_000_000).toFixed(1).replace(/\.0$/, '');
+    return `${m}М ₮`;
+  }
+  if (price >= 1_000) {
+    return `${Math.round(price / 1_000)}К ₮`;
+  }
+  return `${price} ₮`;
+}
+
 const PropertyMap: React.FC<Props> = ({
   listings,
   centerLat = 47.9184,
@@ -36,22 +53,20 @@ const PropertyMap: React.FC<Props> = ({
   zoom = 12,
 }) => {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const themeMode = useThemeStore((state) => state.mode);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
 
-  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [tileMode, setTileMode] = useState<'dark' | 'voyager'>(themeMode === 'light' ? 'voyager' : 'dark');
   const [radarEffect, setRadarEffect] = useState<boolean>(true);
 
-  // Synchronize map tile mode automatically when global theme changes
   useEffect(() => {
     setTileMode(themeMode === 'light' ? 'voyager' : 'dark');
   }, [themeMode]);
 
-  // Safely resolve latitude and longitude for a listing
   const getCoordinates = (listing: Listing, index: number): [number, number] => {
     const lat = Number(listing.latitude);
     const lng = Number(listing.longitude);
@@ -62,13 +77,119 @@ const PropertyMap: React.FC<Props> = ({
 
     if (listing.district && DISTRICT_COORDS[listing.district]) {
       const [presetLat, presetLng] = DISTRICT_COORDS[listing.district];
-      return [presetLat + (index % 3 - 1) * 0.008, presetLng + (Math.floor(index / 3) - 1) * 0.008];
+      return [presetLat + ((index % 3) - 1) * 0.008, presetLng + (Math.floor(index / 3) - 1) * 0.008];
     }
 
     return [
       centerLat + ((index % 5) - 2) * 0.015,
       centerLng + (Math.floor(index / 2) - 1.5) * 0.02,
     ];
+  };
+
+  const createPopupElement = (listing: Listing): HTMLElement => {
+    const listingType = String(listing.type || '').toUpperCase();
+    const typeLabel =
+      listingType === 'DAILY_RENT'
+        ? 'Хоногоор'
+        : listingType === 'SALE'
+        ? t.listings.sale
+        : t.listings.rent;
+
+    const badgeColor =
+      listingType === 'DAILY_RENT'
+        ? 'background: rgba(245, 158, 11, 0.16); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35);'
+        : listingType === 'SALE'
+        ? 'background: rgba(108, 92, 231, 0.16); color: #6c5ce7; border: 1px solid rgba(108, 92, 231, 0.35);'
+        : 'background: rgba(16, 185, 129, 0.16); color: #059669; border: 1px solid rgba(16, 185, 129, 0.35);';
+
+    const root = document.createElement('div');
+    root.style.fontFamily = 'inherit';
+
+    // Thumbnail image
+    if (listing.images && listing.images.length > 0) {
+      const imgWrap = document.createElement('div');
+      imgWrap.style.cssText = 'position: relative; width: 100%; height: 120px; overflow: hidden; cursor: pointer;';
+      const img = document.createElement('img');
+      img.src = getImageUrl(listing.images[0]);
+      img.alt = listing.title || '';
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+      };
+      imgWrap.appendChild(img);
+      imgWrap.addEventListener('click', () => {
+        try {
+          sessionStorage.setItem('vmax_home_scroll_pending', '1');
+        } catch {
+          // ignore
+        }
+        navigate(`/listings/${listing.id}`);
+      });
+      root.appendChild(imgWrap);
+    }
+
+    const body = document.createElement('div');
+    body.style.cssText = 'padding: 12px 14px;';
+
+    // Meta row (Type badge + District)
+    const meta = document.createElement('div');
+    meta.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding-right: 22px;';
+
+    const badge = document.createElement('span');
+    badge.textContent = typeLabel;
+    badge.style.cssText = `padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; ${badgeColor}`;
+    meta.appendChild(badge);
+
+    if (listing.district) {
+      const dist = document.createElement('span');
+      dist.textContent = listing.khoroo ? `${listing.district}, ${listing.khoroo}` : listing.district;
+      dist.style.cssText = 'font-size: 11px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+      meta.appendChild(dist);
+    }
+    body.appendChild(meta);
+
+    // Title
+    const title = document.createElement('h4');
+    title.textContent = listing.title || '';
+    title.style.cssText = 'font-weight: 700; font-size: 13px; line-height: 1.35; margin: 0 0 4px 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;';
+    body.appendChild(title);
+
+    // Price
+    const price = document.createElement('div');
+    price.textContent = formatPriceMongolianWords(listing.price);
+    price.style.cssText = 'font-size: 16px; font-weight: 800; color: #6c5ce7; margin-bottom: 10px;';
+    body.appendChild(price);
+
+    // Footer (Area + Rooms + Link button)
+    const footer = document.createElement('div');
+    footer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.2); font-size: 12px;';
+
+    const specs = document.createElement('span');
+    const rooms = listing.attributes?.bedrooms || listing.attributes?.rooms;
+    specs.textContent = rooms
+      ? `${listing.areaSqm} ${t.listings.sqm} · ${rooms} өрөө`
+      : `${listing.areaSqm} ${t.listings.sqm}`;
+    specs.style.cssText = 'opacity: 0.75; font-weight: 500;';
+    footer.appendChild(specs);
+
+    const viewBtn = document.createElement('button');
+    viewBtn.type = 'button';
+    viewBtn.textContent = `${t.map.viewProperty} →`;
+    viewBtn.style.cssText = 'background: none; border: none; padding: 0; color: #6c5ce7; font-weight: 700; font-size: 12px; cursor: pointer;';
+    viewBtn.addEventListener('click', () => {
+      try {
+        sessionStorage.setItem('vmax_home_scroll_pending', '1');
+      } catch {
+        // ignore
+      }
+      navigate(`/listings/${listing.id}`);
+    });
+    footer.appendChild(viewBtn);
+
+    body.appendChild(footer);
+    root.appendChild(body);
+    return root;
   };
 
   // Initialize Leaflet Map
@@ -82,7 +203,7 @@ const PropertyMap: React.FC<Props> = ({
         zoomControl: false,
       });
 
-      L.control.zoom({ position: 'topleft' }).addTo(map);
+      L.control.zoom({ position: 'bottomleft' }).addTo(map);
 
       mapInstanceRef.current = map;
       markersGroupRef.current = L.layerGroup().addTo(map);
@@ -117,7 +238,7 @@ const PropertyMap: React.FC<Props> = ({
     }).addTo(map);
   }, [tileMode]);
 
-  // Render Listing Markers on Map
+  // Render Listing Markers on Map with Anchored Popups
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersGroup = markersGroupRef.current;
@@ -133,29 +254,35 @@ const PropertyMap: React.FC<Props> = ({
       const coords = getCoordinates(listing, idx);
       bounds.extend(coords);
 
-      const priceFormatted =
-        listing.price >= 1000000
-          ? `${(Number(listing.price) / 1000000).toFixed(0)}М ₮`
-          : `${(Number(listing.price) / 1000).toFixed(0)}К ₮`;
+      const priceFormatted = formatMarkerPrice(listing.price);
+      const isSale = String(listing.type || '').toUpperCase() === 'SALE';
+      const isDaily = String(listing.type || '').toUpperCase() === 'DAILY_RENT';
+      const pinBg = isDaily ? '#f59e0b' : isSale ? '#6c5ce7' : '#10b981';
 
       const customIcon = L.divIcon({
         className: 'custom-property-pin',
         html: `
           <div class="relative group cursor-pointer transform hover:scale-110 transition-transform">
-            <div class="px-2.5 py-1 rounded-full text-xs font-bold bg-[#6c5ce7] text-white border border-white/40 shadow-lg flex items-center space-x-1 whitespace-nowrap">
+            <div style="background: ${pinBg};" class="px-2.5 py-1 rounded-full text-xs font-bold text-white border border-white/50 shadow-lg flex items-center space-x-1 whitespace-nowrap">
               <span>${priceFormatted}</span>
             </div>
           </div>
         `,
-        iconSize: [60, 30],
-        iconAnchor: [30, 15],
+        iconSize: [64, 28],
+        iconAnchor: [32, 14],
       });
 
       const marker = L.marker(coords, { icon: customIcon });
 
-      marker.on('click', () => {
-        setSelectedListing(listing);
-        map.panTo(coords);
+      marker.bindPopup(() => createPopupElement(listing), {
+        className: 'vmax-map-popup',
+        closeButton: true,
+        maxWidth: 300,
+        minWidth: 260,
+        offset: [0, -12],
+        autoPan: true,
+        autoPanPaddingTopLeft: [20, 72],
+        autoPanPaddingBottomRight: [20, 20],
       });
 
       markersGroup.addLayer(marker);
@@ -226,56 +353,6 @@ const PropertyMap: React.FC<Props> = ({
           </a>
         </div>
       </div>
-
-      {/* Selected Listing Floating Preview Card */}
-      <AnimatePresence>
-        {selectedListing && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-30 glass-card p-4 rounded-2xl border-glow shadow-2xl"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center space-x-2">
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase ${
-                  String(selectedListing.type).toLowerCase() === 'sale'
-                    ? 'bg-plasma/20 text-plasma border-plasma/40'
-                    : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40'
-                }`}>
-                  {String(selectedListing.type).toLowerCase() === 'sale' ? t.listings.sale : t.listings.rent}
-                </span>
-                <span className="text-xs text-nebula-text flex items-center">
-                  <Home size={12} className="mr-1" />
-                  {selectedListing.district}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedListing(null)}
-                className="text-nebula-text hover:text-starlight p-1 rounded-full hover:bg-white/10"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <h4 className="font-bold text-starlight text-base truncate mb-1">{selectedListing.title}</h4>
-            <p className="text-xl font-heading font-bold text-plasma mb-3">
-              {Number(selectedListing.price).toLocaleString('mn-MN')} ₮
-            </p>
-
-            <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs">
-              <span className="text-nebula-text">{selectedListing.areaSqm} {t.listings.sqm}</span>
-              <Link
-                to={`/listings/${selectedListing.id}`}
-                className="flex items-center space-x-1 text-plasma font-semibold hover:text-plasma/80 transition-colors"
-              >
-                <span>{t.map.viewProperty}</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Mic, MapPin, Home, SlidersHorizontal, Bell, Flame, Building2, Layers } from 'lucide-react';
+import { Search, Mic, MapPin, Home, SlidersHorizontal, Bell, Flame, Building2, Layers, RotateCcw, BedDouble } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { useI18n } from '@/i18n';
@@ -57,29 +57,67 @@ export interface SearchFilterParams {
 
 interface SearchBarProps {
   onSearch?: (filters: SearchFilterParams) => void;
+  initialFilters?: Partial<SearchFilterParams>;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
-  const [query, setQuery] = useState('');
-  const [type, setType] = useState('');
-  const [category, setCategory] = useState('');
-  const [district, setDistrict] = useState('');
-  const [khoroo, setKhoroo] = useState('');
+const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
+  const [query, setQuery] = useState(initialFilters?.query || '');
+  const [type, setType] = useState(initialFilters?.type || '');
+  const [category, setCategory] = useState(initialFilters?.category || '');
+  const [district, setDistrict] = useState(initialFilters?.district || '');
+  const [khoroo, setKhoroo] = useState(initialFilters?.khoroo || '');
   const [khorooOptions, setKhorooOptions] = useState<string[]>([]);
-  const [activePopularId, setActivePopularId] = useState<string | null>(null);
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
-  const [areaMin, setAreaMin] = useState('');
-  const [areaMax, setAreaMax] = useState('');
-  const [bedrooms, setBedrooms] = useState('');
-  const [bathrooms, setBathrooms] = useState('');
-  const [yearBuiltMin, setYearBuiltMin] = useState('');
-  const [constructionType, setConstructionType] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activePopularId, setActivePopularId] = useState<string | null>(() => {
+    const match = POPULAR_LOCATIONS.find(
+      (loc) => loc.query === (initialFilters?.query || '') && loc.district === (initialFilters?.district || '')
+    );
+    return match ? match.id : null;
+  });
+  const [priceMin, setPriceMin] = useState(initialFilters?.priceMin || '');
+  const [priceMax, setPriceMax] = useState(initialFilters?.priceMax || '');
+  const [areaMin, setAreaMin] = useState(initialFilters?.areaMin || '');
+  const [areaMax, setAreaMax] = useState(initialFilters?.areaMax || '');
+  const [bedrooms, setBedrooms] = useState(initialFilters?.bedrooms || '');
+  const [bathrooms, setBathrooms] = useState(initialFilters?.bathrooms || '');
+  const [yearBuiltMin, setYearBuiltMin] = useState(initialFilters?.yearBuiltMin || '');
+  const [constructionType, setConstructionType] = useState(initialFilters?.constructionType || '');
+  const [sortBy, setSortBy] = useState(initialFilters?.sortBy || 'newest');
+  const [showAdvanced, setShowAdvanced] = useState(() =>
+    Boolean(
+      initialFilters?.priceMin ||
+      initialFilters?.priceMax ||
+      initialFilters?.areaMin ||
+      initialFilters?.areaMax ||
+      initialFilters?.bathrooms ||
+      initialFilters?.yearBuiltMin ||
+      initialFilters?.constructionType
+    )
+  );
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const { t } = useI18n();
+
+  useEffect(() => {
+    if (!initialFilters) return;
+    setQuery(initialFilters.query || '');
+    setType(initialFilters.type || '');
+    setCategory(initialFilters.category || '');
+    setDistrict(initialFilters.district || '');
+    setKhoroo(initialFilters.khoroo || '');
+    setPriceMin(initialFilters.priceMin || '');
+    setPriceMax(initialFilters.priceMax || '');
+    setAreaMin(initialFilters.areaMin || '');
+    setAreaMax(initialFilters.areaMax || '');
+    setBedrooms(initialFilters.bedrooms || '');
+    setBathrooms(initialFilters.bathrooms || '');
+    setYearBuiltMin(initialFilters.yearBuiltMin || '');
+    setConstructionType(initialFilters.constructionType || '');
+    setSortBy(initialFilters.sortBy || 'newest');
+    const match = POPULAR_LOCATIONS.find(
+      (loc) => loc.query === (initialFilters.query || '') && loc.district === (initialFilters.district || '')
+    );
+    setActivePopularId(match ? match.id : null);
+  }, [initialFilters]);
 
   const { isListening, startListening } = useVoiceSearch((text) => {
     setQuery(text);
@@ -110,66 +148,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       });
   }, [district]);
 
-  const handleDistrictChange = (newDistrict: string) => {
-    setDistrict(newDistrict);
-    setKhoroo('');
-    setActivePopularId(null);
-  };
-
-  const handlePopularLocationClick = (loc: typeof POPULAR_LOCATIONS[0]) => {
-    if (activePopularId === loc.id) {
-      // Toggle off / reset
-      setActivePopularId(null);
-      setDistrict('');
-      setKhoroo('');
-      setQuery('');
-      if (onSearch) {
-        onSearch({
-          query: '',
-          type,
-          category,
-          district: '',
-          khoroo: '',
-          priceMin,
-          priceMax,
-          areaMin,
-          areaMax,
-          bedrooms,
-          bathrooms,
-          yearBuiltMin,
-          constructionType,
-          sortBy,
-        });
-      }
-      return;
-    }
-
-    setActivePopularId(loc.id);
-    setDistrict(loc.district);
-    setKhoroo('');
-    setQuery(loc.query);
-
-    if (onSearch) {
-      onSearch({
-        query: loc.query,
-        type,
-        category,
-        district: loc.district,
-        khoroo: '',
-        priceMin,
-        priceMax,
-        areaMin,
-        areaMax,
-        bedrooms,
-        bathrooms,
-        yearBuiltMin,
-        constructionType,
-        sortBy,
-      });
-    }
-  };
-
-  const handleSearch = () => {
+  const emitSearch = (overrides: Partial<SearchFilterParams> = {}) => {
     if (onSearch) {
       onSearch({
         query,
@@ -186,8 +165,86 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         yearBuiltMin,
         constructionType,
         sortBy,
+        ...overrides,
       });
     }
+  };
+
+  const handleDistrictChange = (newDistrict: string) => {
+    setDistrict(newDistrict);
+    setKhoroo('');
+    setActivePopularId(null);
+    emitSearch({ district: newDistrict, khoroo: '' });
+  };
+
+  const handlePopularLocationClick = (loc: typeof POPULAR_LOCATIONS[0]) => {
+    if (activePopularId === loc.id) {
+      // Toggle off / reset
+      setActivePopularId(null);
+      setDistrict('');
+      setKhoroo('');
+      setQuery('');
+      emitSearch({ query: '', district: '', khoroo: '' });
+      return;
+    }
+
+    setActivePopularId(loc.id);
+    setDistrict(loc.district);
+    setKhoroo('');
+    setQuery(loc.query);
+
+    emitSearch({ query: loc.query, district: loc.district, khoroo: '' });
+  };
+
+  const handleSearch = () => {
+    emitSearch();
+  };
+
+  const activeAdvancedCount = [
+    priceMin,
+    priceMax,
+    areaMin,
+    areaMax,
+    bathrooms,
+    yearBuiltMin,
+    constructionType,
+    khoroo,
+  ].filter(Boolean).length;
+
+  const hasAnyFilter = Boolean(
+    query || type || category || district || bedrooms || activeAdvancedCount > 0
+  );
+
+  const handleResetAll = () => {
+    setQuery('');
+    setType('');
+    setCategory('');
+    setDistrict('');
+    setKhoroo('');
+    setActivePopularId(null);
+    setPriceMin('');
+    setPriceMax('');
+    setAreaMin('');
+    setAreaMax('');
+    setBedrooms('');
+    setBathrooms('');
+    setYearBuiltMin('');
+    setConstructionType('');
+    emitSearch({
+      query: '',
+      type: '',
+      category: '',
+      district: '',
+      khoroo: '',
+      priceMin: '',
+      priceMax: '',
+      areaMin: '',
+      areaMax: '',
+      bedrooms: '',
+      bathrooms: '',
+      yearBuiltMin: '',
+      constructionType: '',
+    });
   };
 
   return (
@@ -201,13 +258,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         {/* Top Controls: Transaction Type Tabs & Advanced Filters Toggle */}
         <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
           {/* Segmented Type Selector */}
-          <div className="grid grid-cols-3 p-1 bg-void/60 rounded-2xl border border-white/10 w-full sm:w-auto sm:inline-flex sm:space-x-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 p-1 bg-void/60 rounded-2xl border border-white/10 w-full sm:w-auto sm:inline-flex sm:space-x-1 gap-1 sm:gap-0">
             <button
               onClick={() => {
                 setType('');
-                if (onSearch) {
-                  onSearch({ query, type: '', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
-                }
+                emitSearch({ type: '' });
               }}
               className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center ${
                 type === ''
@@ -220,9 +275,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             <button
               onClick={() => {
                 setType('SALE');
-                if (onSearch) {
-                  onSearch({ query, type: 'SALE', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
-                }
+                emitSearch({ type: 'SALE' });
               }}
               className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center ${
                 type === 'SALE'
@@ -235,9 +288,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             <button
               onClick={() => {
                 setType('RENT');
-                if (onSearch) {
-                  onSearch({ query, type: 'RENT', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
-                }
+                emitSearch({ type: 'RENT' });
               }}
               className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center ${
                 type === 'RENT'
@@ -251,9 +302,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               type="button"
               onClick={() => {
                 setType('DAILY_RENT');
-                if (onSearch) {
-                  onSearch({ query, type: 'DAILY_RENT', category, district, khoroo, priceMin, priceMax, areaMin, areaMax, bedrooms, bathrooms, yearBuiltMin, constructionType, sortBy });
-                }
+                emitSearch({ type: 'DAILY_RENT' });
               }}
               className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-1.5 ${
                 type === 'DAILY_RENT'
@@ -265,19 +314,38 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             </button>
           </div>
 
-          {/* Advanced Filter Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className={`flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
-              showAdvanced || priceMin || priceMax || khoroo
-                ? 'bg-plasma/20 border-plasma/40 text-plasma shadow-sm'
-                : 'bg-void/50 border-white/10 text-nebula-text hover:text-plasma hover:border-plasma/30'
-            }`}
-          >
-            <SlidersHorizontal size={14} />
-            <span>Дэлгэрэнгүй шүүлтүүр</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {hasAnyFilter && (
+              <button
+                type="button"
+                onClick={handleResetAll}
+                className="flex items-center justify-center space-x-1 px-3 py-2 rounded-xl text-xs font-semibold transition-all border bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 cursor-pointer"
+                title="Бүх шүүлтүүрийг арилгах"
+              >
+                <RotateCcw size={13} />
+                <span>Цэвэрлэх</span>
+              </button>
+            )}
+
+            {/* Advanced Filter Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className={`flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                showAdvanced || activeAdvancedCount > 0
+                  ? 'bg-plasma/20 border-plasma/40 text-plasma shadow-sm'
+                  : 'bg-void/50 border-white/10 text-nebula-text hover:text-plasma hover:border-plasma/30'
+              }`}
+            >
+              <SlidersHorizontal size={14} />
+              <span>Дэлгэрэнгүй шүүлтүүр</span>
+              {activeAdvancedCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-plasma text-white text-[10px] font-bold">
+                  {activeAdvancedCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Popular Locations Horizontal Pills Bar */}
@@ -350,7 +418,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               id="search-category"
               name="category"
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCategory(val);
+                emitSearch({ category: val });
+              }}
               className="block w-full pl-11 pr-8 py-3 bg-void/50 border border-white/10 rounded-xl text-starlight focus:outline-none focus:border-plasma appearance-none text-sm cursor-pointer"
             >
               <option value="">{t.filters.category} ({t.filters.all})</option>
@@ -401,7 +473,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                 id="search-khoroo"
                 name="khoroo"
                 value={khoroo}
-                onChange={(e) => setKhoroo(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setKhoroo(val);
+                  emitSearch({ khoroo: val });
+                }}
                 className="block w-full pl-9 pr-7 py-3 bg-plasma/10 border border-plasma/40 rounded-xl text-starlight focus:outline-none focus:border-plasma appearance-none text-sm cursor-pointer font-medium"
               >
                 <option value="" className="bg-nebula text-starlight">Бүх хороо</option>
@@ -440,6 +516,42 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               <SlidersHorizontal className="h-5 w-5" />
             </button>
           </div>
+        </div>
+
+        {/* Always-Visible Quick Room Count Selector Pills */}
+        <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-1.5 text-xs font-bold text-nebula-text mr-1">
+            <BedDouble size={14} className="text-plasma" />
+            <span>Өрөөний тоо:</span>
+          </div>
+          {[
+            { value: '', label: 'Бүгд' },
+            { value: '1', label: '1 өрөө' },
+            { value: '2', label: '2 өрөө' },
+            { value: '3', label: '3 өрөө' },
+            { value: '4', label: '4 өрөө' },
+            { value: '5', label: '5+ өрөө' },
+          ].map((opt) => {
+            const isSelected = bedrooms === opt.value;
+            return (
+              <button
+                key={opt.value || 'all'}
+                type="button"
+                onClick={() => {
+                  const nextVal = isSelected && opt.value !== '' ? '' : opt.value;
+                  setBedrooms(nextVal);
+                  emitSearch({ bedrooms: nextVal });
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-plasma to-aurora text-white-force border-plasma shadow-md shadow-plasma/25 scale-[1.02]'
+                    : 'bg-void/50 border-white/10 text-nebula-text hover:text-starlight hover:border-plasma/40 hover:bg-plasma/10'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Collapsible Detailed Advanced Filters Grid */}
@@ -510,9 +622,15 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                   <span>Өрөөний тоо</span>
                 </label>
                 <select
+                  id="search-bedrooms"
+                  name="bedrooms"
                   value={bedrooms}
-                  onChange={(e) => setBedrooms(e.target.value)}
-                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBedrooms(val);
+                    emitSearch({ bedrooms: val });
+                  }}
+                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma cursor-pointer"
                 >
                   <option value="">Бүх өрөө</option>
                   <option value="1">1 өрөө</option>
@@ -529,9 +647,15 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                   <span>Барилгын хийц</span>
                 </label>
                 <select
+                  id="search-construction-type"
+                  name="constructionType"
                   value={constructionType}
-                  onChange={(e) => setConstructionType(e.target.value)}
-                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setConstructionType(val);
+                    emitSearch({ constructionType: val });
+                  }}
+                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma cursor-pointer"
                 >
                   <option value="">Бүх барилга</option>
                   <option value="Бүрэн цутгамал">Бүрэн цутгамал</option>
@@ -556,7 +680,16 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                     setBathrooms('');
                     setYearBuiltMin('');
                     setConstructionType('');
-                    handleSearch();
+                    emitSearch({
+                      priceMin: '',
+                      priceMax: '',
+                      areaMin: '',
+                      areaMax: '',
+                      bedrooms: '',
+                      bathrooms: '',
+                      yearBuiltMin: '',
+                      constructionType: '',
+                    });
                   }}
                   className="px-4 py-2 bg-void/50 border border-white/10 text-nebula-text hover:text-white rounded-xl text-xs transition-all"
                 >
@@ -581,32 +714,25 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         onClose={() => setIsDrawerOpen(false)}
         district={district}
         khoroo={khoroo}
+        bedrooms={bedrooms}
         onApply={(filters) => {
           if (filters.district !== undefined) setDistrict(filters.district);
           if (filters.khoroo !== undefined) setKhoroo(filters.khoroo);
+          if (filters.bedrooms !== undefined) setBedrooms(filters.bedrooms);
           if (filters.priceMin !== undefined) setPriceMin(filters.priceMin);
           if (filters.priceMax !== undefined) setPriceMax(filters.priceMax);
           if (filters.areaMin !== undefined) setAreaMin(filters.areaMin);
           if (filters.areaMax !== undefined) setAreaMax(filters.areaMax);
 
-          if (onSearch) {
-            onSearch({
-              query,
-              type,
-              category,
-              district: filters.district !== undefined ? filters.district : district,
-              khoroo: filters.khoroo !== undefined ? filters.khoroo : khoroo,
-              priceMin: filters.priceMin !== undefined ? filters.priceMin : priceMin,
-              priceMax: filters.priceMax !== undefined ? filters.priceMax : priceMax,
-              areaMin: filters.areaMin !== undefined ? filters.areaMin : areaMin,
-              areaMax: filters.areaMax !== undefined ? filters.areaMax : areaMax,
-              bedrooms,
-              bathrooms,
-              yearBuiltMin,
-              constructionType,
-              sortBy,
-            });
-          }
+          emitSearch({
+            district: filters.district !== undefined ? filters.district : district,
+            khoroo: filters.khoroo !== undefined ? filters.khoroo : khoroo,
+            bedrooms: filters.bedrooms !== undefined ? filters.bedrooms : bedrooms,
+            priceMin: filters.priceMin !== undefined ? filters.priceMin : priceMin,
+            priceMax: filters.priceMax !== undefined ? filters.priceMax : priceMax,
+            areaMin: filters.areaMin !== undefined ? filters.areaMin : areaMin,
+            areaMax: filters.areaMax !== undefined ? filters.areaMax : areaMax,
+          });
         }}
       />
 

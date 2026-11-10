@@ -312,7 +312,13 @@ const ListingDetail = () => {
         {/* Top Action Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
             className="flex items-center space-x-1.5 text-nebula-text hover:text-white transition-colors text-xs sm:text-sm font-medium"
           >
             <ArrowLeft size={16} />
