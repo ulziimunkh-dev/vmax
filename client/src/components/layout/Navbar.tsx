@@ -15,12 +15,14 @@ import {
   Building2,
   ShieldCheck,
   Layers,
+  MessageSquare,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useCompareStore } from '@/store/useCompareStore';
+import { chatAPI } from '@/services/api';
 import { MobileDrawer } from './MobileDrawer';
 import { getImageUrl } from '@/utils/imageUrl';
 
@@ -36,6 +38,22 @@ const Navbar: React.FC = () => {
   const { t, lang, setLang } = useI18n();
   const { mode, toggleTheme } = useThemeStore();
   const { compareListings } = useCompareStore();
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadChatCount(0);
+      return;
+    }
+    const fetchUnreads = () => {
+      chatAPI.getUnreadCount()
+        .then((res) => setUnreadChatCount(res.data?.unreadCount || 0))
+        .catch(() => {});
+    };
+    fetchUnreads();
+    const interval = setInterval(fetchUnreads, 12000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, location.pathname]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 15);
@@ -209,6 +227,22 @@ const Navbar: React.FC = () => {
                 <span className="whitespace-nowrap">{t.nav.createListing}</span>
               </Link>
 
+              {/* Chat / Messages Notification Button */}
+              {isAuthenticated && (
+                <Link
+                  to="/dashboard?tab=messages"
+                  title={t.chat.messagesTab}
+                  className="relative p-2 rounded-xl bg-void/60 hover:bg-white/10 border border-white/10 text-nebula-text hover:text-white transition-all flex items-center justify-center"
+                >
+                  <MessageSquare size={17} className="text-plasma" />
+                  {unreadChatCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white font-extrabold text-[10px] rounded-full flex items-center justify-center animate-pulse shadow-md">
+                      {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+
               {/* User Account / Profile Section */}
               {isAuthenticated && user ? (
                 <div className="relative" ref={userMenuRef}>
@@ -285,6 +319,22 @@ const Navbar: React.FC = () => {
                         >
                           <LayoutDashboard size={15} className="text-plasma" />
                           <span>{t.nav.dashboard}</span>
+                        </Link>
+
+                        <Link
+                          to="/dashboard?tab=messages"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-nebula-text hover:text-white hover:bg-white/5 transition-all"
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            <MessageSquare size={15} className="text-plasma" />
+                            <span>{t.chat.messagesTab}</span>
+                          </div>
+                          {unreadChatCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold text-[10px]">
+                              {unreadChatCount}
+                            </span>
+                          )}
                         </Link>
 
                         <Link

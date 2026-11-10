@@ -38,6 +38,7 @@ export interface Listing {
   videoThumbnailUrl?: string;
   hasVideo?: boolean;
   contactPhone?: string;
+  contactName?: string;
   status: 'active' | 'expired' | 'closed' | 'ACTIVE' | 'EXPIRED' | 'CLOSED' | string;
   userId: string;
   user?: User;
@@ -132,3 +133,43 @@ export interface Project {
 }
 
 
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName?: string;
+  senderAvatar?: string;
+  content: string;
+  imageUrl?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  listingId: string;
+  listing?: Listing;
+  renterId: string;
+  renter?: {
+    id: string;
+    name: string;
+    phone?: string;
+    avatarUrl?: string;
+  };
+  hostId: string;
+  host?: {
+    id: string;
+    name: string;
+    phone?: string;
+    avatarUrl?: string;
+    isVerifiedAgent?: boolean;
+  };
+  lastMessage?: string;
+  lastMessageSenderId?: string;
+  lastMessageAt: string;
+  renterUnreadCount: number;
+  hostUnreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+}

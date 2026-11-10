@@ -71,6 +71,48 @@ export class MailService {
     }
   }
 
+  async sendNewChatMessageNotification(
+    recipient: User,
+    sender: User,
+    listing: Listing,
+    messageContent: string,
+  ) {
+    if (!recipient?.email || !recipient?.isEmailVerified) {
+      return false;
+    }
+
+    try {
+      await this.mailerService.sendMail({
+        to: recipient.email,
+        subject: `[Шинэ чат зурвас] "${listing.title}" зарын талаар зурвас ирлээ - Vmax.mn`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px;">
+            <h2 style="color: #863bff; margin-top: 0;">Vmax.mn Чат мэдэгдэл</h2>
+            <p>Сайн байна уу, <strong>${recipient.name || 'Хэрэглэгч'}</strong>!</p>
+            <p><strong>${sender.name || 'Хэрэглэгч'}</strong> таны <strong>"${listing.title}"</strong> зарын талаар шинэ чат зурвас илгээлээ:</p>
+            
+            <div style="background: #f8fafc; border-left: 4px solid #863bff; padding: 14px 18px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 15px; color: #1e293b; font-style: italic;">"${messageContent}"</p>
+            </div>
+
+            <div style="text-align: center; margin: 24px 0;">
+              <a href="https://vmax.mn/dashboard?tab=messages" style="display: inline-block; background: #863bff; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: bold; font-size: 14px;">
+                Чат руу очиж хариулах
+              </a>
+            </div>
+
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 24px;">Энэхүү мэдэгдэл нь таны Vmax.mn бүртгэлд ирсэн шинэ зурвасыг мэдээлэх зорилгоор илгээгдэв.</p>
+          </div>
+        `,
+      });
+      this.logger.log(`Chat notification email sent to ${recipient.email}`);
+      return true;
+    } catch (err: any) {
+      this.logger.error(`Failed to send chat email to ${recipient.email}: ${err.message}`);
+      return false;
+    }
+  }
+
   async sendVerificationEmail(toEmail: string, code: string) {
     try {
       await this.mailerService.sendMail({

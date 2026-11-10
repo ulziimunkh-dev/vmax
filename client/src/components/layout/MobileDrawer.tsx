@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Building2,
   Layers,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -86,6 +87,11 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
             label: t.nav.dashboard,
             to: '/dashboard',
             icon: <LayoutDashboard size={18} className="text-nova" />,
+          },
+          {
+            label: t.chat.messagesTab,
+            to: '/dashboard?tab=messages',
+            icon: <MessageSquare size={18} className="text-plasma" />,
           },
           {
             label: t.nav.profile,

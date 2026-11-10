@@ -23,6 +23,7 @@ import {
   Car,
   CheckCircle,
   Phone,
+  User as UserIcon,
   ShieldCheck,
   CheckCircle2,
   Smartphone,
@@ -194,6 +195,14 @@ const CreateListing = () => {
   const [category, setCategory] = useState('APARTMENT');
   const [title, setTitle] = useState('');
   const [contactPhone, setContactPhone] = useState(user?.phone || '');
+  const [nameChoice, setNameChoice] = useState<'user' | 'default'>('user');
+  const [contactName, setContactName] = useState(user?.name || '');
+
+  useEffect(() => {
+    if (user?.name && !contactName) {
+      setContactName(user.name);
+    }
+  }, [user?.name]);
   const [step1Error, setStep1Error] = useState('');
   const [verifiedPhones, setVerifiedPhones] = useState<Set<string>>(
     new Set(user?.isPhoneVerified && user?.phone ? [user.phone] : [])
@@ -366,6 +375,14 @@ const CreateListing = () => {
           if (d.contactPhone) {
             setContactPhone(d.contactPhone);
             setVerifiedPhones((prev) => new Set([...prev, d.contactPhone]));
+          }
+
+          if (d.contactName) {
+            setContactName(d.contactName);
+            setNameChoice(d.contactName === 'Зарын эзэн' ? 'default' : 'user');
+          } else if (d.attributes?.seller) {
+            setContactName(d.attributes.seller);
+            setNameChoice(d.attributes.seller === 'Зарын эзэн' ? 'default' : 'user');
           }
 
           if (d.images && Array.isArray(d.images) && d.images.length > 0) {
@@ -835,6 +852,10 @@ const CreateListing = () => {
         }
       }
 
+      const finalContactName = nameChoice === 'default' ? 'Зарын эзэн' : (contactName || user?.name || 'Зарын эзэн');
+      attrPayload.seller = finalContactName;
+      attrPayload.contactName = finalContactName;
+
       const payload = {
         title,
         description,
@@ -850,6 +871,7 @@ const CreateListing = () => {
         latitude: lat,
         longitude: lng,
         contactPhone,
+        contactName: finalContactName,
         attributes: attrPayload,
         images: finalImages,
         videoUrl: finalVideoUrl || undefined,
@@ -1160,6 +1182,87 @@ const CreateListing = () => {
               <p className="text-[11px] text-nebula-text flex items-center justify-between">
                 <span>💡 Та бүртгэлтэй үндсэн дугаараа ашиглах эсвэл өөр шинэ дугаар оруулж болно.</span>
               </p>
+            </div>
+
+            {/* Display Name Option: User's Account Name vs System Default "Зарын эзэн" */}
+            <div className="space-y-2.5 pt-1">
+              <label className="text-xs font-semibold text-starlight flex items-center justify-between">
+                <span className="flex items-center space-x-1.5">
+                  <UserIcon size={14} className="text-plasma" />
+                  <span>Зарын эзний харагдах нэр (Чат болон зар дээр)</span>
+                </span>
+                <span className="text-[10px] text-plasma-light bg-plasma/15 px-2 py-0.5 rounded-full border border-plasma/30">
+                  {nameChoice === 'user' ? 'Өөрийн нэр' : 'Зарын эзэн'}
+                </span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Option 1: User's Account Name (users.name) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNameChoice('user');
+                    setContactName(user?.name || '');
+                  }}
+                  className={`p-3 rounded-xl border text-left flex items-start space-x-3 transition-all cursor-pointer ${
+                    nameChoice === 'user'
+                      ? 'bg-plasma/20 border-plasma text-white shadow-md shadow-plasma/25 ring-1 ring-plasma'
+                      : 'bg-void/40 border-white/10 text-slate-300 hover:border-white/20'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 flex-shrink-0 ${
+                      nameChoice === 'user'
+                        ? 'border-plasma bg-plasma text-white'
+                        : 'border-slate-500'
+                    }`}
+                  >
+                    {nameChoice === 'user' && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold truncate">
+                      {user?.name ? user.name : 'Өөрийн нэр (Бүртгэлтэй)'}
+                    </p>
+                    <p className="text-[10px] text-nebula-text mt-0.5">
+                      Хэрэглэгчийн жинхэнэ нэрээр чатанд харагдана
+                    </p>
+                  </div>
+                </button>
+
+                {/* Option 2: System Default "Зарын эзэн" */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNameChoice('default');
+                    setContactName('Зарын эзэн');
+                  }}
+                  className={`p-3 rounded-xl border text-left flex items-start space-x-3 transition-all cursor-pointer ${
+                    nameChoice === 'default'
+                      ? 'bg-plasma/20 border-plasma text-white shadow-md shadow-plasma/25 ring-1 ring-plasma'
+                      : 'bg-void/40 border-white/10 text-slate-300 hover:border-white/20'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 flex-shrink-0 ${
+                      nameChoice === 'default'
+                        ? 'border-plasma bg-plasma text-white'
+                        : 'border-slate-500'
+                    }`}
+                  >
+                    {nameChoice === 'default' && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold">Зарын эзэн</p>
+                    <p className="text-[10px] text-nebula-text mt-0.5">
+                      Системийн default нэр (нууцлалтай)
+                    </p>
+                  </div>
+                </button>
+              </div>
             </div>
 
             {step1Error && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn, ImageIcon, Smartphone, Play, Volume2, VolumeX } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { MapPin, Maximize, BedDouble, Bath, Phone, Mail, Share2, Heart, Eye, ArrowLeft, RefreshCw, ExternalLink, Map as MapIcon, Clock, Calendar, CheckCircle, Lock, Unlock, ShieldCheck, FileText, X, ChevronLeft, ChevronRight, ZoomIn, ImageIcon, Smartphone, Play, Volume2, VolumeX, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/i18n';
 import api, { listingsAPI } from '@/services/api';
@@ -12,6 +12,7 @@ import { SocialShareModal } from '@/components/listings/SocialShareModal';
 import { RecentVisits } from '@/components/listings/RecentVisits';
 import { ReelsFeedModal } from '@/components/listings/ReelsFeedModal';
 import { StayBookingCard } from '@/components/listings/StayBookingCard';
+import { ChatModal } from '@/components/chat/ChatModal';
 import PropertyMap from '@/components/map/PropertyMap';
 import { formatRelativeTime, formatDateFull } from '@/utils/formatTime';
 import { getImageUrl } from '@/utils/imageUrl';
@@ -23,11 +24,12 @@ import { PhoneQuotaLimitModal } from '@/components/common/PhoneQuotaLimitModal';
 
 const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { t, lang } = useI18n();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addVisit } = useRecentVisits();
 
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -51,6 +53,8 @@ const ListingDetail = () => {
   const [inquiryPhone, setInquiryPhone] = useState(user?.phone || '');
   const [inquirySending, setInquirySending] = useState(false);
   const [inquirySuccess, setInquirySuccess] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatInitialMessage, setChatInitialMessage] = useState<string | undefined>(undefined);
   const [avatarImgError, setAvatarImgError] = useState(false);
   const [mediaTab, setMediaTab] = useState<'images' | 'video'>('images');
   const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
@@ -1142,6 +1146,14 @@ const ListingDetail = () => {
                 listing={listing}
                 revealedPhone={revealedPhone}
                 onRevealPhone={handleRevealPhone}
+                onOpenChat={(initialMsg) => {
+                  if (!isAuthenticated || !user) {
+                    navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                    return;
+                  }
+                  setChatInitialMessage(initialMsg);
+                  setIsChatModalOpen(true);
+                }}
               />
             )}
             <div className="glass-card p-6 rounded-3xl sticky top-24 border border-white/10 dark:border-white/10 shadow-2xl backdrop-blur-xl bg-white/90 dark:bg-void/80">
@@ -1275,6 +1287,22 @@ const ListingDetail = () => {
                       </div>
                     )}
 
+                    {/* Chat with Host Button */}
+                    <button
+                      onClick={() => {
+                        if (!isAuthenticated || !user) {
+                          navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+                          return;
+                        }
+                        setChatInitialMessage(undefined);
+                        setIsChatModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-plasma to-aurora hover:opacity-95 text-white font-bold py-3 px-4 rounded-2xl transition-all duration-200 active:scale-[0.98] cursor-pointer shadow-lg shadow-plasma/25"
+                    >
+                      <MessageSquare size={18} className="text-white flex-shrink-0" />
+                      <span className="text-white font-bold">{t.chat.chatWithOwner}</span>
+                    </button>
+
                     {/* Email Seller Button */}
                     <button
                       onClick={() => setIsInquiryModalOpen(true)}
@@ -1316,6 +1344,19 @@ const ListingDetail = () => {
         />
       )}
 
+      {/* Host Chat Modal */}
+      {isChatModalOpen && listing && (
+        <ChatModal
+          isOpen={isChatModalOpen}
+          onClose={() => {
+            setIsChatModalOpen(false);
+            setChatInitialMessage(undefined);
+          }}
+          listing={listing}
+          initialMessage={chatInitialMessage}
+        />
+      )}
+
       {/* Creator Contact Audit Logs Modal */}
       {isAuditModalOpen && (
         <div className="fixed inset-0 bg-void/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -1353,18 +1394,59 @@ const ListingDetail = () => {
             ) : (
               <div className="space-y-3 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
                 {auditLogs.map((log, idx) => (
-                  <div key={log.id || idx} className="bg-void/60 p-3 rounded-xl border border-white/10 flex justify-between items-center text-xs">
-                    <div>
-                      <div className="font-semibold text-starlight flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-aurora inline-block"></span>
-                        <span>Утасны дугаар ил болгосон</span>
+                  <div key={log.id || idx} className="bg-void/60 p-3.5 rounded-xl border border-white/10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-xs">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-plasma to-aurora flex items-center justify-center font-bold text-white text-sm flex-shrink-0 overflow-hidden">
+                        {log.viewerUser?.avatarUrl ? (
+                          <img src={log.viewerUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{(log.viewerUser?.name || 'U')[0].toUpperCase()}</span>
+                        )}
                       </div>
-                      <div className="text-nebula-text text-[11px] mt-0.5">
-                        IP: <code className="text-plasma">{log.viewerIp || 'Хамгаалагдсан'}</code>
+                      <div>
+                        <div className="font-semibold text-starlight flex items-center flex-wrap gap-2">
+                          <span className="w-2 h-2 rounded-full bg-aurora inline-block"></span>
+                          <span>{log.viewerUser?.name || 'Зочин хэрэглэгч'}</span>
+                          {log.viewerUser ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                              Нэвтэрсэн хэрэглэгч
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-nebula-text">
+                              Зочин
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-nebula-text text-[11px] mt-1 flex flex-wrap items-center gap-3">
+                          {log.viewerUser?.phone && (
+                            <span className="text-aurora font-mono font-medium">
+                              Утас: {log.viewerUser.phone}
+                            </span>
+                          )}
+                          {log.viewerUser?.email && (
+                            <span className="text-nebula-text/80">
+                              И-мэйл: {log.viewerUser.email}
+                            </span>
+                          )}
+                          <span>
+                            IP: <code className="text-plasma">{log.viewerIp || 'Хамгаалагдсан'}</code>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right text-nebula-text text-[11px]">
-                      {formatDateFull(log.createdAt)}
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 flex-shrink-0">
+                      <div className="text-right text-nebula-text text-[11px]">
+                        {formatDateFull(log.createdAt)}
+                      </div>
+                      {log.viewerUser?.phone && (
+                        <a
+                          href={'tel:' + log.viewerUser.phone}
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-aurora/20 hover:bg-aurora/30 text-aurora border border-aurora/30 rounded-lg text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+                        >
+                          <Phone size={12} />
+                          <span>Эргэж залгах</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}

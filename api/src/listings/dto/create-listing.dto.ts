@@ -47,6 +47,10 @@ export class CreateListingDto {
   contactPhone?: string;
 
   @IsOptional()
+  @IsString()
+  contactName?: string;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   images?: string[];

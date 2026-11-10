@@ -241,11 +241,62 @@ export class ListingsService {
       throw new ForbiddenException('You can only view audit logs for your own listing');
     }
 
-    return this.contactLogsRepository.find({
+    const logs = await this.contactLogsRepository.find({
       where: { listingId: id },
+      relations: { viewerUser: true },
       order: { createdAt: 'DESC' },
-      take: 50,
+      take: 100,
     });
+
+    return logs.map((log) => ({
+      id: log.id,
+      listingId: log.listingId,
+      viewerUserId: log.viewerUserId,
+      viewerIp: log.viewerIp,
+      userAgent: log.userAgent,
+      createdAt: log.createdAt,
+      viewerUser: log.viewerUser
+        ? {
+            id: log.viewerUser.id,
+            name: log.viewerUser.name,
+            phone: log.viewerUser.phone,
+            email: log.viewerUser.email,
+            avatarUrl: log.viewerUser.avatarUrl,
+          }
+        : null,
+    }));
+  }
+
+  async getMyContactAuditLogs(currentUser: any) {
+    const logs = await this.contactLogsRepository
+      .createQueryBuilder('log')
+      .innerJoinAndSelect('log.listing', 'listing')
+      .leftJoinAndSelect('log.viewerUser', 'viewerUser')
+      .where('listing.userId = :userId', { userId: currentUser.id })
+      .orderBy('log.createdAt', 'DESC')
+      .take(150)
+      .getMany();
+
+    return logs.map((log) => ({
+      id: log.id,
+      listingId: log.listingId,
+      listingTitle: log.listing?.title,
+      listingPrice: log.listing?.price,
+      listingContactPhone: log.listing?.contactPhone,
+      viewerUserId: log.viewerUserId,
+      viewerIp: log.viewerIp,
+      userAgent: log.userAgent,
+      createdAt: log.createdAt,
+      viewerUser: log.viewerUser
+        ? {
+            id: log.viewerUser.id,
+            name: log.viewerUser.name,
+            phone: log.viewerUser.phone,
+            email: log.viewerUser.email,
+            avatarUrl: log.viewerUser.avatarUrl,
+          }
+        : null,
+    }));
   }
 
   async create(createListingDto: CreateListingDto, user: User) {
@@ -289,10 +340,25 @@ export class ListingsService {
 
     const isOnSale = Boolean(origPrice && origPrice > currentPrice && saleEnd);
 
+    const contactName = (
+      createListingDto.contactName ||
+      createListingDto.attributes?.contactName ||
+      createListingDto.attributes?.seller ||
+      freshUser?.name ||
+      user.name ||
+      'Зарын эзэн'
+    ).trim();
+
     const listing = this.listingsRepository.create({
       ...createListingDto,
       hasVideo,
       contactPhone,
+      contactName,
+      attributes: {
+        ...(createListingDto.attributes || {}),
+        seller: contactName,
+        contactName: contactName,
+      },
       user,
       expiresAt,
       isOnSale,

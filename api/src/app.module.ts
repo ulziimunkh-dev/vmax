@@ -16,6 +16,7 @@ import { SmsModule } from './sms/sms.module';
 import { ProjectsModule } from './projects/projects.module';
 import { FurnitureModule } from './furniture/furniture.module';
 import { AiModule } from './ai/ai.module';
+import { ChatModule } from './chat/chat.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -69,6 +70,7 @@ import configuration from './config/configuration';
     ProjectsModule,
     FurnitureModule,
     AiModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

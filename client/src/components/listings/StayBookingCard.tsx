@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Users, Phone, Send, CheckCircle2, Moon, Clock, ShieldCheck, Sparkles, X, Lock } from 'lucide-react';
+import { Calendar, Users, Phone, Send, CheckCircle2, Moon, Clock, ShieldCheck, Sparkles, X, Lock, MessageSquare } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -9,12 +9,14 @@ interface StayBookingCardProps {
   listing: Listing;
   revealedPhone?: string | null;
   onRevealPhone?: () => void;
+  onOpenChat?: (initialMsg?: string) => void;
 }
 
 export const StayBookingCard: React.FC<StayBookingCardProps> = ({
   listing,
   revealedPhone,
   onRevealPhone,
+  onOpenChat,
 }) => {
   const { user } = useAuthStore();
   const { t } = useI18n();
@@ -251,6 +253,25 @@ export const StayBookingCard: React.FC<StayBookingCardProps> = ({
           <Calendar size={17} />
           <span>{t.stayBooking.bookNow}</span>
         </button>
+
+        {/* Chat with Host Button */}
+        {onOpenChat && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!user) {
+                window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+                return;
+              }
+              const stayContext = `Сайн байна уу? ${checkIn} - ${checkOut} хооронд (${nights} хоног, ${guests} хүн) захиалах боломжтой юу? Нийт ₮${totalPrice.toLocaleString()}.`;
+              onOpenChat(stayContext);
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs text-plasma-light bg-plasma/15 hover:bg-plasma/25 border border-plasma/30 transition-all cursor-pointer mb-2.5"
+          >
+            <MessageSquare size={15} />
+            <span>{t.chat.chatWithOwner}</span>
+          </button>
+        )}
 
         {/* Secondary Action: Direct Call Host */}
         {isRevealed ? (

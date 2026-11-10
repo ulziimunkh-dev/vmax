@@ -71,6 +71,9 @@ export class Listing {
   @Column({ nullable: true })
   contactPhone?: string;
 
+  @Column({ nullable: true })
+  contactName?: string;
+
   @Column({
     type: 'enum',
     enum: ListingStatus,

@@ -30,6 +30,9 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 
@@ -92,7 +95,9 @@ export const uploadsAPI = {
   uploadFile: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/uploads/file', formData);
+    return api.post('/uploads/file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
   uploadAvatar: (file: File) => {
     const formData = new FormData();
@@ -137,6 +142,9 @@ export const listingsAPI = {
   publish: (id: string) => api.patch(`/listings/${id}/publish`),
   promote: (id: string) => api.patch(`/listings/${id}/promote`),
   share: (id: string) => api.post(`/listings/${id}/share`),
+  revealPhone: (id: string, user?: any) => api.post(`/listings/${id}/reveal-contact`, { user }),
+  getContactAuditLogs: (id: string) => api.get(`/listings/${id}/contact-audit-logs`),
+  getMyContactAuditLogs: () => api.get('/listings/my/contact-audit-logs'),
   exportExcel: (myOnly?: boolean) =>
     api.get('/listings/export/excel', {
       params: { myOnly },
@@ -185,6 +193,21 @@ export const aiAPI = {
     areaSqm: number;
     price?: number;
   }) => api.post('/ai/estimate-price', data),
+};
+
+export const chatAPI = {
+  startConversation: (listingId: string, initialMessage?: string) =>
+    api.post('/chat/start', { listingId, initialMessage }),
+  getConversations: () => api.get('/chat/conversations'),
+  getMessages: (conversationId: string) =>
+    api.get(`/chat/conversations/${conversationId}/messages`),
+  sendMessage: (conversationId: string, content: string, imageUrl?: string) =>
+    api.post(`/chat/conversations/${conversationId}/messages`, { content, imageUrl }),
+  deleteConversation: (conversationId: string) =>
+    api.delete(`/chat/conversations/${conversationId}`),
+  deleteMessage: (conversationId: string, messageId: string) =>
+    api.delete(`/chat/conversations/${conversationId}/messages/${messageId}`),
+  getUnreadCount: () => api.get('/chat/unread-count'),
 };
 
 export default api;

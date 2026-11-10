@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Delete, Req } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { QueryListingDto } from './dto/query-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
 
@@ -22,6 +23,12 @@ export class ListingsController {
     return this.listingsService.findMyListings(user);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('my/contact-audit-logs')
+  getMyContactAuditLogs(@CurrentUser() user: User) {
+    return this.listingsService.getMyContactAuditLogs(user);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.listingsService.findOne(id);
@@ -32,9 +39,18 @@ export class ListingsController {
     return this.listingsService.incrementShares(id);
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Post(':id/reveal-contact')
-  revealContact(@Param('id') id: string, @Body() body: any) {
-    return this.listingsService.revealPhoneContact(id, body?.user, body?.ip, body?.userAgent);
+  revealContact(
+    @Param('id') id: string,
+    @Body() body: any,
+    @CurrentUser() user: any,
+    @Req() req: any,
+  ) {
+    const viewer = user || body?.user;
+    const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || body?.ip || '127.0.0.1';
+    const ua = req?.headers?.['user-agent'] || body?.userAgent;
+    return this.listingsService.revealPhoneContact(id, viewer, String(ip), ua);
   }
 
   @UseGuards(JwtAuthGuard)
