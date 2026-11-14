@@ -111,10 +111,10 @@ const ListingDetail = () => {
       if (total === 0) return;
       if (e.key === 'Escape') { setLightboxOpen(false); return; }
       if (lightboxOpen) {
-        if (e.key === 'ArrowLeft')  setLightboxIndex((i) => (i - 1 + total) % total);
+        if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i - 1 + total) % total);
         if (e.key === 'ArrowRight') setLightboxIndex((i) => (i + 1) % total);
       } else {
-        if (e.key === 'ArrowLeft')  setActiveImageIndex((i) => (i - 1 + total) % total);
+        if (e.key === 'ArrowLeft') setActiveImageIndex((i) => (i - 1 + total) % total);
         if (e.key === 'ArrowRight') setActiveImageIndex((i) => (i + 1) % total);
       }
     };
@@ -127,6 +127,12 @@ const ListingDetail = () => {
     listing &&
     (String(user.id) === String(listing.userId) || (listing.user && String(user.id) === String(listing.user.id)))
   );
+
+  const rawPhone = listing?.contactPhone || listing?.attributes?.contactPhone || listing?.user?.phone || '8976-7700';
+  const cleanPhoneDigits = rawPhone.replace(/\D/g, '');
+  const displayMaskedPhone = cleanPhoneDigits.length >= 8
+    ? `${cleanPhoneDigits.slice(0, 4)}-****`
+    : (rawPhone.length >= 4 ? `${rawPhone.slice(0, 4)}-****` : '8976-****');
 
   const handleRevealPhone = useCallback(async (skipQuotaCheck = false) => {
     if (isPhoneRevealed) return;
@@ -342,8 +348,8 @@ const ListingDetail = () => {
             <button
               onClick={() => toggleFavorite(listing)}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-xl border transition-all text-xs font-medium ${favorite
-                  ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-md shadow-red-500/20'
-                  : 'bg-cosmic text-white border-white/10 hover:border-white/20'
+                ? 'bg-red-500/20 text-red-400 border-red-500/40 shadow-md shadow-red-500/20'
+                : 'bg-cosmic text-white border-white/10 hover:border-white/20'
                 }`}
               title={favorite ? t.dashboard.saved : t.share.favorites}
             >
@@ -365,401 +371,397 @@ const ListingDetail = () => {
 
           {/* Main Details & Gallery */}
           <div className="md:col-span-2 space-y-6">
-          {/* ── Media Viewer (Photos & 15s Walkthrough Reel) ─────────────── */}
-          {(() => {
-            const images = listing.images && listing.images.length > 0 ? listing.images : [];
-            const hasReel = Boolean(listing.videoUrl || listing.hasVideo);
-            const total = images.length;
-            const prev = () => setActiveImageIndex((i) => (i - 1 + total) % total);
-            const next = () => setActiveImageIndex((i) => (i + 1) % total);
+            {/* ── Media Viewer (Photos & 15s Walkthrough Reel) ─────────────── */}
+            {(() => {
+              const images = listing.images && listing.images.length > 0 ? listing.images : [];
+              const hasReel = Boolean(listing.videoUrl || listing.hasVideo);
+              const total = images.length;
+              const prev = () => setActiveImageIndex((i) => (i - 1 + total) % total);
+              const next = () => setActiveImageIndex((i) => (i + 1) % total);
 
-            return (
-              <div className="space-y-3">
-                {/* Media Switcher Tabs (Only if both or video exists) */}
-                {hasReel && (
-                  <div className="flex items-center space-x-2 p-1.5 rounded-2xl bg-void/60 border border-white/10 w-fit backdrop-blur-md">
-                    {total > 0 && (
+              return (
+                <div className="space-y-3">
+                  {/* Media Switcher Tabs (Only if both or video exists) */}
+                  {hasReel && (
+                    <div className="flex items-center space-x-2 p-1.5 rounded-2xl bg-void/60 border border-white/10 w-fit backdrop-blur-md">
+                      {total > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setMediaTab('images')}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${mediaTab === 'images'
+                              ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
+                              : 'text-nebula-text hover:text-white'
+                            }`}
+                        >
+                          <ImageIcon size={14} />
+                          <span>{t.mediaViewer.photosTab} ({total})</span>
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => setMediaTab('images')}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                          mediaTab === 'images'
+                        onClick={() => setMediaTab('video')}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${mediaTab === 'video'
                             ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
                             : 'text-nebula-text hover:text-white'
-                        }`}
+                          }`}
                       >
-                        <ImageIcon size={14} />
-                        <span>{t.mediaViewer.photosTab} ({total})</span>
+                        <Smartphone size={14} />
+                        <span>{t.mediaViewer.reelTab}</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setMediaTab('video')}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                        mediaTab === 'video'
-                          ? 'bg-gradient-to-r from-plasma to-nova text-white-force shadow-md shadow-plasma/30'
-                          : 'text-nebula-text hover:text-white'
-                      }`}
-                    >
-                      <Smartphone size={14} />
-                      <span>{t.mediaViewer.reelTab}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Walkthrough Reel Video Player */}
-                {mediaTab === 'video' && listing.videoUrl ? (
-                  <div className="relative glass-card rounded-2xl overflow-hidden h-[520px] bg-black/95 flex items-center justify-center shadow-2xl border border-plasma/40 group select-none media-player-dark">
-                    {/* Ambient backdrop */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 bg-gradient-to-br from-plasma/20 via-black to-cosmic/30" />
-
-                    {/* Centered Vertical 9:16 Reel Player */}
-                    <div className="relative h-full aspect-[9/16] max-w-full overflow-hidden shadow-2xl bg-black rounded-xl z-10 flex items-center justify-center">
-                      <video
-                        key={listing.videoUrl}
-                        ref={detailVideoRef}
-                        src={getImageUrl(listing.videoUrl)}
-                        autoPlay
-                        loop
-                        playsInline
-                        preload="auto"
-                        muted={isVideoMuted}
-                        className="w-full h-full object-cover cursor-pointer transform-gpu"
-                        onClick={() => {
-                          if (detailVideoRef.current) {
-                            if (detailVideoRef.current.paused) {
-                              detailVideoRef.current.play();
-                              setIsVideoPlaying(true);
-                            } else {
-                              detailVideoRef.current.pause();
-                              setIsVideoPlaying(false);
-                            }
-                          }
-                        }}
-                        onPlay={() => setIsVideoPlaying(true)}
-                        onPause={() => setIsVideoPlaying(false)}
-                        onWaiting={() => setIsVideoBuffering(true)}
-                        onPlaying={() => {
-                          setIsVideoBuffering(false);
-                          setIsVideoPlaying(true);
-                        }}
-                        onCanPlay={() => setIsVideoBuffering(false)}
-                        onTimeUpdate={() => {
-                          if (detailVideoRef.current && detailVideoRef.current.duration && detailProgressBarRef.current) {
-                            const pct = (detailVideoRef.current.currentTime / detailVideoRef.current.duration) * 100;
-                            detailProgressBarRef.current.style.width = `${pct}%`;
-                          }
-                        }}
-                      />
-
-                      {/* Buffering Spinner */}
-                      {isVideoBuffering && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                          <div className="p-3 rounded-full bg-black/60 backdrop-blur-md">
-                            <RefreshCw className="animate-spin text-plasma" size={28} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Play indicator overlay when paused */}
-                      {!isVideoPlaying && (
-                        <div
-                          onClick={() => {
-                            if (detailVideoRef.current) {
-                              detailVideoRef.current.play();
-                              setIsVideoPlaying(true);
-                            }
-                          }}
-                          className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[2px] cursor-pointer z-20"
-                        >
-                          <div className="w-16 h-16 rounded-full bg-plasma/90 text-white text-white-force flex items-center justify-center shadow-xl shadow-plasma/40 pl-1 hover:scale-110 transition-transform">
-                            <Play size={30} fill="currentColor" className="text-white-force" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Top Overlay Badge */}
-                      <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
-                        <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-white-force text-xs font-bold flex items-center gap-1.5 border border-white/20 pointer-events-auto shadow-md">
-                          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                          <span className="text-white-force">📹 Walkthrough Реел</span>
-                        </div>
-
-                        {/* Fullscreen Reel Button */}
-                        <button
-                          type="button"
-                          onClick={openReelsModal}
-                          className="px-3 py-1 rounded-full bg-black/75 hover:bg-plasma text-white text-white-force text-xs font-semibold backdrop-blur-md border border-white/20 transition-all flex items-center gap-1.5 pointer-events-auto shadow-md cursor-pointer"
-                          title="Бүтэн дэлгэцээр үзэх"
-                        >
-                          <Maximize size={12} className="text-white-force" />
-                          <span className="hidden sm:inline text-white-force">Бүтэн дэлгэцээр</span>
-                        </button>
-                      </div>
-
-                      {/* Bottom Controls Bar */}
-                      <div className="absolute bottom-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (detailVideoRef.current) {
-                              detailVideoRef.current.muted = !isVideoMuted;
-                            }
-                            setIsVideoMuted((m) => !m);
-                          }}
-                          className="p-2.5 rounded-full bg-black/75 hover:bg-black/90 text-white text-white-force backdrop-blur-md border border-white/20 transition-all pointer-events-auto cursor-pointer shadow-md"
-                          title={isVideoMuted ? 'Дуу асаах' : 'Дуу хаах'}
-                        >
-                          {isVideoMuted ? <VolumeX size={16} className="text-white-force" /> : <Volume2 size={16} className="text-white-force" />}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={openReelsModal}
-                          className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-plasma to-nova text-white text-white-force text-xs font-bold shadow-lg shadow-plasma/30 hover:scale-105 transition-all pointer-events-auto cursor-pointer flex items-center gap-1.5"
-                        >
-                          <Smartphone size={13} className="text-white-force" />
-                          <span className="text-white-force">Reel горим</span>
-                        </button>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20 z-20">
-                        <div
-                          ref={detailProgressBarRef}
-                          className="h-full bg-gradient-to-r from-plasma to-nova transition-[width] duration-75 ease-linear"
-                          style={{ width: '0%' }}
-                        />
-                      </div>
                     </div>
-                  </div>
-                ) : (
-                  /* Main Image Carousel */
-                  <div className="relative glass-card rounded-2xl overflow-hidden h-[420px] bg-gradient-to-br from-void to-cosmic group select-none">
-                    {total > 0 ? (
-                      <AnimatePresence mode="wait">
-                        <motion.img
-                          key={activeImageIndex}
-                          src={getImageUrl(images[activeImageIndex])}
-                          alt={`${listing.title} — зураг ${activeImageIndex + 1}`}
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
-                          }}
-                          initial={{ opacity: 0, x: 40 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -40 }}
-                          transition={{ duration: 0.25, ease: 'easeInOut' }}
-                          className="w-full h-full object-cover"
-                        />
-                      </AnimatePresence>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-plasma opacity-40 font-bold text-3xl">Vmax.mn</span>
-                      </div>
-                    )}
-
-                    {/* Gradient overlays */}
-                    {total > 0 && (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-
-                        {/* Prev / Next arrows */}
-                        {total > 1 && (
-                          <>
-                            <button
-                              onClick={prev}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
-                              aria-label="Өмнөх зураг"
-                            >
-                              <ChevronLeft size={22} strokeWidth={2.5} />
-                            </button>
-                            <button
-                              onClick={next}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
-                              aria-label="Дараагийн зураг"
-                            >
-                              <ChevronRight size={22} strokeWidth={2.5} />
-                            </button>
-                          </>
-                        )}
-
-                        {/* Reel shortcut button if video exists */}
-                        {listing.videoUrl && (
-                          <button
-                            type="button"
-                            onClick={() => setMediaTab('video')}
-                            className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-black/75 hover:bg-plasma backdrop-blur-md text-white text-white-force text-xs font-bold transition-all shadow-xl flex items-center gap-1.5 border border-white/20 cursor-pointer"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                            <Smartphone size={13} className="text-white-force" />
-                            <span className="text-white-force">Reel үзэх</span>
-                          </button>
-                        )}
-
-                        {/* Zoom / fullscreen button */}
-                        <button
-                          onClick={() => { setLightboxIndex(activeImageIndex); setLightboxOpen(true); }}
-                          className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
-                          aria-label="Том хэмжээгээр харах"
-                        >
-                          <ZoomIn size={17} strokeWidth={2.5} />
-                        </button>
-
-                        {/* Counter badge */}
-                        {total > 1 && (
-                          <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
-                            {activeImageIndex + 1} / {total}
-                          </div>
-                        )}
-
-                        {/* Dot indicators */}
-                        {total > 1 && total <= 12 && (
-                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                            {images.map((_, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => setActiveImageIndex(idx)}
-                                className={`rounded-full transition-all ${idx === activeImageIndex ? 'w-5 h-2 bg-plasma' : 'w-2 h-2 bg-white/50 hover:bg-white/80'}`}
-                                aria-label={`Зураг ${idx + 1}`}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Thumbnail strip */}
-                {mediaTab === 'images' && total > 1 && (
-                  <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
-                    {images.map((imgUrl, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveImageIndex(idx)}
-                        className={`relative flex-shrink-0 w-[88px] h-[68px] rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                          activeImageIndex === idx
-                            ? 'border-plasma ring-2 ring-plasma/40 scale-105 shadow-lg shadow-plasma/30'
-                            : 'border-gray-300 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-plasma/50'
-                        }`}
-                      >
-                        <img
-                          src={getImageUrl(imgUrl)}
-                          alt={`Thumbnail ${idx + 1}`}
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
-                          }}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── Fullscreen Lightbox ─────────────────────────────────────── */}
-          <AnimatePresence>
-            {lightboxOpen && listing.images && listing.images.length > 0 && (() => {
-              const imgs = listing.images;
-              const total = imgs.length;
-              const prev = () => setLightboxIndex((i) => (i - 1 + total) % total);
-              const next = () => setLightboxIndex((i) => (i + 1) % total);
-              return (
-                <motion.div
-                  key="lightbox"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[100] bg-black/92 backdrop-blur-md flex items-center justify-center"
-                  onClick={() => setLightboxOpen(false)}
-                >
-                  {/* Close */}
-                  <button
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10"
-                    onClick={() => setLightboxOpen(false)}
-                  >
-                    <X size={20} />
-                  </button>
-
-                  {/* Counter */}
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/10 text-white text-sm font-semibold">
-                    {lightboxIndex + 1} / {total}
-                  </div>
-
-                  {/* Image */}
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={lightboxIndex}
-                      src={getImageUrl(imgs[lightboxIndex])}
-                      alt={`${listing.title} ${lightboxIndex + 1}`}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="max-h-[85vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </AnimatePresence>
-
-                  {/* Prev/Next */}
-                  {total > 1 && (
-                    <>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); prev(); }}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-                      >
-                        <ChevronLeft size={26} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); next(); }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
-                      >
-                        <ChevronRight size={26} />
-                      </button>
-                    </>
                   )}
 
-                  {/* Dot strip */}
-                  {total > 1 && total <= 12 && (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-                      {imgs.map((_, idx) => (
+                  {/* Walkthrough Reel Video Player */}
+                  {mediaTab === 'video' && listing.videoUrl ? (
+                    <div className="relative glass-card rounded-2xl overflow-hidden h-[520px] bg-black/95 flex items-center justify-center shadow-2xl border border-plasma/40 group select-none media-player-dark">
+                      {/* Ambient backdrop */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20 bg-gradient-to-br from-plasma/20 via-black to-cosmic/30" />
+
+                      {/* Centered Vertical 9:16 Reel Player */}
+                      <div className="relative h-full aspect-[9/16] max-w-full overflow-hidden shadow-2xl bg-black rounded-xl z-10 flex items-center justify-center">
+                        <video
+                          key={listing.videoUrl}
+                          ref={detailVideoRef}
+                          src={getImageUrl(listing.videoUrl)}
+                          autoPlay
+                          loop
+                          playsInline
+                          preload="auto"
+                          muted={isVideoMuted}
+                          className="w-full h-full object-cover cursor-pointer transform-gpu"
+                          onClick={() => {
+                            if (detailVideoRef.current) {
+                              if (detailVideoRef.current.paused) {
+                                detailVideoRef.current.play();
+                                setIsVideoPlaying(true);
+                              } else {
+                                detailVideoRef.current.pause();
+                                setIsVideoPlaying(false);
+                              }
+                            }
+                          }}
+                          onPlay={() => setIsVideoPlaying(true)}
+                          onPause={() => setIsVideoPlaying(false)}
+                          onWaiting={() => setIsVideoBuffering(true)}
+                          onPlaying={() => {
+                            setIsVideoBuffering(false);
+                            setIsVideoPlaying(true);
+                          }}
+                          onCanPlay={() => setIsVideoBuffering(false)}
+                          onTimeUpdate={() => {
+                            if (detailVideoRef.current && detailVideoRef.current.duration && detailProgressBarRef.current) {
+                              const pct = (detailVideoRef.current.currentTime / detailVideoRef.current.duration) * 100;
+                              detailProgressBarRef.current.style.width = `${pct}%`;
+                            }
+                          }}
+                        />
+
+                        {/* Buffering Spinner */}
+                        {isVideoBuffering && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                            <div className="p-3 rounded-full bg-black/60 backdrop-blur-md">
+                              <RefreshCw className="animate-spin text-plasma" size={28} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Play indicator overlay when paused */}
+                        {!isVideoPlaying && (
+                          <div
+                            onClick={() => {
+                              if (detailVideoRef.current) {
+                                detailVideoRef.current.play();
+                                setIsVideoPlaying(true);
+                              }
+                            }}
+                            className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[2px] cursor-pointer z-20"
+                          >
+                            <div className="w-16 h-16 rounded-full bg-plasma/90 text-white text-white-force flex items-center justify-center shadow-xl shadow-plasma/40 pl-1 hover:scale-110 transition-transform">
+                              <Play size={30} fill="currentColor" className="text-white-force" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Top Overlay Badge */}
+                        <div className="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+                          <div className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-white text-white-force text-xs font-bold flex items-center gap-1.5 border border-white/20 pointer-events-auto shadow-md">
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                            <span className="text-white-force">📹 Walkthrough Реел</span>
+                          </div>
+
+                          {/* Fullscreen Reel Button */}
+                          <button
+                            type="button"
+                            onClick={openReelsModal}
+                            className="px-3 py-1 rounded-full bg-black/75 hover:bg-plasma text-white text-white-force text-xs font-semibold backdrop-blur-md border border-white/20 transition-all flex items-center gap-1.5 pointer-events-auto shadow-md cursor-pointer"
+                            title="Бүтэн дэлгэцээр үзэх"
+                          >
+                            <Maximize size={12} className="text-white-force" />
+                            <span className="hidden sm:inline text-white-force">Бүтэн дэлгэцээр</span>
+                          </button>
+                        </div>
+
+                        {/* Bottom Controls Bar */}
+                        <div className="absolute bottom-3 inset-x-3 flex items-center justify-between z-20 pointer-events-none">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (detailVideoRef.current) {
+                                detailVideoRef.current.muted = !isVideoMuted;
+                              }
+                              setIsVideoMuted((m) => !m);
+                            }}
+                            className="p-2.5 rounded-full bg-black/75 hover:bg-black/90 text-white text-white-force backdrop-blur-md border border-white/20 transition-all pointer-events-auto cursor-pointer shadow-md"
+                            title={isVideoMuted ? 'Дуу асаах' : 'Дуу хаах'}
+                          >
+                            {isVideoMuted ? <VolumeX size={16} className="text-white-force" /> : <Volume2 size={16} className="text-white-force" />}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={openReelsModal}
+                            className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-plasma to-nova text-white text-white-force text-xs font-bold shadow-lg shadow-plasma/30 hover:scale-105 transition-all pointer-events-auto cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Smartphone size={13} className="text-white-force" />
+                            <span className="text-white-force">Reel горим</span>
+                          </button>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20 z-20">
+                          <div
+                            ref={detailProgressBarRef}
+                            className="h-full bg-gradient-to-r from-plasma to-nova transition-[width] duration-75 ease-linear"
+                            style={{ width: '0%' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Main Image Carousel */
+                    <div className="relative glass-card rounded-2xl overflow-hidden h-[420px] bg-gradient-to-br from-void to-cosmic group select-none">
+                      {total > 0 ? (
+                        <AnimatePresence mode="wait">
+                          <motion.img
+                            key={activeImageIndex}
+                            src={getImageUrl(images[activeImageIndex])}
+                            alt={`${listing.title} — зураг ${activeImageIndex + 1}`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                            }}
+                            initial={{ opacity: 0, x: 40 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -40 }}
+                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                            className="w-full h-full object-cover"
+                          />
+                        </AnimatePresence>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-plasma opacity-40 font-bold text-3xl">Vmax.mn</span>
+                        </div>
+                      )}
+
+                      {/* Gradient overlays */}
+                      {total > 0 && (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+
+                          {/* Prev / Next arrows */}
+                          {total > 1 && (
+                            <>
+                              <button
+                                onClick={prev}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
+                                aria-label="Өмнөх зураг"
+                              >
+                                <ChevronLeft size={22} strokeWidth={2.5} />
+                              </button>
+                              <button
+                                onClick={next}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
+                                aria-label="Дараагийн зураг"
+                              >
+                                <ChevronRight size={22} strokeWidth={2.5} />
+                              </button>
+                            </>
+                          )}
+
+                          {/* Reel shortcut button if video exists */}
+                          {listing.videoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setMediaTab('video')}
+                              className="absolute top-3 left-3 px-3 py-1.5 rounded-full bg-black/75 hover:bg-plasma backdrop-blur-md text-white text-white-force text-xs font-bold transition-all shadow-xl flex items-center gap-1.5 border border-white/20 cursor-pointer"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                              <Smartphone size={13} className="text-white-force" />
+                              <span className="text-white-force">Reel үзэх</span>
+                            </button>
+                          )}
+
+                          {/* Zoom / fullscreen button */}
+                          <button
+                            onClick={() => { setLightboxIndex(activeImageIndex); setLightboxOpen(true); }}
+                            className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/80 hover:bg-white backdrop-blur-md flex items-center justify-center text-gray-800 hover:text-plasma transition-all shadow-xl ring-1 ring-black/10 cursor-pointer"
+                            aria-label="Том хэмжээгээр харах"
+                          >
+                            <ZoomIn size={17} strokeWidth={2.5} />
+                          </button>
+
+                          {/* Counter badge */}
+                          {total > 1 && (
+                            <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs font-semibold">
+                              {activeImageIndex + 1} / {total}
+                            </div>
+                          )}
+
+                          {/* Dot indicators */}
+                          {total > 1 && total <= 12 && (
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                              {images.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  onClick={() => setActiveImageIndex(idx)}
+                                  className={`rounded-full transition-all ${idx === activeImageIndex ? 'w-5 h-2 bg-plasma' : 'w-2 h-2 bg-white/50 hover:bg-white/80'}`}
+                                  aria-label={`Зураг ${idx + 1}`}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Thumbnail strip */}
+                  {mediaTab === 'images' && total > 1 && (
+                    <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
+                      {images.map((imgUrl, idx) => (
                         <button
                           key={idx}
-                          onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
-                          className={`rounded-full transition-all ${idx === lightboxIndex ? 'w-6 h-2.5 bg-plasma' : 'w-2.5 h-2.5 bg-white/40 hover:bg-white/70'}`}
-                        />
+                          type="button"
+                          onClick={() => setActiveImageIndex(idx)}
+                          className={`relative flex-shrink-0 w-[88px] h-[68px] rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${activeImageIndex === idx
+                              ? 'border-plasma ring-2 ring-plasma/40 scale-105 shadow-lg shadow-plasma/30'
+                              : 'border-gray-300 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-plasma/50'
+                            }`}
+                        >
+                          <img
+                            src={getImageUrl(imgUrl)}
+                            alt={`Thumbnail ${idx + 1}`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop';
+                            }}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
                       ))}
                     </div>
                   )}
-                </motion.div>
+                </div>
               );
             })()}
-          </AnimatePresence>
+
+            {/* ── Fullscreen Lightbox ─────────────────────────────────────── */}
+            <AnimatePresence>
+              {lightboxOpen && listing.images && listing.images.length > 0 && (() => {
+                const imgs = listing.images;
+                const total = imgs.length;
+                const prev = () => setLightboxIndex((i) => (i - 1 + total) % total);
+                const next = () => setLightboxIndex((i) => (i + 1) % total);
+                return (
+                  <motion.div
+                    key="lightbox"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] bg-black/92 backdrop-blur-md flex items-center justify-center"
+                    onClick={() => setLightboxOpen(false)}
+                  >
+                    {/* Close */}
+                    <button
+                      className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors z-10"
+                      onClick={() => setLightboxOpen(false)}
+                    >
+                      <X size={20} />
+                    </button>
+
+                    {/* Counter */}
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/10 text-white text-sm font-semibold">
+                      {lightboxIndex + 1} / {total}
+                    </div>
+
+                    {/* Image */}
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={lightboxIndex}
+                        src={getImageUrl(imgs[lightboxIndex])}
+                        alt={`${listing.title} ${lightboxIndex + 1}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="max-h-[85vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </AnimatePresence>
+
+                    {/* Prev/Next */}
+                    {total > 1 && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); prev(); }}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                        >
+                          <ChevronLeft size={26} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); next(); }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                        >
+                          <ChevronRight size={26} />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Dot strip */}
+                    {total > 1 && total <= 12 && (
+                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                        {imgs.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+                            className={`rounded-full transition-all ${idx === lightboxIndex ? 'w-6 h-2.5 bg-plasma' : 'w-2.5 h-2.5 bg-white/40 hover:bg-white/70'}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })()}
+            </AnimatePresence>
 
 
             <div className="glass-card p-6 rounded-2xl">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                 <div className="flex-1 min-w-0 w-full">
                   <div className="flex items-center space-x-2 mb-3">
-                    <span className={`px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold border shadow-sm ${
-                      String(listing.type).toUpperCase() === 'DAILY_RENT'
+                    <span className={`px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold border shadow-sm ${String(listing.type).toUpperCase() === 'DAILY_RENT'
                         ? 'bg-amber-500/15 text-amber-500 dark:text-amber-300 border-amber-500/30'
                         : String(listing.type).toLowerCase() === 'sale'
-                        ? 'bg-plasma/15 text-plasma border-plasma/30'
-                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                    }`}>
+                          ? 'bg-plasma/15 text-plasma border-plasma/30'
+                          : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      }`}>
                       {String(listing.type).toUpperCase() === 'DAILY_RENT'
                         ? 'Хоногоор түрээслэх (Stay)'
                         : String(listing.type).toLowerCase() === 'sale'
-                        ? t.listings.sale
-                        : t.listings.rent}
+                          ? t.listings.sale
+                          : t.listings.rent}
                     </span>
 
                     {/* Publication Relative Time Badge */}
@@ -1131,30 +1133,6 @@ const ListingDetail = () => {
                 const hasBarter = termsList.some((t) => /бартер/i.test(t)) || /бартер/i.test(descText);
 
                 const priceNum = Number(listing.price) || 0;
-                const downPayment30 = Math.round(priceNum * 0.3);
-                const loanPrincipal70 = Math.round(priceNum * 0.7);
-
-                // Government 6% mortgage loan capped at 150 million MNT
-                const MAX_MORTGAGE_LIMIT = 150_000_000;
-                const mortgageLoan = Math.min(loanPrincipal70, MAX_MORTGAGE_LIMIT);
-                const commercialLoan = Math.max(0, loanPrincipal70 - MAX_MORTGAGE_LIMIT);
-
-                // 6% mortgage over 20 years (240 months)
-                const r6 = 0.06 / 12;
-                const n240 = 240;
-                const monthlyMortgage6 = mortgageLoan > 0
-                  ? Math.round((mortgageLoan * r6 * Math.pow(1 + r6, n240)) / (Math.pow(1 + r6, n240) - 1))
-                  : 0;
-
-                // Commercial bank loan ~18% over 15 years (180 months)
-                const r18 = 0.18 / 12;
-                const n180 = 180;
-                const monthlyCommercial = commercialLoan > 0
-                  ? Math.round((commercialLoan * r18 * Math.pow(1 + r18, n180)) / (Math.pow(1 + r18, n180) - 1))
-                  : 0;
-
-                const totalMonthlyLoan = monthlyMortgage6 + monthlyCommercial;
-                const downPaymentNoCommercial = Math.max(downPayment30, priceNum - MAX_MORTGAGE_LIMIT);
 
                 const rentalTermMatch = termsList.find((t) => /^\d+\s*\+\s*\d+$/.test(t)) || descText.match(/(\d+)\s*\+\s*(\d+)/)?.[0];
                 let rentMonths = 0;
@@ -1166,7 +1144,9 @@ const ListingDetail = () => {
                 }
 
                 const handleCopySummary = () => {
-                  const phoneToCopy = revealedPhone || listing.contactPhone || listing.attributes?.contactPhone || listing.user?.phone || '';
+                  const phoneToCopy = isPhoneRevealed
+                    ? (revealedPhone || rawPhone)
+                    : displayMaskedPhone;
                   const summaryLines = [
                     `🏡 ${listing.title}`,
                     `💰 Үнэ: ${formatPriceMongolianWords(listing.price)} (${Number(listing.price).toLocaleString()} ₮)`,
@@ -1232,11 +1212,10 @@ const ListingDetail = () => {
                               key={term}
                               type="button"
                               onClick={() => navigate(`/?paymentTerms=${encodeURIComponent(term)}`)}
-                              className={`group flex items-center space-x-2 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer ${
-                                isLoanTerm
+                              className={`group flex items-center space-x-2 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer ${isLoanTerm
                                   ? 'bg-amber-100/80 hover:bg-amber-200/80 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300 dark:border-amber-600/50 text-amber-950 dark:text-amber-200'
                                   : 'bg-plasma/10 hover:bg-plasma/20 border-plasma/30 text-plasma'
-                              }`}
+                                }`}
                               title="Энэ нөхцөлтэй заруудыг харах"
                             >
                               <span>💳</span>
@@ -1260,123 +1239,24 @@ const ListingDetail = () => {
                           </button>
                         )}
 
-                        {hasLoan && isEligibleForMortgage && (
+                        {isEligibleForMortgage && priceNum > 0 && (
                           <button
                             type="button"
                             onClick={() => {
-                              setShowMortgageCalculator(true);
+                              setShowMortgageCalculator((prev) => !prev);
                               setTimeout(() => {
                                 document.getElementById('mortgage-calculator')?.scrollIntoView({ behavior: 'smooth' });
                               }, 100);
                             }}
-                            className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-100/80 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-600/50 text-emerald-950 dark:text-emerald-200 text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer"
-                            title="Зээлийн тооцоолуур нээх"
+                            className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-100/90 hover:bg-emerald-200/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-600/50 text-emerald-950 dark:text-emerald-200 text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer"
+                            title="Зээлийн тооцоолуур нээж сарын төлөлт бодох"
                           >
-                            <span>🏛️</span>
-                            <span>Банкны зээл / Ипотек</span>
-                            <span className="text-xs group-hover:translate-y-0.5 transition-transform">↓</span>
+                            <Calculator size={15} className="text-emerald-700 dark:text-emerald-400" />
+                            <span>Зээлийн тооцоолуур</span>
+                            <span className="text-xs group-hover:translate-y-0.5 transition-transform">{showMortgageCalculator ? '↑' : '↓'}</span>
                           </button>
                         )}
                       </div>
-
-                      {/* Sale Mortgage / Loan Calculation Breakdown Card — STRICTLY for residential apartments only */}
-                      {isEligibleForMortgage && priceNum > 0 && (hasLoan || priceNum >= 50_000_000) && (
-                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-void/70 border border-slate-200 dark:border-white/10 text-xs space-y-3.5 shadow-sm">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
-                            <div className="font-black text-slate-900 dark:text-white flex items-center gap-2 text-sm sm:text-base">
-                              <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                                <Calculator size={16} />
-                              </div>
-                              <span>Зээл / Ипотекийн тооцоолол (Ипотекийн дээд хязгаар 150 сая ₮):</span>
-                            </div>
-                            <span className={`text-[11px] px-3 py-1 rounded-full font-bold border self-start sm:self-auto ${
-                              commercialLoan > 0
-                                ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700/50'
-                                : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/50'
-                            }`}>
-                              {commercialLoan > 0 ? 'Хосолсон зээл (Ипотек + Банкны зээл)' : '✓ 100% Ипотекийн 6% зээлд багтана'}
-                            </span>
-                          </div>
-
-                          {commercialLoan > 0 ? (
-                            <>
-                              {/* 4 Cards Grid */}
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                                  <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Урьдчилгаа (30%):</span>
-                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{downPayment30.toLocaleString()} ₮</span>
-                                </div>
-                                <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                                  <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Зээлэх дүн (70%):</span>
-                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{loanPrincipal70.toLocaleString()} ₮</span>
-                                </div>
-                                <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
-                                  <span className="text-emerald-800 dark:text-emerald-300 block text-[11px] font-bold">Ипотек 6% (Дээд лимит):</span>
-                                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">{mortgageLoan.toLocaleString()} ₮</span>
-                                  <span className="text-[10px] text-emerald-800/80 dark:text-emerald-300/80 block mt-0.5 font-medium">~{monthlyMortgage6.toLocaleString()} ₮ / сар (20 жил)</span>
-                                </div>
-                                <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 shadow-sm">
-                                  <span className="text-amber-800 dark:text-amber-300 block text-[11px] font-bold">Банкны энгийн зээл:</span>
-                                  <span className="font-extrabold text-amber-700 dark:text-amber-400 text-sm sm:text-base">{commercialLoan.toLocaleString()} ₮</span>
-                                  <span className="text-[10px] text-amber-800/80 dark:text-amber-300/80 block mt-0.5 font-medium">~{monthlyCommercial.toLocaleString()} ₮ / сар (18%, 15 жил)</span>
-                                </div>
-                              </div>
-
-                              {/* Total monthly payment highlight */}
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 dark:from-emerald-700 dark:to-teal-800 text-white shadow-md gap-2">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="text-xl">💳</span>
-                                  <div>
-                                    <span className="font-bold text-white text-sm">Сарын нийт төлөлт (Хосолсон):</span>
-                                    <span className="text-[11px] text-emerald-100 block font-medium">
-                                      Ипотек 6% (~{monthlyMortgage6.toLocaleString()} ₮) + Банкны зээл (~{monthlyCommercial.toLocaleString()} ₮)
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-left sm:text-right">
-                                  <span className="text-xl sm:text-2xl font-black text-white font-heading">
-                                    ~{totalMonthlyLoan.toLocaleString()} ₮ / сар
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Recommendation to increase down payment and avoid bank loan */}
-                              <div className="p-3.5 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-700/50 flex items-start gap-2.5 text-xs">
-                                <span className="text-indigo-600 dark:text-plasma font-bold text-base shrink-0">💡</span>
-                                <div>
-                                  <span className="font-bold text-indigo-950 dark:text-indigo-200 block mb-0.5">
-                                    Зөвлөмж — Банкны өндөр хүүтэй зээл авахгүй байх боломж:
-                                  </span>
-                                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px] sm:text-xs">
-                                    Хэрэв урьдчилгаа төлбөрөө <strong className="text-slate-900 dark:text-white font-black">{downPaymentNoCommercial.toLocaleString()} ₮</strong> болговол үлдсэн <strong className="text-slate-900 dark:text-white font-black">150 сая ₮</strong>-ийг бүтнээр нь зөвхөн <strong className="text-emerald-700 dark:text-emerald-400 font-black">6% хөнгөлөлттэй ипотекийн зээлээр</strong> (~{monthlyMortgage6.toLocaleString()} ₮/сар) санхүүжүүлж, өндөр хүүтэй зээлээс бүрэн зайлсхийх боломжтой.
-                                  </p>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            /* When loan fits within 150 million MNT */
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                              <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                                <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Урьдчилгаа (30%):</span>
-                                <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{downPayment30.toLocaleString()} ₮</span>
-                              </div>
-                              <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                                <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Зээлэх дүн (70%):</span>
-                                <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{loanPrincipal70.toLocaleString()} ₮</span>
-                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">✓ 150 сая ₮ дээд хязгаарт багтаж байна</span>
-                              </div>
-                              <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
-                                <span className="text-emerald-800 dark:text-emerald-300 block text-[11px] font-bold">Ипотек 6% (20 жил):</span>
-                                <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">~{monthlyMortgage6.toLocaleString()} ₮ / сар</span>
-                              </div>
-                            </div>
-                          )}
-
-                          <p className="text-[10px] text-slate-500 dark:text-nebula-text italic pt-1">
-                            * Ипотекийн зээлийн хөтөлбөрийн дээд хязгаар 150 сая ₮ хүртэл байдаг бөгөөд банкны энгийн зээлийн хүү, шалгуур нь банк тус бүрийн нөхцөлөөс хамаарна.
-                          </p>
-                        </div>
-                      )}
 
                       {/* Rent Prepayment Breakdown */}
                       {isRent && rentMonths > 0 && (
@@ -1441,9 +1321,9 @@ const ListingDetail = () => {
                     {/* SECTION 2: Dedicated Interactive Loan & Mortgage Calculator — ONLY when user requests to open it */}
                     {isEligibleForMortgage && priceNum > 0 && showMortgageCalculator && (
                       <div id="mortgage-calculator" className="mb-8 scroll-mt-24 transition-all">
-                        <MortgageCalculator 
-                          initialPrice={priceNum} 
-                          propertyTitle={listing.title} 
+                        <MortgageCalculator
+                          initialPrice={priceNum}
+                          propertyTitle={listing.title}
                           onClose={() => setShowMortgageCalculator(false)}
                         />
                       </div>
@@ -1513,8 +1393,6 @@ const ListingDetail = () => {
                 const sellerName = seller?.name || listing.attributes?.contactName || 'Батболд';
                 const sellerAvatar = seller?.avatarUrl || seller?.avatar;
                 const sellerInitial = sellerName ? sellerName.charAt(0).toUpperCase() : 'Б';
-                const rawPhone = listing.contactPhone || listing.attributes?.contactPhone || seller?.phone || '8976-7700';
-                const displayMaskedPhone = rawPhone.length >= 4 ? `${rawPhone.slice(0, 4)}-****` : '8976-****';
                 const finalPhone = revealedPhone || rawPhone;
 
                 return (
@@ -1590,11 +1468,10 @@ const ListingDetail = () => {
                           {!user && !isOwner && guestQuotaRemaining !== null && (
                             <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-nebula-text font-medium pt-0.5">
                               <span>Өнөөдөр үлдсэн үнэгүй эрх:</span>
-                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-black border ${
-                                guestQuotaRemaining > 0
+                              <span className={`px-2 py-0.5 rounded-full text-[11px] font-black border ${guestQuotaRemaining > 0
                                   ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
                                   : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                              }`}>
+                                }`}>
                                 {guestQuotaRemaining}/{DAILY_GUEST_PHONE_LIMIT}
                               </span>
                             </div>
