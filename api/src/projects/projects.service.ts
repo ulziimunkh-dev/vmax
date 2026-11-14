@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project, ProjectStatus } from './project.entity';
 import { CreateProjectDto, QueryProjectDto } from './dto/project.dto';
+
+export const MAX_PROJECTS_PER_USER = 1;
 
 @Injectable()
 export class ProjectsService {
@@ -12,6 +14,15 @@ export class ProjectsService {
   ) {}
 
   async create(createProjectDto: CreateProjectDto, userId?: string): Promise<Project> {
+    if (userId) {
+      const existingCount = await this.projectsRepository.count({ where: { userId } });
+      if (existingCount >= MAX_PROJECTS_PER_USER) {
+        throw new BadRequestException(
+          `Таны аккаунт дээр зөвшөөрөгдөх төслийн лимит (${MAX_PROJECTS_PER_USER}) хүрсэн байна. Нэмэлт төсөл нийтлэх бол манай харилцагчийн албатай холбогдоно уу (+976 8976-7700).`,
+        );
+      }
+    }
+
     const project = this.projectsRepository.create({
       ...createProjectDto,
       userId,
@@ -24,6 +35,14 @@ export class ProjectsService {
       reels: createProjectDto.reels || [],
     });
     return this.projectsRepository.save(project);
+  }
+
+  async findByUser(userId: string): Promise<Project[]> {
+    if (!userId) return [];
+    return this.projectsRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findAll(query: QueryProjectDto) {
@@ -100,12 +119,21 @@ export class ProjectsService {
 
   async update(id: string, updateProjectDto: Partial<CreateProjectDto>, userId?: string): Promise<Project> {
     const project = await this.findOne(id);
+    if (project.userId && userId && project.userId !== userId) {
+      throw new ForbiddenException('Та энэ төслийн эзэмшигч биш байна.');
+    }
+    if (!project.userId && userId) {
+      project.userId = userId;
+    }
     Object.assign(project, updateProjectDto);
     return this.projectsRepository.save(project);
   }
 
   async remove(id: string, userId?: string): Promise<void> {
     const project = await this.findOne(id);
+    if (project.userId && userId && project.userId !== userId) {
+      throw new ForbiddenException('Та энэ төслийн эзэмшигч биш байна.');
+    }
     await this.projectsRepository.remove(project);
   }
 

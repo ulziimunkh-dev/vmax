@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
   --font-heading: "Outfit", "Plus Jakarta Sans", "Inter", sans-serif;
@@ -343,6 +345,17 @@ html.light .promo-close { color: #ffffff; background: rgba(255,255,255,0.15); }
 ::-webkit-scrollbar-thumb { background: #2d2d44; border-radius: 4px; }
 html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 ::-webkit-scrollbar-thumb:hover { background: #6c5ce7; }
+
+/* Hide scrollbar for clean scrollable tabs/pills */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
 
 /* ─────────────────────────────────────────────────────────── */
 /* Leaflet Custom OpenStreetMap Styling & Dark Mode Filter   */

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Building2,
@@ -39,9 +39,15 @@ const DISTRICTS = [
 
 export const CreateProject: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || searchParams.get('id');
+
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [existingProjectsCount, setExistingProjectsCount] = useState<number>(0);
+  const [existingProjectId, setExistingProjectId] = useState<string | null>(null);
+  const [fetchingExisting, setFetchingExisting] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
@@ -77,6 +83,59 @@ export const CreateProject: React.FC = () => {
   // Reels Dynamic List
   const [reels, setReels] = useState<ProjectReelItem[]>([]);
   const [reelUploadingIdx, setReelUploadingIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (editId) {
+      setFetchingExisting(true);
+      projectsAPI.getOne(editId)
+        .then((res) => {
+          const p = res.data;
+          if (p) {
+            setName(p.name || '');
+            setDeveloperName(p.developerName || '');
+            setTagline(p.tagline || '');
+            setDescription(p.description || '');
+            setStatus(p.status || 'CONSTRUCTING');
+            setCompletionYearQuarter(p.completionYearQuarter || '');
+            setDistrict(p.district || 'Хан-Уул');
+            setKhoroo(p.khoroo || '11-р хороо');
+            setAddressDetail(p.addressDetail || '');
+            setSalesPhone(p.salesPhone || '');
+            setSalesEmail(p.salesEmail || '');
+            setWebsiteUrl(p.websiteUrl || '');
+            setFacebookPageUrl(p.facebookPageUrl || '');
+            setInstagramHandle(p.instagramHandle || '');
+            setMinPricePerSqm(p.minPricePerSqm ? String(p.minPricePerSqm) : '');
+            setStartingPrice(p.startingPrice ? String(p.startingPrice) : '');
+            setCoverImage(p.coverImage || '');
+            setGalleryInput(Array.isArray(p.galleryImages) ? p.galleryImages.join(', ') : '');
+            setTour3dUrl(p.tour3dUrl || '');
+            setVideoUrl(p.videoUrl || '');
+            setReels(p.reels || []);
+            setFloorPlans(p.floorPlans || []);
+            setPaymentTermsInput(Array.isArray(p.paymentTerms) ? p.paymentTerms.join(', ') : '');
+            setSpecialOffersInput(Array.isArray(p.specialOffers) ? p.specialOffers.join(', ') : '');
+            setAmenitiesInput(Array.isArray(p.amenities) ? p.amenities.join(', ') : '');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          setError('Төслийн мэдээлэл ачаалахад алдаа гарлаа.');
+        })
+        .finally(() => setFetchingExisting(false));
+    } else if (user) {
+      // Check if user already reached limit 1 project
+      projectsAPI.getMy()
+        .then((res) => {
+          const list = Array.isArray(res.data) ? res.data : [];
+          setExistingProjectsCount(list.length);
+          if (list.length > 0) {
+            setExistingProjectId(list[0].id);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [editId, user]);
 
   const checkVideoDuration = (file: File): Promise<number | null> => {
     return new Promise((resolve) => {
@@ -284,9 +343,14 @@ export const CreateProject: React.FC = () => {
         floorPlans,
       };
 
-      const res = await projectsAPI.create(payload);
-      const newId = res.data?.id;
-      navigate(newId ? `/projects/${newId}` : '/projects');
+      if (editId) {
+        await projectsAPI.update(editId, payload);
+        navigate(`/projects/${editId}`);
+      } else {
+        const res = await projectsAPI.create(payload);
+        const newId = res.data?.id;
+        navigate(newId ? `/projects/${newId}` : '/projects');
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || 'Төсөл нийтлэхэд алдаа гарлаа.');
@@ -301,15 +365,43 @@ export const CreateProject: React.FC = () => {
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-plasma/10 border border-plasma/30 text-plasma text-xs font-bold uppercase tracking-wider">
           <Building2 size={14} />
-          <span>Барилгын компаниудад зориулав</span>
+          <span>{editId ? 'Төсөл засварлах горим' : 'Барилгын компаниудад зориулав'}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-heading font-black text-starlight">
-          Шинэ барилга, хотхоны төсөл бүртгэх
+          {editId ? 'Барилгын төслийн мэдээлэл засах' : 'Шинэ барилга, хотхоны төсөл бүртгэх'}
         </h1>
         <p className="text-xs sm:text-sm text-nebula-text max-w-xl mx-auto">
-          Хотхоныхоо 3D виртуал аялал, өрөөний хэмжээнүүд, албан ёсны FB, IG болон утасны дугаараа нийтлээрэй.
+          {editId
+            ? 'Төслийн нэр, өрөөний төлөвлөлтүүд, 3D аялал, үнэ болон холбоо барих мэдээллээ шинэчлээрэй.'
+            : 'Хотхоныхоо 3D виртуал аялал, өрөөний хэмжээнүүд, албан ёсны FB, IG болон утасны дугаараа нийтлээрэй.'}
         </p>
       </div>
+
+      {/* ⚠️ Limit Reached Alert Banner (1 project limit) */}
+      {!editId && existingProjectsCount >= 1 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                Төслийн хэрэглэгчийн лимит (1/1) хүрсэн байна
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-nebula-text">
+                Нэг хэрэглэгчийн аккаунт дээр 1 барилгын төсөл үүсгэх эрхтэй. Та одоо байгаа төслөө засах эсвэл нэмэлт төсөл нийтлэх бол манай харилцагчийн албатай холбогдоно уу (8976-7700).
+              </p>
+            </div>
+          </div>
+          {existingProjectId && (
+            <button
+              type="button"
+              onClick={() => navigate(`/create-project?edit=${existingProjectId}`)}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs whitespace-nowrap cursor-pointer transition shadow-sm"
+            >
+              Одоо байгаа төслөө засах →
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 🤝 Company Partnership & Official Cooperation Banner */}
       <div className="relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/10 via-purple-50/60 to-indigo-50/40 dark:from-plasma/15 dark:via-cosmic/70 dark:to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
@@ -930,11 +1022,11 @@ export const CreateProject: React.FC = () => {
           className="w-full py-4 rounded-2xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-base shadow-xl shadow-plasma/30 hover:shadow-plasma/50 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {loading ? (
-            <span>Нийтэлж байна...</span>
+            <span>Хадгалж байна...</span>
           ) : (
             <>
               <CheckCircle2 size={20} />
-              <span>Төслийг нийтлэх</span>
+              <span>{editId ? 'Өөрчлөлтийг хадгалах' : 'Төслийг нийтлэх'}</span>
             </>
           )}
         </button>

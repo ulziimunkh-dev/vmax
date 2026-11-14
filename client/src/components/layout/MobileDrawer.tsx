@@ -20,6 +20,7 @@ import {
   Building2,
   Layers,
   MessageSquare,
+  Calculator,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -60,6 +61,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
       icon: <Layers size={18} className="text-aurora" />,
       badge: lang === 'en' ? 'New' : 'Шинэ',
       badgeColor: 'bg-aurora/20 text-aurora border-aurora/30',
+    },
+    {
+      label: lang === 'en' ? '🧮 Mortgage Calculator' : '🧮 Зээлийн тооцоолуур (6%)',
+      to: '/calculator',
+      icon: <Calculator size={18} className="text-emerald-400" />,
+      badge: '6%',
+      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
     },
     {
       label: lang === 'en' ? '💎 Pricing Plans' : 'Багцууд (VIP, Баталгаажсан)',

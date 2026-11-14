@@ -19,6 +19,8 @@ export const furnitureApi = {
 
   getOne: (id: string) => api.get<FurnitureMaker>(`/furniture/${id}`),
 
+  getMy: () => api.get<FurnitureMaker | null>('/furniture/my'),
+
   getTips: () => api.get<FurnitureArticleItem[]>('/furniture/tips'),
 
   create: (data: Partial<FurnitureMaker>) => api.post<FurnitureMaker>('/furniture', data),
@@ -27,6 +29,9 @@ export const furnitureApi = {
 
   addPortfolioItem: (id: string, item: Partial<FurniturePortfolioItem>) =>
     api.post<FurnitureMaker>(`/furniture/${id}/portfolio`, item),
+
+  deletePortfolioItem: (makerId: string, portfolioId: string) =>
+    api.delete<FurnitureMaker>(`/furniture/${makerId}/portfolio/${portfolioId}`),
 
   delete: (id: string) => api.delete(`/furniture/${id}`),
 };

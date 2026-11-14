@@ -34,25 +34,33 @@ export class FurnitureController {
     return this.furnitureService.getAllTips();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('my')
+  async getMy(@Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.furnitureService.findByUser(userId);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.furnitureService.findOne(id);
   }
 
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post()
   async create(@Body() createDto: CreateFurnitureMakerDto, @Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
     return this.furnitureService.create(createDto, userId);
   }
 
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateDto: UpdateFurnitureMakerDto) {
-    return this.furnitureService.update(id, updateDto);
+  async update(@Param('id') id: string, @Body() updateDto: UpdateFurnitureMakerDto, @Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.furnitureService.update(id, updateDto, userId);
   }
 
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post(':id/portfolio')
   async addPortfolioItem(
     @Param('id') id: string,
@@ -64,9 +72,21 @@ export class FurnitureController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Delete(':id/portfolio/:portfolioId')
+  async deletePortfolioItem(
+    @Param('id') id: string,
+    @Param('portfolioId') portfolioId: string,
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.furnitureService.removePortfolioItem(id, portfolioId, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    await this.furnitureService.delete(id);
+  async delete(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    await this.furnitureService.delete(id, userId);
     return { success: true, message: 'Furniture maker deleted' };
   }
 }

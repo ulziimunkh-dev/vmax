@@ -166,6 +166,7 @@ export const listingsAPI = {
 
 export const projectsAPI = {
   getAll: (params?: any) => api.get('/projects', { params }),
+  getMy: () => api.get('/projects/my'),
   getOne: (id: string) => api.get(`/projects/${id}`),
   create: (data: any) => api.post('/projects', data),
   update: (id: string, data: any) => api.patch(`/projects/${id}`, data),

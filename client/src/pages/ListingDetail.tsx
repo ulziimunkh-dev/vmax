@@ -19,6 +19,7 @@ import { getImageUrl } from '@/utils/imageUrl';
 import { formatPriceMongolianWords } from '@/utils/formatPrice';
 import { checkPhoneQuota, recordPhoneView, DAILY_GUEST_PHONE_LIMIT } from '@/utils/phoneQuota';
 import { PhoneQuotaLimitModal } from '@/components/common/PhoneQuotaLimitModal';
+import { MortgageCalculator } from '@/components/listings/MortgageCalculator';
 
 
 
@@ -58,6 +59,7 @@ const ListingDetail = () => {
   const [copiedSummary, setCopiedSummary] = useState(false);
   const [avatarImgError, setAvatarImgError] = useState(false);
   const [mediaTab, setMediaTab] = useState<'images' | 'video'>('images');
+  const [showMortgageCalculator, setShowMortgageCalculator] = useState(false);
   const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
@@ -904,282 +906,6 @@ const ListingDetail = () => {
                 )}
               </div>
 
-              {/* Interactive Payment Conditions & Financial Options Card */}
-              {(() => {
-                const pTermsRaw = listing.attributes?.paymentTerms;
-                const termsList: string[] = pTermsRaw
-                  ? Array.isArray(pTermsRaw)
-                    ? pTermsRaw
-                    : [pTermsRaw]
-                  : [];
-
-                const descText = listing.description || '';
-                const isSale = listing.type?.toUpperCase() === 'SALE';
-                const isRent = listing.type?.toUpperCase() === 'RENT';
-                const isDaily = listing.type?.toUpperCase() === 'DAILY_RENT';
-                const hasLoan = termsList.some((t) => /зээл|ипотек/i.test(t)) || /зээл|ипотек/i.test(descText);
-                const hasBarter = termsList.some((t) => /бартер/i.test(t)) || /бартер/i.test(descText);
-
-                const priceNum = Number(listing.price) || 0;
-                const downPayment30 = Math.round(priceNum * 0.3);
-                const loanPrincipal70 = Math.round(priceNum * 0.7);
-
-                // Government 6% mortgage loan capped at 150 million MNT
-                const MAX_MORTGAGE_LIMIT = 150_000_000;
-                const mortgageLoan = Math.min(loanPrincipal70, MAX_MORTGAGE_LIMIT);
-                const commercialLoan = Math.max(0, loanPrincipal70 - MAX_MORTGAGE_LIMIT);
-
-                // 6% mortgage over 20 years (240 months)
-                const r6 = 0.06 / 12;
-                const n240 = 240;
-                const monthlyMortgage6 = mortgageLoan > 0
-                  ? Math.round((mortgageLoan * r6 * Math.pow(1 + r6, n240)) / (Math.pow(1 + r6, n240) - 1))
-                  : 0;
-
-                // Commercial bank loan ~18% over 15 years (180 months)
-                const r18 = 0.18 / 12;
-                const n180 = 180;
-                const monthlyCommercial = commercialLoan > 0
-                  ? Math.round((commercialLoan * r18 * Math.pow(1 + r18, n180)) / (Math.pow(1 + r18, n180) - 1))
-                  : 0;
-
-                const totalMonthlyLoan = monthlyMortgage6 + monthlyCommercial;
-                const downPaymentNoCommercial = Math.max(downPayment30, priceNum - MAX_MORTGAGE_LIMIT);
-
-                const rentalTermMatch = termsList.find((t) => /^\d+\s*\+\s*\d+$/.test(t)) || descText.match(/(\d+)\s*\+\s*(\d+)/)?.[0];
-                let rentMonths = 0;
-                let depositMonths = 0;
-                if (rentalTermMatch) {
-                  const parts = rentalTermMatch.split('+').map((p) => parseInt(p.trim(), 10));
-                  rentMonths = parts[0] || 0;
-                  depositMonths = parts[1] || 0;
-                }
-
-                const handleCopySummary = () => {
-                  const phoneToCopy = revealedPhone || listing.contactPhone || listing.attributes?.contactPhone || listing.user?.phone || '';
-                  const summaryLines = [
-                    `🏡 ${listing.title}`,
-                    `💰 Үнэ: ${formatPriceMongolianWords(listing.price)} (${Number(listing.price).toLocaleString()} ₮)`,
-                    listing.district ? `📍 Байршил: ${listing.district}${listing.khoroo ? `, ${listing.khoroo}` : ''}` : '',
-                    listing.areaSqm ? `📐 Талбай: ${listing.areaSqm} м.кв` : '',
-                    (listing.attributes?.rooms || listing.attributes?.bedrooms) ? `🛏️ Өрөө: ${listing.attributes?.rooms || listing.attributes?.bedrooms} өрөө` : '',
-                    termsList.length > 0 ? `💳 Төлбөрийн нөхцөл: ${termsList.join(', ')}` : '',
-                    phoneToCopy ? `📞 Холбогдох дугаар: ${phoneToCopy}` : '',
-                    `🔗 Линк: ${window.location.href}`,
-                  ].filter(Boolean).join('\n');
-
-                  navigator.clipboard.writeText(summaryLines);
-                  setCopiedSummary(true);
-                  setTimeout(() => setCopiedSummary(false), 2500);
-                };
-
-                return (
-                  <div className="mb-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-void/90 via-cosmic/70 to-plasma/10 border border-plasma/30 shadow-xl backdrop-blur-md">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
-                      <div className="flex items-center space-x-2.5">
-                        <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
-                          <CreditCard size={20} />
-                        </div>
-                        <div>
-                          <h3 className="text-base sm:text-lg font-bold text-starlight flex items-center gap-2">
-                            <span>Төлбөрийн нөхцөл ба боломжууд</span>
-                          </h3>
-                          <p className="text-xs text-nebula-text">
-                            Нөхцөл дээр дарж ижил төлбөрийн нөхцөлтэй бусад зарыг харах боломжтой
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleCopySummary}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-void/60 border border-white/10 hover:border-plasma hover:text-plasma transition-all text-nebula-text self-start sm:self-auto cursor-pointer"
-                        title="Зарын гол үзүүлэлт болон төлбөрийн нөхцөлийг хуулах"
-                      >
-                        {copiedSummary ? (
-                          <>
-                            <Check size={14} className="text-emerald-400" />
-                            <span className="text-emerald-400">Хуулагдлаа!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} />
-                            <span>Мэдээлэл хуулах</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Main Payment Term Interactive Badges */}
-                    <div className="flex flex-wrap gap-2.5 mb-4">
-                      {termsList.length > 0 ? (
-                        termsList.map((term) => (
-                          <button
-                            key={term}
-                            type="button"
-                            onClick={() => navigate(`/?paymentTerms=${encodeURIComponent(term)}`)}
-                            className="group flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-amber-500/20 hover:scale-[1.02] cursor-pointer"
-                            title="Энэ нөхцөлтэй заруудыг харах"
-                          >
-                            <span>💳</span>
-                            <span>{term}</span>
-                            <span className="text-[11px] opacity-75 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform text-white">
-                              →
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <span className="text-xs text-nebula-text">Төлбөрийн нөхцөлийг утсаар тохиролцоно</span>
-                      )}
-
-                      {hasBarter && (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/?paymentTerms=Бартер')}
-                          className="group flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/40 text-purple-300 text-xs sm:text-sm font-bold transition-all shadow-sm hover:scale-[1.02] cursor-pointer"
-                        >
-                          <ArrowRightLeft size={14} className="text-purple-400" />
-                          <span>Бартер оролцуулна</span>
-                          <span className="text-[11px] text-white">→</span>
-                        </button>
-                      )}
-
-                      {hasLoan && (
-                        <button
-                          type="button"
-                          onClick={() => navigate('/?paymentTerms=Банкны%20зээлээр')}
-                          className="group flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs sm:text-sm font-bold transition-all shadow-sm hover:scale-[1.02] cursor-pointer"
-                        >
-                          <span>🏛️</span>
-                          <span>Банкны зээл / Ипотек</span>
-                          <span className="text-[11px] text-white">→</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Financial Calculations Preview */}
-                    {/* 1) Rent Prepayment Breakdown */}
-                    {isRent && rentMonths > 0 && (
-                      <div className="p-3.5 rounded-xl bg-void/60 border border-white/10 text-xs space-y-1.5">
-                        <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                          <span>📋</span>
-                          <span>Түрээсийн эхний төлөлтийн тооцоо ({rentalTermMatch}):</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-starlight">
-                          <div className="bg-void/40 p-2 rounded-lg border border-white/5">
-                            <span className="text-nebula-text block text-[11px]">{rentMonths} сарын түрээс:</span>
-                            <span className="font-bold text-white">{(priceNum * rentMonths).toLocaleString()} ₮</span>
-                          </div>
-                          <div className="bg-void/40 p-2 rounded-lg border border-white/5">
-                            <span className="text-nebula-text block text-[11px]">{depositMonths} сарын барьцаа:</span>
-                            <span className="font-bold text-white">{(priceNum * depositMonths).toLocaleString()} ₮</span>
-                          </div>
-                          <div className="bg-amber-500/10 p-2 rounded-lg border border-amber-500/30">
-                            <span className="text-amber-300 block text-[11px]">Эхний нийт төлөлт:</span>
-                            <span className="font-bold text-amber-400">{(priceNum * (rentMonths + depositMonths)).toLocaleString()} ₮</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 2) Sale Mortgage / Loan Calculation Breakdown */}
-                    {isSale && priceNum > 0 && (hasLoan || priceNum >= 50_000_000) && (
-                      <div className="p-4 rounded-xl bg-void/60 border border-white/10 text-xs space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b border-white/10">
-                          <div className="font-bold text-emerald-400 flex items-center gap-1.5 text-sm">
-                            <Calculator size={16} />
-                            <span>Зээл / Ипотекийн тооцоолол (Ипотекийн дээд хязгаар 150 сая ₮):</span>
-                          </div>
-                          <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium border ${
-                            commercialLoan > 0
-                              ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                              : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                          }`}>
-                            {commercialLoan > 0 ? 'Хосолсон зээл (Ипотек + Банкны зээл)' : '100% Ипотекийн 6% зээлд багтана'}
-                          </span>
-                        </div>
-
-                        {commercialLoan > 0 ? (
-                          <>
-                            {/* Breakdown grid for when loan exceeds 150 million */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-starlight">
-                              <div className="bg-void/40 p-2.5 rounded-lg border border-white/5">
-                                <span className="text-nebula-text block text-[11px]">Урьдчилгаа (30%):</span>
-                                <span className="font-bold text-white text-sm">{downPayment30.toLocaleString()} ₮</span>
-                              </div>
-                              <div className="bg-void/40 p-2.5 rounded-lg border border-white/5">
-                                <span className="text-nebula-text block text-[11px]">Зээлэх дүн (70%):</span>
-                                <span className="font-bold text-white text-sm">{loanPrincipal70.toLocaleString()} ₮</span>
-                              </div>
-                              <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
-                                <span className="text-emerald-300 block text-[11px]">Ипотек 6% (Дээд лимит):</span>
-                                <span className="font-bold text-emerald-400 text-sm">{mortgageLoan.toLocaleString()} ₮</span>
-                                <span className="text-[10px] text-emerald-300/80 block mt-0.5">~{monthlyMortgage6.toLocaleString()} ₮ / сар (20 жил)</span>
-                              </div>
-                              <div className="bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/30">
-                                <span className="text-amber-300 block text-[11px]">Банкны энгийн зээл:</span>
-                                <span className="font-bold text-amber-400 text-sm">{commercialLoan.toLocaleString()} ₮</span>
-                                <span className="text-[10px] text-amber-300/80 block mt-0.5">~{monthlyCommercial.toLocaleString()} ₮ / сар (18%, 15 жил)</span>
-                              </div>
-                            </div>
-
-                            {/* Total monthly payment highlight */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-emerald-950/30 border border-emerald-500/40 text-emerald-200">
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">💳</span>
-                                <div>
-                                  <span className="font-bold text-white text-sm">Сарын нийт төлөлт (Хосолсон):</span>
-                                  <span className="text-[11px] text-nebula-text block">
-                                    Ипотек 6% (~{monthlyMortgage6.toLocaleString()} ₮) + Банкны зээл (~{monthlyCommercial.toLocaleString()} ₮)
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="text-right mt-2 sm:mt-0">
-                                <span className="text-lg font-extrabold text-emerald-400 font-heading">
-                                  ~{totalMonthlyLoan.toLocaleString()} ₮ / сар
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Recommendation to increase down payment and avoid bank loan */}
-                            <div className="p-3 rounded-lg bg-plasma/10 border border-plasma/30 flex items-start gap-2 text-starlight text-[11px]">
-                              <span className="text-plasma font-bold text-sm shrink-0">💡</span>
-                              <div>
-                                <span className="font-bold text-plasma">Зөвлөмж — Банкны өндөр хүүтэй зээл авахгүй байх боломж:</span>
-                                <p className="text-nebula-text mt-0.5 leading-relaxed">
-                                  Хэрэв урьдчилгаа төлбөрөө <strong className="text-white">{downPaymentNoCommercial.toLocaleString()} ₮</strong> болговол үлдсэн <strong>150 сая ₮</strong>-ийг бүтнээр нь зөвхөн <strong>6% хөнгөлөлттэй ипотекийн зээлээр</strong> (~{monthlyMortgage6.toLocaleString()} ₮/сар) санхүүжүүлж, өндөр хүүтэй зээлээс бүрэн зайлсхийх боломжтой.
-                                </p>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          /* When loan fits within 150 million MNT */
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-starlight">
-                            <div className="bg-void/40 p-2.5 rounded-lg border border-white/5">
-                              <span className="text-nebula-text block text-[11px]">Урьдчилгаа (30%):</span>
-                              <span className="font-bold text-white text-sm">{downPayment30.toLocaleString()} ₮</span>
-                            </div>
-                            <div className="bg-void/40 p-2.5 rounded-lg border border-white/5">
-                              <span className="text-nebula-text block text-[11px]">Зээлэх дүн (70%):</span>
-                              <span className="font-bold text-white text-sm">{loanPrincipal70.toLocaleString()} ₮</span>
-                              <span className="text-[10px] text-emerald-400 block mt-0.5">✓ 150 сая ₮ дээд хязгаарт багтаж байна</span>
-                            </div>
-                            <div className="bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/30">
-                              <span className="text-emerald-300 block text-[11px]">Ипотек 6% (20 жил):</span>
-                              <span className="font-bold text-emerald-400 text-sm">~{monthlyMortgage6.toLocaleString()} ₮ / сар</span>
-                            </div>
-                          </div>
-                        )}
-
-                        <p className="text-[10px] text-nebula-text italic">
-                          * Ипотекийн зээлийн хөтөлбөрийн дээд хязгаар 150 сая ₮ хүртэл байдаг бөгөөд банкны энгийн зээлийн хүү, шалгуур нь банк тус бүрийн нөхцөлөөс хамаарна.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
               <h3 className="text-xl font-heading font-bold text-white mb-3">Дэлгэрэнгүй тайлбар</h3>
               <p className="text-nebula-text leading-relaxed whitespace-pre-line mb-8">
                 {listing.description}
@@ -1361,32 +1087,6 @@ const ListingDetail = () => {
                     </div>
                   )}
 
-                  {/* Payment Terms Chips */}
-                  {listing.attributes.paymentTerms && (Array.isArray(listing.attributes.paymentTerms) ? listing.attributes.paymentTerms.length > 0 : !!listing.attributes.paymentTerms) && (
-                    <div className="pt-4">
-                      <h4 className="text-sm font-bold text-nebula-text mb-2 flex items-center gap-2">
-                        <span>💳</span> {t.assetAttributes.paymentTerms}
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {(Array.isArray(listing.attributes.paymentTerms)
-                          ? listing.attributes.paymentTerms
-                          : [listing.attributes.paymentTerms]
-                        ).map((term: string) => (
-                          <button
-                            key={term}
-                            type="button"
-                            onClick={() => navigate(`/?paymentTerms=${encodeURIComponent(term)}`)}
-                            className="text-xs px-3 py-1.5 rounded-full bg-nova/15 border border-nova/40 text-nova font-medium hover:bg-nova/25 hover:border-nova/60 transition-all flex items-center gap-1 cursor-pointer"
-                            title="Энэ нөхцөлтэй зар хайх"
-                          >
-                            <span>{term}</span>
-                            <span className="text-[10px] opacity-75">🔍</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Amenities Tag Cloud */}
                   {listing.attributes.amenities && Array.isArray(listing.attributes.amenities) && listing.attributes.amenities.length > 0 && (
                     <div className="pt-4">
@@ -1404,6 +1104,355 @@ const ListingDetail = () => {
                   )}
                 </div>
               )}
+
+              {/* 💳 Payment Conditions & Dedicated Loan Calculator Sections */}{(() => {
+                const pTermsRaw = listing.attributes?.paymentTerms;
+                const rawTermsList: string[] = pTermsRaw
+                  ? Array.isArray(pTermsRaw)
+                    ? pTermsRaw
+                    : [pTermsRaw]
+                  : [];
+
+                // Default to 'Бэлэн төлбөр' if payment information was not specified
+                const termsList: string[] = rawTermsList.length > 0 ? rawTermsList : ['Бэлэн төлбөр'];
+
+                const descText = listing.description || '';
+                const isSale = listing.type?.toUpperCase() === 'SALE';
+                const isRent = listing.type?.toUpperCase() === 'RENT';
+                const isDaily = listing.type?.toUpperCase() === 'DAILY_RENT';
+
+                const catUpper = (listing.category || '').toUpperCase();
+                const isApartment = catUpper === 'APARTMENT' || catUpper === 'ОРОН СУУЦ';
+
+                // Mortgage loan & loan calculator is strictly ONLY for sale APARTMENTS (Орон сууц дээр зөвхөн оруулах)!
+                const isEligibleForMortgage = isSale && isApartment;
+
+                const hasLoan = termsList.some((t) => /зээл|ипотек/i.test(t)) || /зээл|ипотек/i.test(descText);
+                const hasBarter = termsList.some((t) => /бартер/i.test(t)) || /бартер/i.test(descText);
+
+                const priceNum = Number(listing.price) || 0;
+                const downPayment30 = Math.round(priceNum * 0.3);
+                const loanPrincipal70 = Math.round(priceNum * 0.7);
+
+                // Government 6% mortgage loan capped at 150 million MNT
+                const MAX_MORTGAGE_LIMIT = 150_000_000;
+                const mortgageLoan = Math.min(loanPrincipal70, MAX_MORTGAGE_LIMIT);
+                const commercialLoan = Math.max(0, loanPrincipal70 - MAX_MORTGAGE_LIMIT);
+
+                // 6% mortgage over 20 years (240 months)
+                const r6 = 0.06 / 12;
+                const n240 = 240;
+                const monthlyMortgage6 = mortgageLoan > 0
+                  ? Math.round((mortgageLoan * r6 * Math.pow(1 + r6, n240)) / (Math.pow(1 + r6, n240) - 1))
+                  : 0;
+
+                // Commercial bank loan ~18% over 15 years (180 months)
+                const r18 = 0.18 / 12;
+                const n180 = 180;
+                const monthlyCommercial = commercialLoan > 0
+                  ? Math.round((commercialLoan * r18 * Math.pow(1 + r18, n180)) / (Math.pow(1 + r18, n180) - 1))
+                  : 0;
+
+                const totalMonthlyLoan = monthlyMortgage6 + monthlyCommercial;
+                const downPaymentNoCommercial = Math.max(downPayment30, priceNum - MAX_MORTGAGE_LIMIT);
+
+                const rentalTermMatch = termsList.find((t) => /^\d+\s*\+\s*\d+$/.test(t)) || descText.match(/(\d+)\s*\+\s*(\d+)/)?.[0];
+                let rentMonths = 0;
+                let depositMonths = 0;
+                if (rentalTermMatch) {
+                  const parts = rentalTermMatch.split('+').map((p) => parseInt(p.trim(), 10));
+                  rentMonths = parts[0] || 0;
+                  depositMonths = parts[1] || 0;
+                }
+
+                const handleCopySummary = () => {
+                  const phoneToCopy = revealedPhone || listing.contactPhone || listing.attributes?.contactPhone || listing.user?.phone || '';
+                  const summaryLines = [
+                    `🏡 ${listing.title}`,
+                    `💰 Үнэ: ${formatPriceMongolianWords(listing.price)} (${Number(listing.price).toLocaleString()} ₮)`,
+                    listing.district ? `📍 Байршил: ${listing.district}${listing.khoroo ? `, ${listing.khoroo}` : ''}` : '',
+                    listing.areaSqm ? `📐 Талбай: ${listing.areaSqm} м.кв` : '',
+                    (listing.attributes?.rooms || listing.attributes?.bedrooms) ? `🛏️ Өрөө: ${listing.attributes?.rooms || listing.attributes?.bedrooms} өрөө` : '',
+                    termsList.length > 0 ? `💳 Төлбөрийн нөхцөл: ${termsList.join(', ')}` : '',
+                    phoneToCopy ? `📞 Холбогдох дугаар: ${phoneToCopy}` : '',
+                    `🔗 Линк: ${window.location.href}`,
+                  ].filter(Boolean).join('\n');
+
+                  navigator.clipboard.writeText(summaryLines);
+                  setCopiedSummary(true);
+                  setTimeout(() => setCopiedSummary(false), 2500);
+                };
+
+                return (
+                  <>
+                    {/* SECTION 1: Clean Payment Conditions Card */}
+                    <div className="mb-8 p-6 sm:p-7 rounded-3xl bg-white dark:bg-void/90 border border-slate-200 dark:border-white/10 shadow-xl shadow-plasma/5 space-y-5">
+                      {/* Header: Title & Copy Button */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-white/10">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2.5 rounded-2xl bg-plasma/10 dark:bg-plasma/20 border border-plasma/30 text-plasma shadow-sm">
+                            <CreditCard size={22} />
+                          </div>
+                          <div>
+                            <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                              <span>Төлбөрийн нөхцөл ба боломжууд</span>
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-nebula-text font-medium">
+                              Нөхцөл дээр дарж ижил төлбөрийн нөхцөлтэй бусад зарыг харах боломжтой
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleCopySummary}
+                          className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-void/80 border border-slate-200 dark:border-white/15 hover:border-plasma dark:hover:border-plasma hover:text-plasma transition-all text-slate-700 dark:text-starlight shadow-sm cursor-pointer self-start sm:self-auto active:scale-95"
+                          title="Зарын гол үзүүлэлт болон төлбөрийн нөхцөлийг хуулах"
+                        >
+                          {copiedSummary ? (
+                            <>
+                              <Check size={14} className="text-emerald-500 font-bold" />
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">Хуулагдлаа!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={14} />
+                              <span>Мэдээлэл хуулах</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Main Payment Term Interactive Badges */}
+                      <div className="flex flex-wrap gap-2.5">
+                        {termsList.map((term) => {
+                          const isLoanTerm = /зээл|ипотек/i.test(term);
+                          return (
+                            <button
+                              key={term}
+                              type="button"
+                              onClick={() => navigate(`/?paymentTerms=${encodeURIComponent(term)}`)}
+                              className={`group flex items-center space-x-2 px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer ${
+                                isLoanTerm
+                                  ? 'bg-amber-100/80 hover:bg-amber-200/80 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300 dark:border-amber-600/50 text-amber-950 dark:text-amber-200'
+                                  : 'bg-plasma/10 hover:bg-plasma/20 border-plasma/30 text-plasma'
+                              }`}
+                              title="Энэ нөхцөлтэй заруудыг харах"
+                            >
+                              <span>💳</span>
+                              <span>{term}</span>
+                              <span className="text-xs opacity-75 group-hover:opacity-100 group-hover:translate-x-0.5 transition-transform">
+                                →
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        {hasBarter && (
+                          <button
+                            type="button"
+                            onClick={() => navigate('/?paymentTerms=Бартер')}
+                            className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-purple-100/80 hover:bg-purple-200/80 dark:bg-purple-950/40 dark:hover:bg-purple-950/60 border border-purple-300 dark:border-purple-600/50 text-purple-950 dark:text-purple-200 text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer"
+                          >
+                            <ArrowRightLeft size={14} className="text-purple-700 dark:text-purple-300" />
+                            <span>Бартер оролцуулна</span>
+                            <span className="text-xs">→</span>
+                          </button>
+                        )}
+
+                        {hasLoan && isEligibleForMortgage && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMortgageCalculator(true);
+                              setTimeout(() => {
+                                document.getElementById('mortgage-calculator')?.scrollIntoView({ behavior: 'smooth' });
+                              }, 100);
+                            }}
+                            className="group flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-100/80 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-600/50 text-emerald-950 dark:text-emerald-200 text-xs sm:text-sm font-extrabold transition-all shadow-sm hover:scale-[1.02] active:scale-95 cursor-pointer"
+                            title="Зээлийн тооцоолуур нээх"
+                          >
+                            <span>🏛️</span>
+                            <span>Банкны зээл / Ипотек</span>
+                            <span className="text-xs group-hover:translate-y-0.5 transition-transform">↓</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Sale Mortgage / Loan Calculation Breakdown Card — STRICTLY for residential apartments only */}
+                      {isEligibleForMortgage && priceNum > 0 && (hasLoan || priceNum >= 50_000_000) && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-void/70 border border-slate-200 dark:border-white/10 text-xs space-y-3.5 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80 dark:border-white/10">
+                            <div className="font-black text-slate-900 dark:text-white flex items-center gap-2 text-sm sm:text-base">
+                              <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                <Calculator size={16} />
+                              </div>
+                              <span>Зээл / Ипотекийн тооцоолол (Ипотекийн дээд хязгаар 150 сая ₮):</span>
+                            </div>
+                            <span className={`text-[11px] px-3 py-1 rounded-full font-bold border self-start sm:self-auto ${
+                              commercialLoan > 0
+                                ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700/50'
+                                : 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700/50'
+                            }`}>
+                              {commercialLoan > 0 ? 'Хосолсон зээл (Ипотек + Банкны зээл)' : '✓ 100% Ипотекийн 6% зээлд багтана'}
+                            </span>
+                          </div>
+
+                          {commercialLoan > 0 ? (
+                            <>
+                              {/* 4 Cards Grid */}
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                                  <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Урьдчилгаа (30%):</span>
+                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{downPayment30.toLocaleString()} ₮</span>
+                                </div>
+                                <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                                  <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Зээлэх дүн (70%):</span>
+                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{loanPrincipal70.toLocaleString()} ₮</span>
+                                </div>
+                                <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
+                                  <span className="text-emerald-800 dark:text-emerald-300 block text-[11px] font-bold">Ипотек 6% (Дээд лимит):</span>
+                                  <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">{mortgageLoan.toLocaleString()} ₮</span>
+                                  <span className="text-[10px] text-emerald-800/80 dark:text-emerald-300/80 block mt-0.5 font-medium">~{monthlyMortgage6.toLocaleString()} ₮ / сар (20 жил)</span>
+                                </div>
+                                <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 shadow-sm">
+                                  <span className="text-amber-800 dark:text-amber-300 block text-[11px] font-bold">Банкны энгийн зээл:</span>
+                                  <span className="font-extrabold text-amber-700 dark:text-amber-400 text-sm sm:text-base">{commercialLoan.toLocaleString()} ₮</span>
+                                  <span className="text-[10px] text-amber-800/80 dark:text-amber-300/80 block mt-0.5 font-medium">~{monthlyCommercial.toLocaleString()} ₮ / сар (18%, 15 жил)</span>
+                                </div>
+                              </div>
+
+                              {/* Total monthly payment highlight */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 dark:from-emerald-700 dark:to-teal-800 text-white shadow-md gap-2">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-xl">💳</span>
+                                  <div>
+                                    <span className="font-bold text-white text-sm">Сарын нийт төлөлт (Хосолсон):</span>
+                                    <span className="text-[11px] text-emerald-100 block font-medium">
+                                      Ипотек 6% (~{monthlyMortgage6.toLocaleString()} ₮) + Банкны зээл (~{monthlyCommercial.toLocaleString()} ₮)
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-left sm:text-right">
+                                  <span className="text-xl sm:text-2xl font-black text-white font-heading">
+                                    ~{totalMonthlyLoan.toLocaleString()} ₮ / сар
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Recommendation to increase down payment and avoid bank loan */}
+                              <div className="p-3.5 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-700/50 flex items-start gap-2.5 text-xs">
+                                <span className="text-indigo-600 dark:text-plasma font-bold text-base shrink-0">💡</span>
+                                <div>
+                                  <span className="font-bold text-indigo-950 dark:text-indigo-200 block mb-0.5">
+                                    Зөвлөмж — Банкны өндөр хүүтэй зээл авахгүй байх боломж:
+                                  </span>
+                                  <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px] sm:text-xs">
+                                    Хэрэв урьдчилгаа төлбөрөө <strong className="text-slate-900 dark:text-white font-black">{downPaymentNoCommercial.toLocaleString()} ₮</strong> болговол үлдсэн <strong className="text-slate-900 dark:text-white font-black">150 сая ₮</strong>-ийг бүтнээр нь зөвхөн <strong className="text-emerald-700 dark:text-emerald-400 font-black">6% хөнгөлөлттэй ипотекийн зээлээр</strong> (~{monthlyMortgage6.toLocaleString()} ₮/сар) санхүүжүүлж, өндөр хүүтэй зээлээс бүрэн зайлсхийх боломжтой.
+                                  </p>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            /* When loan fits within 150 million MNT */
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                              <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                                <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Урьдчилгаа (30%):</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{downPayment30.toLocaleString()} ₮</span>
+                              </div>
+                              <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                                <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">Зээлэх дүн (70%):</span>
+                                <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">{loanPrincipal70.toLocaleString()} ₮</span>
+                                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold block mt-0.5">✓ 150 сая ₮ дээд хязгаарт багтаж байна</span>
+                              </div>
+                              <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
+                                <span className="text-emerald-800 dark:text-emerald-300 block text-[11px] font-bold">Ипотек 6% (20 жил):</span>
+                                <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-sm sm:text-base">~{monthlyMortgage6.toLocaleString()} ₮ / сар</span>
+                              </div>
+                            </div>
+                          )}
+
+                          <p className="text-[10px] text-slate-500 dark:text-nebula-text italic pt-1">
+                            * Ипотекийн зээлийн хөтөлбөрийн дээд хязгаар 150 сая ₮ хүртэл байдаг бөгөөд банкны энгийн зээлийн хүү, шалгуур нь банк тус бүрийн нөхцөлөөс хамаарна.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Rent Prepayment Breakdown */}
+                      {isRent && rentMonths > 0 && (
+                        <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-void/70 border border-slate-200 dark:border-white/10 text-xs space-y-3">
+                          <div className="font-black text-slate-900 dark:text-white flex items-center gap-2 text-sm">
+                            <span>📋</span>
+                            <span>Түрээсийн эхний төлөлтийн тооцоо ({rentalTermMatch}):</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                            <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                              <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">{rentMonths} сарын түрээс:</span>
+                              <span className="font-black text-slate-900 dark:text-white text-base">{(priceNum * rentMonths).toLocaleString()} ₮</span>
+                            </div>
+                            <div className="bg-white dark:bg-void/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                              <span className="text-slate-500 dark:text-nebula-text block text-[11px] font-semibold">{depositMonths} сарын барьцаа:</span>
+                              <span className="font-black text-slate-900 dark:text-white text-base">{(priceNum * depositMonths).toLocaleString()} ₮</span>
+                            </div>
+                            <div className="bg-plasma/10 dark:bg-plasma/15 p-3 rounded-xl border border-plasma/40 shadow-sm">
+                              <span className="text-plasma block text-[11px] font-bold">Эхний нийт төлөлт:</span>
+                              <span className="font-black text-plasma text-base">{(priceNum * (rentMonths + depositMonths)).toLocaleString()} ₮</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Prompt banner to interactive calculator below if eligible for mortgage */}
+                      {isEligibleForMortgage && priceNum > 0 && (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-plasma/10 via-plasma/5 to-aurora/10 border border-plasma/30 shadow-sm">
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-11 h-11 rounded-2xl bg-plasma/20 text-plasma flex items-center justify-center font-bold text-xl shrink-0 shadow-sm">
+                              🧮
+                            </div>
+                            <div>
+                              <span className="font-black text-slate-900 dark:text-white text-sm sm:text-base block">
+                                Интерактив Зээл & Ипотекийн тооцоолуур
+                              </span>
+                              <span className="text-xs text-slate-600 dark:text-nebula-text font-medium">
+                                Банк шиг өөрийн урьдчилгаа, хугацаа, хүүгээ тохируулан сарын бодит төлөлтөө бодох боломжтой
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextState = !showMortgageCalculator;
+                              setShowMortgageCalculator(nextState);
+                              if (nextState) {
+                                setTimeout(() => {
+                                  document.getElementById('mortgage-calculator')?.scrollIntoView({ behavior: 'smooth' });
+                                }, 100);
+                              }
+                            }}
+                            className="px-5 py-2.5 rounded-xl bg-plasma hover:bg-plasma/90 text-white text-xs sm:text-sm font-black shadow-md shadow-plasma/25 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer shrink-0 self-start sm:self-auto flex items-center gap-1.5"
+                          >
+                            <span>{showMortgageCalculator ? 'Тооцоолуур хураах' : 'Тооцоолуур ашиглах'}</span>
+                            <span>{showMortgageCalculator ? '↑' : '↓'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* SECTION 2: Dedicated Interactive Loan & Mortgage Calculator — ONLY when user requests to open it */}
+                    {isEligibleForMortgage && priceNum > 0 && showMortgageCalculator && (
+                      <div id="mortgage-calculator" className="mb-8 scroll-mt-24 transition-all">
+                        <MortgageCalculator 
+                          initialPrice={priceNum} 
+                          propertyTitle={listing.title} 
+                          onClose={() => setShowMortgageCalculator(false)}
+                        />
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
+
 
 
               {/* Property Location Map Section */}

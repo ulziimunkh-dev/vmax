@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FurnitureMaker, FurniturePortfolioItem, FurnitureArticleItem } from './furniture.entity';
 import { CreateFurnitureMakerDto, UpdateFurnitureMakerDto, CreatePortfolioItemDto, QueryFurnitureDto } from './dto/furniture.dto';
 import { v4 as uuidv4 } from 'uuid';
+
+export const MAX_FURNITURE_MAKERS_PER_USER = 1;
 
 @Injectable()
 export class FurnitureService {
@@ -13,6 +15,15 @@ export class FurnitureService {
   ) {}
 
   async create(createDto: CreateFurnitureMakerDto, userId?: string): Promise<FurnitureMaker> {
+    if (userId) {
+      const existing = await this.furnitureRepository.findOne({ where: { userId } });
+      if (existing) {
+        throw new BadRequestException(
+          'Нэг хэрэглэгчийн аккаунт дээр зөвхөн 1 урлангийн профайл бүртгэх боломжтой. Та одоо байгаа урлангаа засна уу.',
+        );
+      }
+    }
+
     const maker = this.furnitureRepository.create({
       ...createDto,
       userId,
@@ -22,6 +33,14 @@ export class FurnitureService {
       articles: createDto.articles || [],
     });
     return this.furnitureRepository.save(maker);
+  }
+
+  async findByUser(userId: string): Promise<FurnitureMaker | null> {
+    if (!userId) return null;
+    return this.furnitureRepository.findOne({
+      where: { userId },
+      relations: { user: true },
+    });
   }
 
   async findAll(query: QueryFurnitureDto) {
@@ -81,8 +100,14 @@ export class FurnitureService {
     return maker;
   }
 
-  async update(id: string, updateDto: UpdateFurnitureMakerDto): Promise<FurnitureMaker> {
+  async update(id: string, updateDto: UpdateFurnitureMakerDto, userId?: string): Promise<FurnitureMaker> {
     const maker = await this.findOne(id);
+    if (maker.userId && userId && maker.userId !== userId) {
+      throw new ForbiddenException('Та энэ урлангийн эзэмшигч биш байна.');
+    }
+    if (!maker.userId && userId) {
+      maker.userId = userId;
+    }
     Object.assign(maker, updateDto);
     return this.furnitureRepository.save(maker);
   }
@@ -114,8 +139,20 @@ export class FurnitureService {
     return this.furnitureRepository.save(maker);
   }
 
-  async delete(id: string): Promise<void> {
+  async removePortfolioItem(makerId: string, portfolioId: string, userId?: string): Promise<FurnitureMaker> {
+    const maker = await this.findOne(makerId);
+    if (maker.userId && userId && maker.userId !== userId) {
+      throw new ForbiddenException('Та энэ урлангийн эзэмшигч биш байна.');
+    }
+    maker.portfolio = (maker.portfolio || []).filter((p) => p.id !== portfolioId);
+    return this.furnitureRepository.save(maker);
+  }
+
+  async delete(id: string, userId?: string): Promise<void> {
     const maker = await this.findOne(id);
+    if (maker.userId && userId && maker.userId !== userId) {
+      throw new ForbiddenException('Та энэ урлангийн эзэмшигч биш байна.');
+    }
     await this.furnitureRepository.remove(maker);
   }
 

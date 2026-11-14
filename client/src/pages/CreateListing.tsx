@@ -309,7 +309,7 @@ const CreateListing = () => {
   const [balcony, setBalcony] = useState('');
   const [garage, setGarage] = useState('');
   const [elevator, setElevator] = useState('');
-  const [paymentTerms, setPaymentTerms] = useState<string[]>([]);
+  const [paymentTerms, setPaymentTerms] = useState<string[]>(['Бэлэн төлбөр']);
   const [amenities, setAmenities] = useState<string[]>([]);
 
   // Category-Specific Dynamic Attributes State
@@ -779,7 +779,8 @@ const CreateListing = () => {
       if (balcony) attrPayload.balcony = balcony;
       if (garage) attrPayload.garage = garage;
       if (elevator) attrPayload.elevator = elevator;
-      if (paymentTerms.length > 0) attrPayload.paymentTerms = paymentTerms;
+      const termsToSave = paymentTerms.length > 0 ? paymentTerms : ['Бэлэн төлбөр'];
+      attrPayload.paymentTerms = termsToSave;
       if (amenities.length > 0) attrPayload.amenities = amenities;
 
       // Category-Specific attributes
@@ -1900,7 +1901,9 @@ const CreateListing = () => {
                 <div className="flex flex-wrap gap-2">
                   {(type === 'RENT'
                     ? ['1+1 сар', '3+1 сар', '6+1 сар', '12 сар урьдчилан', '2 сарын барьцаатай', 'Уян хатан нөхцөлтэй']
-                    : ['Бэлэн төлбөр', '6%-ийн ипотек зээл', '8%-ийн ипотек зээл', 'Хувааж төлөх боломжтой', 'Бартер авна (машин, ҮХХ)', 'Үнэ тохиролцоно']
+                    : category === 'APARTMENT'
+                      ? ['Бэлэн төлбөр', '6%-ийн ипотек зээл', '8%-ийн ипотек зээл', 'Хувааж төлөх боломжтой', 'Бартер авна (машин, ҮХХ)', 'Үнэ тохиролцоно']
+                      : ['Бэлэн төлбөр', 'Хувааж төлөх боломжтой', 'Бартер авна (машин, ҮХХ)', 'Банкны зээлээр', 'Үнэ тохиролцоно']
                   ).map((opt) => (
                     <button
                       key={opt}
@@ -2081,8 +2084,8 @@ const CreateListing = () => {
                 <div className="flex items-center space-x-2.5">
                   <span className="text-xl">🔥</span>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-starlight">Хугацаатай хямдрал зарлах</h4>
-                    <p className="text-xs text-slate-600 dark:text-nebula-text">Зард хямдралын тэмдэглэгээ ба үндсэн үнийн зураасан цуцлалт харагдана</p>
+                    <h4 className="text-sm font-bold text-amber-950 dark:text-amber-100">Хугацаатай хямдрал зарлах</h4>
+                    <p className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">Зард хямдралын тэмдэглэгээ ба үндсэн үнийн зураасан цуцлалт харагдана</p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -2095,7 +2098,7 @@ const CreateListing = () => {
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-300 dark:bg-void/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  <div className="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                 </label>
               </div>
 

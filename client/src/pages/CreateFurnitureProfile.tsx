@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   Sparkles,
   Plus,
@@ -56,7 +56,13 @@ interface FormProjectItem {
 
 export const CreateFurnitureProfile: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit') || searchParams.get('id');
+
   const { user, isAuthenticated } = useAuthStore();
+  const [existingMakerId, setExistingMakerId] = useState<string | null>(null);
+  const [existingMakerName, setExistingMakerName] = useState<string | null>(null);
+  const [fetchingExisting, setFetchingExisting] = useState(false);
 
   const [name, setName] = useState('');
   const [tagline, setTagline] = useState('');
@@ -95,6 +101,63 @@ export const CreateFurnitureProfile: React.FC = () => {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (editId) {
+      setFetchingExisting(true);
+      furnitureApi.getOne(editId)
+        .then((res) => {
+          const m = res.data;
+          if (m) {
+            setName(m.name || '');
+            setTagline(m.tagline || '');
+            setDescription(m.description || '');
+            setDistrict(m.district || 'Хан-Уул');
+            setAddressDetail(m.addressDetail || '');
+            setPhone(m.phone || '');
+            setSecondaryPhone(m.secondaryPhone || '');
+            setFacebookUrl(m.facebookUrl || '');
+            setInstagramUrl(m.instagramUrl || '');
+            setWebsiteUrl(m.websiteUrl || '');
+            setExperienceYears(m.experienceYears || 5);
+            setWarrantyMonths(m.warrantyMonths || 24);
+            setSelectedCategories(Array.isArray(m.categories) ? m.categories : ['KITCHEN', 'WARDROBE', 'CUSTOM']);
+            setMaterialsUsed(Array.isArray(m.materialsUsed) ? m.materialsUsed.join(', ') : (m.materialsUsed || ''));
+            setLogoUrl(m.logoUrl || '');
+            setCoverUrl(m.coverUrl || '');
+            if (Array.isArray(m.portfolio) && m.portfolio.length > 0) {
+              setProjects(
+                m.portfolio.map((p) => ({
+                  id: p.id || `proj_${Date.now()}`,
+                  title: p.title || '',
+                  category: p.category || 'CUSTOM',
+                  materials: p.materials || '',
+                  location: p.location || '',
+                  durationDays: p.durationDays || 14,
+                  images: Array.isArray(p.images) ? p.images : [],
+                  videoUrl: p.videoUrl || '',
+                }))
+              );
+            }
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          setError('Урлангийн мэдээлэл ачаалахад алдаа гарлаа.');
+        })
+        .finally(() => setFetchingExisting(false));
+    } else if (user) {
+      // Check if user already has a workshop profile (1 limit)
+      furnitureApi.getMy()
+        .then((res) => {
+          if (res.data) {
+            setExistingMakerId(res.data.id);
+            setExistingMakerName(res.data.name);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [editId, user]);
 
   const toggleCategory = (catId: string) => {
     setSelectedCategories((prev) =>
@@ -273,8 +336,13 @@ export const CreateFurnitureProfile: React.FC = () => {
         portfolio: validPortfolio,
       };
 
-      const res = await furnitureApi.create(payload);
-      navigate(`/furniture/${res.data.id}`);
+      if (editId) {
+        await furnitureApi.update(editId, payload);
+        navigate(`/furniture/${editId}`);
+      } else {
+        const res = await furnitureApi.create(payload);
+        navigate(`/furniture/${res.data.id}`);
+      }
     } catch (err: any) {
       console.error('Failed to create furniture profile:', err);
       setError(err.response?.data?.message || 'Урлан бүртгэхэд алдаа гарлаа. Та дахин оролдоно уу.');
@@ -299,15 +367,41 @@ export const CreateFurnitureProfile: React.FC = () => {
         <div className="space-y-2 mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-plasma/20 border border-plasma/30 text-plasma text-xs font-bold uppercase tracking-wider">
             <Sparkles size={13} />
-            <span>Шинэ урлан / Компани бүртгэх</span>
+            <span>{editId ? 'Урлан засварлах горим' : 'Шинэ урлан / Компани бүртгэх'}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">
-            Тавилгын урлангийн профайл үүсгэх
+            {editId ? 'Тавилгын урлангийн мэдээлэл засах' : 'Тавилгын урлангийн профайл үүсгэх'}
           </h1>
           <p className="text-xs sm:text-sm text-nebula-text/80">
-            Өөрийн тавилгын урлан, компаниа бүртгүүлэн ковер зураг, хийсэн ажлууд болон видео реелүүдээ байршуулж хэрэглэгчидтэй шууд холбогдоорой.
+            {editId
+              ? 'Урлангийн танилцуулга, тоноглолын материал, холбоо барих мэдээлэл болон хийсэн ажлуудын портфолиогоо шинэчлээрэй.'
+              : 'Өөрийн тавилгын урлан, компаниа бүртгүүлэн ковер зураг, хийсэн ажлууд болон видео реелүүдээ байршуулж хэрэглэгчидтэй шууд холбогдоорой.'}
           </p>
         </div>
+
+        {/* ⚠️ Limit Reached Alert Banner (1 workshop limit) */}
+        {!editId && existingMakerId && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h4 className="text-sm font-bold text-amber-400">
+                  Урлангийн хэрэглэгчийн лимит (1/1) хүрсэн байна
+                </h4>
+                <p className="text-xs text-slate-300">
+                  Таны аккаунт дээр <strong>"{existingMakerName || 'Урлан'}"</strong> бүртгэгдсэн байна. Нэг хэрэглэгч 1 урлангийн албан ёсны профайлтай байх эрхтэй. Та одоо байгаа урлангаа засна уу.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(`/create-furniture-profile?edit=${existingMakerId}`)}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs whitespace-nowrap cursor-pointer transition shadow-sm"
+            >
+              Одоо байгаа урлангаа засах →
+            </button>
+          </div>
+        )}
 
         {/* Auth prompt if not logged in */}
         {!isAuthenticated && (
@@ -867,7 +961,7 @@ export const CreateFurnitureProfile: React.FC = () => {
               disabled={saving}
               className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-plasma via-nova to-aurora hover:opacity-95 disabled:opacity-50 text-white font-black text-sm shadow-xl shadow-plasma/30 active:scale-95 transition-all cursor-pointer flex items-center gap-2"
             >
-              {saving ? 'Хадгалж байна...' : 'Урлангийн профайлыг нийтлэх'}
+              {saving ? 'Хадгалж байна...' : editId ? 'Өөрчлөлтийг хадгалах' : 'Урлангийн профайлыг нийтлэх'}
             </button>
           </div>
         </form>

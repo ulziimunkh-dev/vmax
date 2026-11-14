@@ -100,7 +100,7 @@ export const AiListingAssistant: React.FC<AiAssistantPanelProps> = ({
           <div className="p-2 rounded-xl bg-plasma/20 text-plasma">
             <Bot size={18} />
           </div>
-          <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-starlight">
+          <span className="font-extrabold text-xs sm:text-sm text-indigo-950 dark:text-purple-100">
             Vmax AI Ухаалаг Туслах
           </span>
         </div>
@@ -111,10 +111,10 @@ export const AiListingAssistant: React.FC<AiAssistantPanelProps> = ({
             type="button"
             onClick={handleEstimatePrice}
             disabled={estimatingPrice}
-            className="px-3.5 py-2 rounded-xl bg-white dark:bg-white/10 hover:bg-slate-100 dark:hover:bg-white/15 text-slate-800 dark:text-starlight text-xs font-bold border border-slate-300 dark:border-white/15 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold border border-slate-300 dark:border-white/20 shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <TrendingUp size={14} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-slate-800 dark:text-starlight font-bold">{estimatingPrice ? 'Тооцоолж байна...' : 'Зах зээлийн үнэлгээ'}</span>
+            <span className="text-slate-800 dark:text-slate-100 font-bold">{estimatingPrice ? 'Тооцоолж байна...' : 'Зах зээлийн үнэлгээ'}</span>
           </button>
 
           {/* Generate Description Button */}

@@ -20,6 +20,7 @@ import CreateProject from '@/pages/CreateProject';
 import Furniture from '@/pages/Furniture';
 import FurnitureDetail from '@/pages/FurnitureDetail';
 import CreateFurnitureProfile from '@/pages/CreateFurnitureProfile';
+import { MortgageCalculatorPage } from '@/pages/MortgageCalculatorPage';
 import AboutUs from '@/pages/AboutUs';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
@@ -61,7 +62,9 @@ const App = () => {
   useEffect(() => {
     if (mode === 'light') {
       document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
     } else {
+      document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
     }
   }, [mode]);
@@ -100,6 +103,8 @@ const App = () => {
               <Route path="/furniture" element={<Furniture />} />
               <Route path="/furniture/:id" element={<FurnitureDetail />} />
               <Route path="/create-furniture-profile" element={<CreateFurnitureProfile />} />
+              <Route path="/calculator" element={<MortgageCalculatorPage />} />
+              <Route path="/mortgage-calculator" element={<MortgageCalculatorPage />} />
               <Route path="/listings/:id/edit" element={<CreateListing />} />
               <Route path="/listings/:id" element={<ListingDetail />} />
             </Routes>

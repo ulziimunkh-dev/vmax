@@ -15,25 +15,32 @@ const getInitialMode = (): ThemeMode => {
   return 'light';
 };
 
+const applyThemeClass = (theme: ThemeMode) => {
+  if (typeof document !== 'undefined') {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
+  }
+};
+
+const initialMode = getInitialMode();
+applyThemeClass(initialMode);
+
 export const useThemeStore = create<ThemeState>((set) => ({
-  mode: getInitialMode(),
+  mode: initialMode,
   toggleTheme: () => set((state) => {
     const nextMode = state.mode === 'dark' ? 'light' : 'dark';
     localStorage.setItem('vmax_theme', nextMode);
-    if (nextMode === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
+    applyThemeClass(nextMode);
     return { mode: nextMode };
   }),
   setMode: (mode) => {
     localStorage.setItem('vmax_theme', mode);
-    if (mode === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
+    applyThemeClass(mode);
     set({ mode });
   },
 }));

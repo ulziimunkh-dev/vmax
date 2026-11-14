@@ -387,36 +387,37 @@ const Home = () => {
           </div>
 
           {/* 🤝 Project Cooperation & Partnership Banner on Home */}
-          <div className="mt-6 relative overflow-hidden rounded-2xl border border-plasma/30 bg-gradient-to-r from-plasma/10 via-purple-50/60 to-indigo-50/40 dark:from-plasma/15 dark:via-cosmic/70 dark:to-nova/15 p-5 sm:p-6 shadow-xl backdrop-blur-md">
-            <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-plasma/15 dark:bg-plasma/20 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-              <div className="space-y-1.5 max-w-2xl">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-plasma/15 dark:bg-plasma/20 border border-plasma/30 dark:border-plasma/40 text-plasma text-[11px] font-black uppercase tracking-wider">
-                  <Handshake size={13} />
+          <div className="mt-8 relative overflow-hidden rounded-3xl border border-plasma/40 bg-gradient-to-r from-[#171330] via-[#23184d] to-[#1a1236] p-6 sm:p-8 shadow-2xl text-white">
+            <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-plasma/25 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-12 -top-12 w-48 h-48 bg-nova/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-plasma/25 border border-plasma/40 text-purple-200 text-[11px] font-black uppercase tracking-wider shadow-sm">
+                  <Handshake size={14} className="text-plasma" />
                   <span>Барилга угсралт & Захиалагч нарт</span>
                 </div>
-                <h3 className="text-lg sm:text-xl font-heading font-black text-slate-900 dark:text-starlight tracking-tight">
+                <h3 className="text-xl sm:text-2xl font-heading font-black text-white tracking-tight">
                   Барилгын төсөл, хотхоноо Vmax дээр байршуулж хамтран ажиллах
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-nebula-text leading-relaxed font-medium">
+                <p className="text-xs sm:text-sm text-purple-100/90 leading-relaxed font-medium">
                   Хотхоны албан ёсны үнэ, 3D аялал, өрөөний төлөвлөлтөө нийтлэн зорилтот худалдан авагчдад шууд хүргэхээр хамтран ажиллах бол бидэнтэй холбогдоорой.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-3 shrink-0">
                 <a
                   href="tel:+97689767700"
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white-force font-bold text-xs sm:text-sm shadow-md shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white font-bold text-xs sm:text-sm shadow-lg shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                 >
-                  <Phone size={15} />
+                  <Phone size={16} />
                   <span>Холбогдох (8976-7700)</span>
                 </a>
                 <Link
                   to="/create-project"
-                  className="px-4 py-2.5 rounded-xl bg-white dark:bg-white/10 hover:bg-slate-50 dark:hover:bg-white/15 border border-slate-300 dark:border-plasma/40 text-slate-900 dark:text-starlight hover:text-plasma font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/25 text-white hover:text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:border-white/40 hover:scale-105 active:scale-95"
                 >
                   <span>Төсөл нийтлэх</span>
-                  <ArrowRight size={14} />
+                  <ArrowRight size={15} />
                 </Link>
               </div>
             </div>

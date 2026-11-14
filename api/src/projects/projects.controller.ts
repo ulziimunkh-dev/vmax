@@ -34,6 +34,12 @@ export class ProjectsController {
     return this.projectsService.findAll(query);
   }
 
+  @Get('my')
+  @UseGuards(JwtAuthGuard)
+  getMyProjects(@Req() req: any) {
+    return this.projectsService.findByUser(req.user?.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.projectsService.findOne(id);

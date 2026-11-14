@@ -117,6 +117,12 @@ const Footer: React.FC = () => {
                   <span>Зар харьцуулах</span>
                 </Link>
               </li>
+              <li>
+                <Link to="/calculator" className="text-nebula-text hover:text-emerald-400 transition-colors flex items-center space-x-1.5 font-medium">
+                  <ArrowRight size={12} className="text-emerald-500/80" />
+                  <span>Зээлийн тооцоолуур (6%)</span>
+                </Link>
+              </li>
               {/* <li>
                 <Link to="/pricing" className="text-amber-400 hover:text-amber-300 font-semibold transition-colors flex items-center space-x-1.5">
                   <Sparkles size={13} className="text-amber-400" />

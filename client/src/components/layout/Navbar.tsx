@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Layers,
   MessageSquare,
+  Calculator,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -153,6 +154,20 @@ const Navbar: React.FC = () => {
                   <span>{t.nav.furniture}</span>
                   <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-aurora/20 text-aurora border border-aurora/30 uppercase">
                     New
+                  </span>
+                </Link>
+
+                <Link
+                  to="/calculator"
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all flex items-center space-x-1.5 ${location.pathname === '/calculator'
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-nebula-text hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                  <Calculator size={15} className="text-emerald-400" />
+                  <span>Зээлийн тооцоолуур</span>
+                  <span className="px-1.5 py-0.2 text-[9px] font-black rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
+                    6%
                   </span>
                 </Link>
 
