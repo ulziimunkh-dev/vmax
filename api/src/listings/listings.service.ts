@@ -181,6 +181,40 @@ export class ListingsService {
       queryBuilder.andWhere("listing.attributes->>'constructionType' ILIKE :constructionType", { constructionType: `%${query.constructionType}%` });
     }
 
+    if (query.paymentTerms && query.paymentTerms.trim() !== '') {
+      const pTerm = query.paymentTerms.trim();
+      const pLower = pTerm.toLowerCase();
+      if (pLower.includes('зээл') || pLower.includes('ипотек')) {
+        queryBuilder.andWhere(
+          "(listing.attributes->>'paymentTerms' ~* '(зээл|ипотек)' OR listing.description ~* '(зээл|ипотек)' OR listing.title ~* '(зээл|ипотек)')",
+        );
+      } else if (pLower.includes('бэлэн')) {
+        queryBuilder.andWhere(
+          "(listing.attributes->>'paymentTerms' ~* 'бэлэн' OR listing.description ~* 'бэлэн' OR listing.title ~* 'бэлэн')",
+        );
+      } else if (pLower.includes('бартер')) {
+        queryBuilder.andWhere(
+          "(listing.attributes->>'paymentTerms' ~* 'бартер' OR listing.description ~* 'бартер' OR listing.title ~* 'бартер')",
+        );
+      } else if (pLower.includes('хоног')) {
+        queryBuilder.andWhere(
+          "(listing.type = 'DAILY_RENT' OR listing.attributes->>'paymentTerms' ~* 'хоног' OR listing.description ~* 'хоног')",
+        );
+      } else if (/^\d+\s*\+\s*\d+$/.test(pTerm)) {
+        const parts = pTerm.split('+').map((s) => s.trim());
+        const regexStr = `${parts[0]}\\s*\\+\\s*${parts[1]}`;
+        queryBuilder.andWhere(
+          `(listing.attributes->>'paymentTerms' ~* :pRegex OR listing.description ~* :pRegex OR listing.title ~* :pRegex)`,
+          { pRegex: regexStr },
+        );
+      } else {
+        queryBuilder.andWhere(
+          "(listing.attributes->>'paymentTerms' ILIKE :pTerm OR listing.description ILIKE :pTerm OR listing.title ILIKE :pTerm)",
+          { pTerm: `%${pTerm}%` },
+        );
+      }
+    }
+
     if (query.hasVideo === 'true' || query.hasVideo === '1') {
       queryBuilder.andWhere('listing.hasVideo = true');
     }
@@ -268,14 +302,14 @@ export class ListingsService {
             );
           } else {
             queryBuilder.andWhere(
-              `(listing.title ILIKE :${param} OR listing.description ILIKE :${param} OR listing.location ILIKE :${param} OR listing.district ILIKE :${param} OR listing.khoroo ILIKE :${param})`,
+              `(listing.title ILIKE :${param} OR listing.description ILIKE :${param} OR listing.location ILIKE :${param} OR listing.district ILIKE :${param} OR listing.khoroo ILIKE :${param} OR listing.attributes->>'paymentTerms' ILIKE :${param})`,
               { [param]: `%${w}%` },
             );
           }
         });
       } else if (!roomMatch && !dailyIntentRe.test(rawSearch) && !rentIntentRe.test(rawSearch) && !saleIntentRe.test(rawSearch)) {
         queryBuilder.andWhere(
-          '(listing.title ILIKE :search OR listing.description ILIKE :search OR listing.location ILIKE :search OR listing.district ILIKE :search OR listing.khoroo ILIKE :search)',
+          '(listing.title ILIKE :search OR listing.description ILIKE :search OR listing.location ILIKE :search OR listing.district ILIKE :search OR listing.khoroo ILIKE :search OR listing.attributes->>\'paymentTerms\' ILIKE :search)',
           { search: `%${rawSearch}%` },
         );
       }

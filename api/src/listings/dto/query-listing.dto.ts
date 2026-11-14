@@ -75,6 +75,10 @@ export class QueryListingDto {
 
   @IsOptional()
   @IsString()
+  paymentTerms?: string;
+
+  @IsOptional()
+  @IsString()
   hasVideo?: string;
 
   @IsOptional()

@@ -370,8 +370,8 @@ export const DashboardMessages: React.FC = () => {
 
   if (loadingList) {
     return (
-      <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-slate-400 space-y-3 shadow-sm min-h-[500px]">
-        <Loader2 size={36} className="animate-spin text-plasma" />
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-slate-400 space-y-3 shadow-sm min-h-[360px] sm:min-h-[500px]">
+        <Loader2 size={32} className="animate-spin text-plasma" />
         <span className="text-sm font-medium">{t.common.loading}</span>
       </div>
     );
@@ -379,21 +379,21 @@ export const DashboardMessages: React.FC = () => {
 
   if (conversations.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-200 dark:border-white/10 text-center space-y-4 shadow-sm min-h-[480px] flex flex-col items-center justify-center">
-        <div className="w-16 h-16 rounded-3xl bg-plasma/10 text-plasma flex items-center justify-center mx-auto shadow-inner">
-          <MessageSquare size={32} />
+      <div className="bg-white dark:bg-slate-900 p-6 sm:p-12 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-white/10 text-center space-y-4 shadow-sm min-h-[360px] sm:min-h-[480px] flex flex-col items-center justify-center">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-plasma/10 text-plasma flex items-center justify-center mx-auto shadow-inner">
+          <MessageSquare size={28} className="sm:w-8 sm:h-8" />
         </div>
         <div className="space-y-1">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
             {t.chat.noConversations}
           </h3>
-          <p className="text-sm text-slate-500 dark:text-nebula-text max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-nebula-text max-w-md mx-auto">
             Түрээслэгч таны зар дээр чат илгээх эсвэл та зарын эзэнтэй чатлаж эхлэх үед харилцан ярианууд энд бодит цагаар харагдах болно.
           </p>
         </div>
         <Link
           to="/"
-          className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-aurora text-white font-bold text-sm shadow-md shadow-plasma/25 hover:shadow-plasma/40 transition-all active:scale-95"
+          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-aurora text-white font-bold text-xs sm:text-sm shadow-md shadow-plasma/25 hover:shadow-plasma/40 transition-all active:scale-95"
         >
           <span>Заруудыг харах</span>
         </Link>
@@ -403,38 +403,38 @@ export const DashboardMessages: React.FC = () => {
 
   return (
     <>
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden flex flex-col md:flex-row h-[720px] max-h-[820px] min-h-[560px]">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden flex flex-col md:flex-row h-[75vh] sm:h-[720px] min-h-[480px] max-h-[820px]">
         {/* Left Column: Multi-User Conversations List (Landlord / Renter) */}
         <div
-          className={`w-full md:w-[380px] lg:w-[420px] flex-shrink-0 border-r border-slate-200 dark:border-white/10 flex flex-col h-full min-h-0 bg-slate-50/70 dark:bg-slate-950/70 ${
+          className={`w-full md:w-[360px] lg:w-[400px] flex-shrink-0 border-r border-slate-200 dark:border-white/10 flex flex-col h-full min-h-0 bg-slate-50/70 dark:bg-slate-950/70 ${
             mobileView === 'chat' ? 'hidden md:flex' : 'flex'
           }`}
         >
           {/* Header & Tabs */}
-          <div className="p-3.5 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md space-y-2.5">
+          <div className="p-3 sm:p-3.5 border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-xl bg-plasma/10 flex items-center justify-center text-plasma">
-                  <MessageSquare size={17} />
+                <div className="w-8 h-8 rounded-xl bg-plasma/10 flex items-center justify-center text-plasma shrink-0">
+                  <MessageSquare size={16} />
                 </div>
-                <div>
-                  <h2 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
+                <div className="min-w-0">
+                  <h2 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white leading-tight truncate">
                     {t.chat.myChats}
                   </h2>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400">
                     {conversations.length} харилцан яриа
                   </p>
                 </div>
               </div>
               {totalUnreadCount > 0 && (
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-500 text-white shadow-md shadow-rose-500/30 animate-pulse">
+                <span className="text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-md shadow-rose-500/30 animate-pulse shrink-0">
                   {totalUnreadCount} шинэ
                 </span>
               )}
             </div>
 
             {/* Role & Status Separation Tabs: All / Unread / Received / Sent */}
-            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold gap-1">
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-[11px] sm:text-xs font-semibold gap-0.5 sm:gap-1 overflow-x-auto scrollbar-none">
               <button
                 type="button"
                 onClick={() => setChatFilter('all')}

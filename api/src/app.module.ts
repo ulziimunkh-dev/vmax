@@ -23,6 +23,7 @@ import configuration from './config/configuration';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['api/.env', '.env'],
       load: [configuration],
     }),
     TypeOrmModule.forRootAsync({

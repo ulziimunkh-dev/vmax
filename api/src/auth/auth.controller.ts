@@ -2,6 +2,7 @@ import { Controller, Post, Body, Get, UseGuards, Req, Patch, Param } from '@nest
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { SendResetOtpDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { FacebookAuthDto } from './dto/facebook-auth.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -21,6 +22,16 @@ export class AuthController {
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('forgot-password/send-otp')
+  sendPasswordResetOtp(@Body() dto: SendResetOtpDto) {
+    return this.authService.sendPasswordResetOtp(dto);
+  }
+
+  @Post('forgot-password/reset')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   // --- Phone Login (Public, Verify.mn MO SMS) ---

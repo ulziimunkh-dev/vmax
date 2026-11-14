@@ -358,9 +358,15 @@ html.light ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 }
 
 .custom-picker-pin,
-.custom-property-pin {
+.custom-property-pin,
+.custom-project-pin {
   background: transparent !important;
   border: none !important;
+}
+
+/* Ensure Google Identity Services button iframe never overflows container */
+iframe[src*="accounts.google.com/gsi/button"] {
+  max-width: 100% !important;
 }
 
 .vmax-map-popup .leaflet-popup-content-wrapper {

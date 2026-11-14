@@ -73,8 +73,10 @@ export const authAPI = {
   sendVerificationEmail: () => api.post('/auth/send-email-otp'),
 
   // Password reset
-  requestPasswordReset: (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (data: any) => api.post('/auth/reset-password', data),
+  sendPasswordResetOtp: (data: { method: 'email' | 'phone'; identifier: string }) =>
+    api.post('/auth/forgot-password/send-otp', data),
+  resetPassword: (data: { method: 'email' | 'phone'; identifier: string; otp: string; newPassword: string }) =>
+    api.post('/auth/forgot-password/reset', data),
 
   // Social Logins
   googleLogin: (tokenOrCredential: string) =>

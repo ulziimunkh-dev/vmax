@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, DollarSign, Maximize, MapPin, Layers } from 'lucide-react';
+import { X, DollarSign, Maximize, MapPin, Layers, CreditCard } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { PriceInput } from '@/components/common/PriceInput';
 import { locationsAPI } from '@/services/api';
@@ -12,14 +12,33 @@ interface Props {
   district?: string;
   khoroo?: string;
   bedrooms?: string;
-  onApply?: (filters: { district?: string; khoroo?: string; bedrooms?: string; priceMin: string; priceMax: string; areaMin: string; areaMax: string }) => void;
+  paymentTerms?: string;
+  onApply?: (filters: {
+    district?: string;
+    khoroo?: string;
+    bedrooms?: string;
+    paymentTerms?: string;
+    priceMin: string;
+    priceMax: string;
+    areaMin: string;
+    areaMax: string;
+  }) => void;
 }
 
-const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict = '', khoroo: initKhoroo = '', bedrooms: initBedrooms = '', onApply }) => {
+const FilterDrawer: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  district: initDistrict = '',
+  khoroo: initKhoroo = '',
+  bedrooms: initBedrooms = '',
+  paymentTerms: initPaymentTerms = '',
+  onApply,
+}) => {
   const { t } = useI18n();
   const [district, setDistrict] = useState(initDistrict);
   const [khoroo, setKhoroo] = useState(initKhoroo);
   const [bedrooms, setBedrooms] = useState(initBedrooms);
+  const [paymentTerms, setPaymentTerms] = useState(initPaymentTerms);
   const [khorooOptions, setKhorooOptions] = useState<string[]>([]);
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
@@ -30,7 +49,8 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
     setDistrict(initDistrict);
     setKhoroo(initKhoroo);
     setBedrooms(initBedrooms);
-  }, [initDistrict, initKhoroo, initBedrooms, isOpen]);
+    setPaymentTerms(initPaymentTerms);
+  }, [initDistrict, initKhoroo, initBedrooms, initPaymentTerms, isOpen]);
 
   useEffect(() => {
     if (!district) {
@@ -57,7 +77,7 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
 
   const handleApply = () => {
     if (onApply) {
-      onApply({ district, khoroo, bedrooms, priceMin, priceMax, areaMin, areaMax });
+      onApply({ district, khoroo, bedrooms, paymentTerms, priceMin, priceMax, areaMin, areaMax });
     }
     onClose();
   };
@@ -66,12 +86,13 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
     setDistrict('');
     setKhoroo('');
     setBedrooms('');
+    setPaymentTerms('');
     setPriceMin('');
     setPriceMax('');
     setAreaMin('');
     setAreaMax('');
     if (onApply) {
-      onApply({ district: '', khoroo: '', bedrooms: '', priceMin: '', priceMax: '', areaMin: '', areaMax: '' });
+      onApply({ district: '', khoroo: '', bedrooms: '', paymentTerms: '', priceMin: '', priceMax: '', areaMin: '', areaMax: '' });
     }
   };
 
@@ -156,6 +177,45 @@ const FilterDrawer: React.FC<Props> = ({ isOpen, onClose, district: initDistrict
                   <option value="4">4 өрөө</option>
                   <option value="5">5+ өрөө</option>
                 </select>
+              </div>
+
+              {/* Payment Terms */}
+              <div>
+                <label className="block text-sm font-semibold text-starlight mb-2 flex items-center">
+                  <CreditCard size={16} className="mr-1 text-amber-400" />
+                  <span>Төлбөрийн нөхцөл</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: '', label: 'Бүгд' },
+                    { value: 'Банкны зээлээр', label: 'Банкны зээлээр' },
+                    { value: 'Бэлэн төлөлтөөр', label: 'Бэлэн төлөлт' },
+                    { value: '3+1', label: '3+1' },
+                    { value: '1+1', label: '1+1' },
+                    { value: '2+1', label: '2+1' },
+                    { value: '6+1', label: '6+1' },
+                    { value: '12+1', label: '12+1' },
+                    { value: 'Бартер сонирхоно', label: 'Бартер' },
+                    { value: 'Хоногоор', label: 'Хоногоор' },
+                    { value: 'Тохиролцоно', label: 'Тохиролцоно' },
+                  ].map((opt) => {
+                    const isSelected = paymentTerms === opt.value;
+                    return (
+                      <button
+                        key={opt.value || 'all'}
+                        type="button"
+                        onClick={() => setPaymentTerms(isSelected && opt.value !== '' ? '' : opt.value)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white-force border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02]'
+                            : 'bg-void/50 border-white/10 text-nebula-text hover:text-starlight hover:border-amber-400/40 hover:bg-amber-500/10'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Price Range */}

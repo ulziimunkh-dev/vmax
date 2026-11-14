@@ -202,6 +202,18 @@ const ListingCard: React.FC<Props> = ({ listing, index }) => {
                   </span>
                 </>
               )}
+
+              {/* Payment Condition Badge */}
+              {listing.attributes?.paymentTerms && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 dark:text-amber-300 border border-amber-500/20 flex items-center gap-1 shrink-0">
+                  <span>💳</span>
+                  <span className="truncate max-w-[130px]">
+                    {Array.isArray(listing.attributes.paymentTerms)
+                      ? listing.attributes.paymentTerms[0]
+                      : listing.attributes.paymentTerms}
+                  </span>
+                </span>
+              )}
             </div>
 
             {/* Location & Published Relative Time */}

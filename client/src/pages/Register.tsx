@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
@@ -27,6 +27,24 @@ const Register = () => {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Responsive Google Sign-up button width
+  const googleWrapperRef = useRef<HTMLDivElement>(null);
+  const [googleWidth, setGoogleWidth] = useState<number>(340);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (googleWrapperRef.current) {
+        const w = googleWrapperRef.current.offsetWidth;
+        if (w > 0) {
+          setGoogleWidth(Math.max(200, Math.min(400, Math.floor(w))));
+        }
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   const handleGoogleSuccess = async (token: string) => {
     setLoading(true);
@@ -98,8 +116,8 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4 pt-16">
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card w-full max-w-md p-8 rounded-2xl border-glow">
+    <div className="min-h-[80vh] flex items-center justify-center px-3 sm:px-4 pt-16 pb-12">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="glass-card w-full max-w-md p-4.5 sm:p-8 rounded-3xl border-glow">
         <h2 className="text-3xl font-heading font-bold text-center mb-8 text-glow">{t.auth.register}</h2>
 
         {error && (
@@ -109,8 +127,9 @@ const Register = () => {
         )}
 
         <div className="space-y-3 mb-4">
-          <div className="w-full flex justify-center [&>div]:w-full [&>div>iframe]:!w-full [&>div>iframe]:!mx-auto">
+          <div ref={googleWrapperRef} className="w-full flex justify-center overflow-hidden [&_iframe]:!max-w-full">
             <GoogleLogin
+              key={googleWidth}
               onSuccess={async (credentialResponse) => {
                 if (credentialResponse.credential) {
                   await handleGoogleSuccess(credentialResponse.credential);
@@ -121,7 +140,7 @@ const Register = () => {
               }}
               theme="outline"
               size="large"
-              width="380"
+              width={String(googleWidth)}
               text="signup_with"
               shape="rectangular"
             />

@@ -1,9 +1,11 @@
-import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { User } from '../users/user.entity';
 import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { SendResetOtpDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AuthProvider } from '../common/enums/auth-provider.enum';
 import { OAuth2Client } from 'google-auth-library';
@@ -16,6 +18,20 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private googleClient: OAuth2Client;
   private emailOtpStore = new Map<string, { code: string; expiresAt: number }>();
+  private passwordResetOtpStore = new Map<string, { code: string; expiresAt: number; target: string }>();
+
+  private maskEmail(email: string): string {
+    const [name, domain] = email.split('@');
+    if (!domain) return email;
+    const visible = name.slice(0, 2);
+    return `${visible}***@${domain}`;
+  }
+
+  private maskPhone(phone: string): string {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length < 8) return phone;
+    return `${clean.slice(0, 2)}****${clean.slice(-2)}`;
+  }
 
   constructor(
     private usersService: UsersService,
@@ -55,21 +71,192 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
+    const rawIdentifier = (loginDto.identifier || loginDto.email || loginDto.phone || '').trim();
+    if (!rawIdentifier) {
+      throw new BadRequestException('Утасны дугаар эсвэл имэйл хаягаа оруулна уу.');
+    }
+
+    if (!loginDto.password) {
+      throw new BadRequestException('Нууц үгээ оруулна уу.');
+    }
+
+    const cleanDigits = rawIdentifier.replace(/\D/g, '');
+    const isPhone = !rawIdentifier.includes('@') && cleanDigits.length >= 8;
+
+    let user: User | undefined;
+
+    if (isPhone) {
+      user = await this.usersService.findByPhone(cleanDigits);
+      if (!user && cleanDigits.length === 11 && cleanDigits.startsWith('976')) {
+        user = await this.usersService.findByPhone(cleanDigits.slice(3));
+      }
+      if (!user) {
+        user = await this.usersService.findByPhone(`+976${cleanDigits}`);
+      }
+      if (!user) {
+        user = await this.usersService.findByEmail(`${cleanDigits}@phone.vmax.mn`);
+      }
+    } else {
+      user = await this.usersService.findByEmail(rawIdentifier.toLowerCase());
+    }
+
     if (!user || user.authProvider !== AuthProvider.LOCAL) {
-      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна.');
+      throw new UnauthorizedException('Утасны дугаар/имэйл эсвэл нууц үг буруу байна.');
     }
 
     if (!user.password) {
-      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна.');
+      throw new UnauthorizedException('Энэ бүртгэл нууц үггүй байна. "Нууц үг сэргээх" эсвэл SMS / Google-ээр нэвтэрнэ үү.');
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Имэйл эсвэл нууц үг буруу байна.');
+      throw new UnauthorizedException('Утасны дугаар/имэйл эсвэл нууц үг буруу байна.');
     }
 
     return this.generateToken(user);
+  }
+
+  async sendPasswordResetOtp(dto: SendResetOtpDto) {
+    const raw = (dto.identifier || '').trim();
+    if (!raw) {
+      throw new BadRequestException('Утасны дугаар эсвэл имэйл хаягаа оруулна уу.');
+    }
+
+    let user: User | undefined;
+    let targetKey = '';
+    let masked = '';
+
+    if (dto.method === 'email') {
+      const email = raw.toLowerCase();
+      user = await this.usersService.findByEmail(email);
+      if (!user) {
+        throw new NotFoundException('Энэ имэйл хаягаар бүртгэлтэй хэрэглэгч олдсонгүй.');
+      }
+      targetKey = `email:${email}`;
+      masked = this.maskEmail(email);
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      this.passwordResetOtpStore.set(targetKey, {
+        code,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        target: email,
+      });
+
+      await this.mailService.sendPasswordResetEmail(email, code);
+      this.logger.log(`Password reset OTP for email ${email}: ${code}`);
+
+      return {
+        success: true,
+        method: 'email',
+        maskedTarget: masked,
+        message: `${masked} хаяг руу нууц үг сэргээх 6 оронтой код илгээгдлээ.`,
+      };
+    } else {
+      const cleanPhone = raw.replace(/\D/g, '');
+      if (cleanPhone.length < 8) {
+        throw new BadRequestException('8 оронтой утасны дугаар оруулна уу.');
+      }
+
+      user = await this.usersService.findByPhone(cleanPhone);
+      if (!user && cleanPhone.length === 11 && cleanPhone.startsWith('976')) {
+        user = await this.usersService.findByPhone(cleanPhone.slice(3));
+      }
+      if (!user) {
+        user = await this.usersService.findByPhone(`+976${cleanPhone}`);
+      }
+      if (!user) {
+        user = await this.usersService.findByEmail(`${cleanPhone}@phone.vmax.mn`);
+      }
+
+      if (!user) {
+        throw new NotFoundException('Энэ утасны дугаараар бүртгэлтэй хэрэглэгч олдсонгүй.');
+      }
+
+      targetKey = `phone:${cleanPhone}`;
+      masked = this.maskPhone(cleanPhone);
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      this.passwordResetOtpStore.set(targetKey, {
+        code,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        target: cleanPhone,
+      });
+
+      this.logger.log(`Password reset OTP for phone ${cleanPhone}: ${code}`);
+
+      return {
+        success: true,
+        method: 'phone',
+        maskedTarget: masked,
+        demoCode: process.env.NODE_ENV !== 'production' ? code : undefined,
+        message: `${masked} дугаар руу нууц үг сэргээх 6 оронтой код илгээгдлээ.`,
+      };
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const raw = (dto.identifier || '').trim();
+    if (!raw || !dto.otp || !dto.newPassword) {
+      throw new BadRequestException('Мэдээллээ бүрэн бөглөнө үү.');
+    }
+
+    if (dto.newPassword.length < 6) {
+      throw new BadRequestException('Шинэ нууц үг хамгийн багадаа 6 тэмдэгттэй байх ёстой.');
+    }
+
+    let targetKey = '';
+    let user: User | undefined;
+
+    if (dto.method === 'email') {
+      const email = raw.toLowerCase();
+      targetKey = `email:${email}`;
+      user = await this.usersService.findByEmail(email);
+    } else {
+      const cleanPhone = raw.replace(/\D/g, '');
+      targetKey = `phone:${cleanPhone}`;
+      user = await this.usersService.findByPhone(cleanPhone);
+      if (!user && cleanPhone.length === 11 && cleanPhone.startsWith('976')) {
+        user = await this.usersService.findByPhone(cleanPhone.slice(3));
+      }
+      if (!user) {
+        user = await this.usersService.findByPhone(`+976${cleanPhone}`);
+      }
+      if (!user) {
+        user = await this.usersService.findByEmail(`${cleanPhone}@phone.vmax.mn`);
+      }
+    }
+
+    if (!user) {
+      throw new NotFoundException('Хэрэглэгч олдсонгүй.');
+    }
+
+    const storedOtp = this.passwordResetOtpStore.get(targetKey);
+    if (!storedOtp) {
+      throw new BadRequestException('Баталгаажуулах код хүсээгүй эсвэл хугацаа нь дууссан байна. Кодоо дахин авна уу.');
+    }
+
+    if (Date.now() > storedOtp.expiresAt) {
+      this.passwordResetOtpStore.delete(targetKey);
+      throw new BadRequestException('Баталгаажуулах кодын хугацаа (10 мин) дууссан байна. Кодоо дахин авна уу.');
+    }
+
+    if (storedOtp.code !== dto.otp.trim()) {
+      throw new BadRequestException('Баталгаажуулах код буруу байна. Шалгаад дахин оролдоно уу.');
+    }
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+    await this.usersService.update(user.id, {
+      password: hashedPassword,
+      authProvider: AuthProvider.LOCAL,
+    });
+
+    this.passwordResetOtpStore.delete(targetKey);
+    this.logger.log(`Password reset successfully for user ${user.id} (${targetKey})`);
+
+    return {
+      success: true,
+      message: 'Таны нууц үг амжилттай шинэчлэгдлээ. Шинэ нууц үгээрээ нэвтэрнэ үү.',
+    };
   }
 
   async googleLogin(token: string) {

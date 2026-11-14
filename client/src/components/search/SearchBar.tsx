@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Mic, MapPin, Home, SlidersHorizontal, Bell, Flame, Building2, Layers, RotateCcw, BedDouble } from 'lucide-react';
+import { Search, Mic, MapPin, Home, SlidersHorizontal, Bell, Flame, Building2, Layers, RotateCcw, BedDouble, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { useI18n } from '@/i18n';
@@ -52,6 +52,7 @@ export interface SearchFilterParams {
   bathrooms?: string;
   yearBuiltMin?: string;
   constructionType?: string;
+  paymentTerms?: string;
   sortBy: string;
 }
 
@@ -81,6 +82,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
   const [bathrooms, setBathrooms] = useState(initialFilters?.bathrooms || '');
   const [yearBuiltMin, setYearBuiltMin] = useState(initialFilters?.yearBuiltMin || '');
   const [constructionType, setConstructionType] = useState(initialFilters?.constructionType || '');
+  const [paymentTerms, setPaymentTerms] = useState(initialFilters?.paymentTerms || '');
   const [sortBy, setSortBy] = useState(initialFilters?.sortBy || 'newest');
   const [showAdvanced, setShowAdvanced] = useState(() =>
     Boolean(
@@ -112,6 +114,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
     setBathrooms(initialFilters.bathrooms || '');
     setYearBuiltMin(initialFilters.yearBuiltMin || '');
     setConstructionType(initialFilters.constructionType || '');
+    setPaymentTerms(initialFilters.paymentTerms || '');
     setSortBy(initialFilters.sortBy || 'newest');
     const match = POPULAR_LOCATIONS.find(
       (loc) => loc.query === (initialFilters.query || '') && loc.district === (initialFilters.district || '')
@@ -164,6 +167,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
         bathrooms,
         yearBuiltMin,
         constructionType,
+        paymentTerms,
         sortBy,
         ...overrides,
       });
@@ -208,11 +212,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
     bathrooms,
     yearBuiltMin,
     constructionType,
+    paymentTerms,
     khoroo,
   ].filter(Boolean).length;
 
   const hasAnyFilter = Boolean(
-    query || type || category || district || bedrooms || activeAdvancedCount > 0
+    query || type || category || district || bedrooms || paymentTerms || activeAdvancedCount > 0
   );
 
   const handleResetAll = () => {
@@ -230,6 +235,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
     setBathrooms('');
     setYearBuiltMin('');
     setConstructionType('');
+    setPaymentTerms('');
     emitSearch({
       query: '',
       type: '',
@@ -244,6 +250,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
       bathrooms: '',
       yearBuiltMin: '',
       constructionType: '',
+      paymentTerms: '',
     });
   };
 
@@ -554,6 +561,69 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
           })}
         </div>
 
+        {/* Quick Payment Terms Selector Pills */}
+        <div className="mt-2.5 pt-2.5 border-t border-white/5 flex flex-wrap items-center gap-2">
+          <div className="flex items-center space-x-1.5 text-xs font-bold text-nebula-text mr-1">
+            <CreditCard size={14} className="text-amber-400" />
+            <span>Төлбөрийн нөхцөл:</span>
+          </div>
+          {(type === 'RENT'
+            ? [
+                { value: '', label: 'Бүгд' },
+                { value: '1+1', label: '1+1' },
+                { value: '2+1', label: '2+1' },
+                { value: '3+1', label: '3+1' },
+                { value: '6+1', label: '6+1' },
+                { value: '12+1', label: '12+1' },
+                { value: 'Барьцаа байхгүй', label: 'Барьцаагүй' },
+                { value: 'Тохиролцоно', label: 'Тохиролцоно' },
+              ]
+            : type === 'SALE'
+            ? [
+                { value: '', label: 'Бүгд' },
+                { value: 'Банкны зээлээр', label: 'Банкны зээл / Ипотек' },
+                { value: 'Бэлэн төлөлтөөр', label: 'Бэлэн төлөлт' },
+                { value: 'Бартер сонирхоно', label: 'Бартер сонсоно' },
+                { value: 'Тохиролцоно', label: 'Тохиролцоно' },
+              ]
+            : type === 'DAILY_RENT'
+            ? [
+                { value: '', label: 'Бүгд' },
+                { value: 'Хоногоор', label: 'Хоногоор' },
+                { value: 'Тохиролцоно', label: 'Тохиролцоно' },
+              ]
+            : [
+                { value: '', label: 'Бүгд' },
+                { value: 'Банкны зээлээр', label: 'Банкны зээлээр' },
+                { value: 'Бэлэн төлөлтөөр', label: 'Бэлэн төлөлт' },
+                { value: '3+1', label: '3+1' },
+                { value: '1+1', label: '1+1' },
+                { value: 'Бартер сонирхоно', label: 'Бартер' },
+                { value: 'Хоногоор', label: 'Хоногоор' },
+              ]
+          ).map((opt) => {
+            const isSelected = paymentTerms === opt.value;
+            return (
+              <button
+                key={opt.value || 'all'}
+                type="button"
+                onClick={() => {
+                  const nextVal = isSelected && opt.value !== '' ? '' : opt.value;
+                  setPaymentTerms(nextVal);
+                  emitSearch({ paymentTerms: nextVal });
+                }}
+                className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all border cursor-pointer ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white-force border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02]'
+                    : 'bg-void/50 border-white/10 text-nebula-text hover:text-starlight hover:border-amber-400/40 hover:bg-amber-500/10'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Collapsible Detailed Advanced Filters Grid */}
         {showAdvanced && (
           <motion.div
@@ -665,11 +735,43 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
                 </select>
               </div>
 
+              {/* Payment Terms Select */}
+              <div>
+                <label className="block text-xs font-semibold text-nebula-text mb-1 flex items-center gap-1">
+                  <CreditCard size={12} className="text-amber-400" />
+                  <span>Төлбөрийн нөхцөл</span>
+                </label>
+                <select
+                  id="search-payment-terms"
+                  name="paymentTerms"
+                  value={paymentTerms}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPaymentTerms(val);
+                    emitSearch({ paymentTerms: val });
+                  }}
+                  className="w-full bg-void/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-starlight focus:outline-none focus:border-plasma cursor-pointer"
+                >
+                  <option value="">Бүх нөхцөл</option>
+                  <option value="Банкны зээлээр">Банкны зээлээр / Ипотек</option>
+                  <option value="Бэлэн төлөлтөөр">Бэлэн төлөлтөөр</option>
+                  <option value="3+1">3+1 (3 сар + 1 барьцаа)</option>
+                  <option value="1+1">1+1 (1 сар + 1 барьцаа)</option>
+                  <option value="2+1">2+1</option>
+                  <option value="6+1">6+1 (хагас жилээр)</option>
+                  <option value="12+1">12+1 (жилээр)</option>
+                  <option value="Бартер сонирхоно">Бартер сонирхоно</option>
+                  <option value="Хоногоор">Хоногоор</option>
+                  <option value="Барьцаа байхгүй">Барьцаа байхгүй</option>
+                  <option value="Тохиролцоно">Үнэ тохиролцоно</option>
+                </select>
+              </div>
+
             </div>
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-2">
-              {(priceMin || priceMax || areaMin || areaMax || bedrooms || constructionType) && (
+              {(priceMin || priceMax || areaMin || areaMax || bedrooms || constructionType || paymentTerms) && (
                 <button
                   onClick={() => {
                     setPriceMin('');
@@ -680,6 +782,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
                     setBathrooms('');
                     setYearBuiltMin('');
                     setConstructionType('');
+                    setPaymentTerms('');
                     emitSearch({
                       priceMin: '',
                       priceMax: '',
@@ -689,6 +792,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
                       bathrooms: '',
                       yearBuiltMin: '',
                       constructionType: '',
+                      paymentTerms: '',
                     });
                   }}
                   className="px-4 py-2 bg-void/50 border border-white/10 text-nebula-text hover:text-white rounded-xl text-xs transition-all"
@@ -715,10 +819,12 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
         district={district}
         khoroo={khoroo}
         bedrooms={bedrooms}
+        paymentTerms={paymentTerms}
         onApply={(filters) => {
           if (filters.district !== undefined) setDistrict(filters.district);
           if (filters.khoroo !== undefined) setKhoroo(filters.khoroo);
           if (filters.bedrooms !== undefined) setBedrooms(filters.bedrooms);
+          if (filters.paymentTerms !== undefined) setPaymentTerms(filters.paymentTerms);
           if (filters.priceMin !== undefined) setPriceMin(filters.priceMin);
           if (filters.priceMax !== undefined) setPriceMax(filters.priceMax);
           if (filters.areaMin !== undefined) setAreaMin(filters.areaMin);
@@ -728,6 +834,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, initialFilters }) => {
             district: filters.district !== undefined ? filters.district : district,
             khoroo: filters.khoroo !== undefined ? filters.khoroo : khoroo,
             bedrooms: filters.bedrooms !== undefined ? filters.bedrooms : bedrooms,
+            paymentTerms: filters.paymentTerms !== undefined ? filters.paymentTerms : paymentTerms,
             priceMin: filters.priceMin !== undefined ? filters.priceMin : priceMin,
             priceMax: filters.priceMax !== undefined ? filters.priceMax : priceMax,
             areaMin: filters.areaMin !== undefined ? filters.areaMin : areaMin,

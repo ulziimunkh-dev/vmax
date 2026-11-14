@@ -32,6 +32,7 @@ const FILTER_KEYS: (keyof SearchFilterParams)[] = [
   'bathrooms',
   'yearBuiltMin',
   'constructionType',
+  'paymentTerms',
   'sortBy',
 ];
 
@@ -49,6 +50,7 @@ const DEFAULT_FILTERS: SearchFilterParams = {
   bathrooms: '',
   yearBuiltMin: '',
   constructionType: '',
+  paymentTerms: '',
   sortBy: 'newest',
 };
 
@@ -67,6 +69,7 @@ function hasActiveFilterValues(f: Partial<SearchFilterParams>): boolean {
     f.bathrooms ||
     f.yearBuiltMin ||
     f.constructionType ||
+    f.paymentTerms ||
     (f.sortBy && f.sortBy !== 'newest')
   );
 }
@@ -166,6 +169,7 @@ const Home = () => {
         bathrooms: filters.bathrooms ? Number(filters.bathrooms) : undefined,
         yearBuiltMin: filters.yearBuiltMin ? Number(filters.yearBuiltMin) : undefined,
         constructionType: filters.constructionType || undefined,
+        paymentTerms: filters.paymentTerms || undefined,
         sortBy: activeSort,
         page: pageNum,
         limit: 50,

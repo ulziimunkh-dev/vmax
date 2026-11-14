@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Project } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ExternalLink, X, Building2, ArrowRight, Layers, Sparkles, Phone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ExternalLink, Building2, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useThemeStore } from '@/store/useThemeStore';
 import L from 'leaflet';
 
@@ -30,12 +29,12 @@ export const ProjectMap: React.FC<ProjectMapProps> = ({
   height = '600px',
   zoom = 12,
 }) => {
+  const navigate = useNavigate();
   const themeMode = useThemeStore((state) => state.mode);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
 
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [tileMode, setTileMode] = useState<'dark' | 'light'>(themeMode === 'light' ? 'light' : 'dark');
 
   useEffect(() => {
@@ -59,6 +58,97 @@ export const ProjectMap: React.FC<ProjectMapProps> = ({
       centerLat + ((index % 5) - 2) * 0.015,
       centerLng + (Math.floor(index / 2) - 1.5) * 0.02,
     ];
+  };
+
+  const createPopupElement = (project: Project): HTMLElement => {
+    const root = document.createElement('div');
+    root.style.fontFamily = 'inherit';
+
+    // Thumbnail
+    if (project.coverImage) {
+      const imgWrap = document.createElement('div');
+      imgWrap.style.cssText = 'position: relative; width: 100%; height: 120px; overflow: hidden; cursor: pointer;';
+      const img = document.createElement('img');
+      img.src = project.coverImage;
+      img.alt = project.name || '';
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=800&auto=format&fit=crop';
+      };
+      imgWrap.appendChild(img);
+      imgWrap.addEventListener('click', () => {
+        navigate(`/projects/${project.id}`);
+      });
+      root.appendChild(imgWrap);
+    }
+
+    const body = document.createElement('div');
+    body.style.cssText = 'padding: 12px 14px;';
+
+    // Developer name
+    if (project.developerName) {
+      const dev = document.createElement('div');
+      dev.textContent = project.developerName;
+      dev.style.cssText = 'font-size: 10px; font-weight: 700; color: #6c5ce7; text-transform: uppercase; margin-bottom: 2px; padding-right: 20px;';
+      body.appendChild(dev);
+    }
+
+    // Name
+    const title = document.createElement('h4');
+    title.textContent = project.name || '';
+    title.style.cssText = 'font-weight: 700; font-size: 14px; line-height: 1.35; margin: 0 0 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+    body.appendChild(title);
+
+    // District & 3D Tour
+    const meta = document.createElement('div');
+    meta.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; font-size: 11px; opacity: 0.8;';
+    const loc = document.createElement('span');
+    loc.textContent = project.khoroo ? `${project.district}, ${project.khoroo}` : project.district;
+    meta.appendChild(loc);
+
+    if (project.tour3dUrl) {
+      const tour = document.createElement('span');
+      tour.textContent = '✨ 3D Tour';
+      tour.style.cssText = 'padding: 1px 6px; border-radius: 6px; background: rgba(108, 92, 231, 0.15); color: #6c5ce7; font-weight: 700; font-size: 10px;';
+      meta.appendChild(tour);
+    }
+    body.appendChild(meta);
+
+    // Price
+    const price = document.createElement('div');
+    const minPrice = project.minPricePerSqm
+      ? `${(Number(project.minPricePerSqm) / 1000000).toFixed(1)} сая ₮ / м.кв-аас`
+      : 'Тохиролцоно';
+    price.textContent = minPrice;
+    price.style.cssText = 'font-size: 14px; font-weight: 800; color: #6c5ce7; margin-bottom: 10px;';
+    body.appendChild(price);
+
+    // Footer actions
+    const footer = document.createElement('div');
+    footer.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.2); font-size: 12px;';
+
+    if (project.salesPhone) {
+      const phoneBtn = document.createElement('a');
+      const cleanPhone = project.salesPhone.split(',')[0].trim();
+      phoneBtn.href = `tel:${cleanPhone}`;
+      phoneBtn.textContent = `📞 ${cleanPhone}`;
+      phoneBtn.style.cssText = 'padding: 4px 8px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; text-decoration: none; font-size: 11px;';
+      footer.appendChild(phoneBtn);
+    }
+
+    const viewBtn = document.createElement('button');
+    viewBtn.type = 'button';
+    viewBtn.textContent = 'Дэлгэрэнгүй үзэх →';
+    viewBtn.style.cssText = 'background: none; border: none; padding: 0; color: #6c5ce7; font-weight: 700; font-size: 12px; cursor: pointer; margin-left: auto;';
+    viewBtn.addEventListener('click', () => {
+      navigate(`/projects/${project.id}`);
+    });
+    footer.appendChild(viewBtn);
+
+    body.appendChild(footer);
+    root.appendChild(body);
+    return root;
   };
 
   // Initialize Map
@@ -155,9 +245,15 @@ export const ProjectMap: React.FC<ProjectMapProps> = ({
 
       const marker = L.marker(coords, { icon: customIcon });
 
-      marker.on('click', () => {
-        setSelectedProject(project);
-        map.panTo(coords);
+      marker.bindPopup(() => createPopupElement(project), {
+        className: 'vmax-map-popup',
+        closeButton: true,
+        maxWidth: 320,
+        minWidth: 280,
+        offset: [0, -12],
+        autoPan: true,
+        autoPanPaddingTopLeft: [20, 72],
+        autoPanPaddingBottomRight: [20, 20],
       });
 
       markersGroup.addLayer(marker);
@@ -209,85 +305,6 @@ export const ProjectMap: React.FC<ProjectMapProps> = ({
         </div>
       </div>
 
-      {/* Selected Project Floating Preview Card */}
-      <AnimatePresence>
-        {selectedProject && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-30 glass-card p-4 rounded-2xl border border-plasma/40 bg-void/95 shadow-2xl space-y-3"
-          >
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-[10px] font-bold text-plasma uppercase tracking-wider block">
-                  {selectedProject.developerName}
-                </span>
-                <h4 className="text-base font-bold text-starlight line-clamp-1">{selectedProject.name}</h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedProject(null)}
-                className="p-1 rounded-lg text-nebula-text hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Thumbnail and Details */}
-            <div className="flex gap-3">
-              <div className="w-24 h-20 rounded-xl overflow-hidden bg-black/40 shrink-0">
-                <img
-                  src={selectedProject.coverImage}
-                  alt={selectedProject.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div className="flex-1 space-y-1 text-xs">
-                <div className="flex items-center gap-1 text-nebula-text line-clamp-1">
-                  <MapPin size={12} className="text-nova shrink-0" />
-                  <span>{selectedProject.district} {selectedProject.khoroo ? `, ${selectedProject.khoroo}` : ''}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-nebula-text block">1 м.кв эхлэх үнэ:</span>
-                  <span className="text-sm font-bold text-plasma font-mono">
-                    {selectedProject.minPricePerSqm
-                      ? `${(Number(selectedProject.minPricePerSqm) / 1000000).toFixed(1)} сая ₮`
-                      : 'Тохиролцоно'}
-                  </span>
-                </div>
-                {selectedProject.tour3dUrl && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-plasma/20 text-plasma">
-                    <Sparkles size={10} /> 3D Tour
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              {selectedProject.salesPhone && (
-                <a
-                  href={`tel:${selectedProject.salesPhone.split(',')[0].trim()}`}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs flex items-center gap-1 border border-emerald-500/30"
-                >
-                  <Phone size={13} />
-                  <span>Залгах</span>
-                </a>
-              )}
-
-              <Link
-                to={`/projects/${selectedProject.id}`}
-                className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-xs flex items-center justify-center gap-1 shadow-md shadow-plasma/20 hover:shadow-plasma/40 transition-all"
-              >
-                <span>Дэлгэрэнгүй үзэх</span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

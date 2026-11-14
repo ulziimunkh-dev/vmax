@@ -137,4 +137,29 @@ export class MailService {
       return false;
     }
   }
+
+  async sendPasswordResetEmail(toEmail: string, code: string) {
+    try {
+      await this.mailerService.sendMail({
+        to: toEmail,
+        subject: `[Vmax.mn] Нууц үг сэргээх код: ${code}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; text-align: center;">
+            <h2 style="color: #863bff; margin-bottom: 8px;">Vmax.mn</h2>
+            <h3 style="color: #1e293b; margin-top: 0;">Нууц үг сэргээх хүсэлт</h3>
+            <p style="color: #64748b; font-size: 14px;">Таны бүртгэлийн нууц үг сэргээх 6 оронтой баталгаажуулах код:</p>
+            <div style="background: #f1f5f9; padding: 16px; border-radius: 12px; margin: 20px 0;">
+              <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #863bff;">${code}</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 12px;">Энэхүү код нь 10 минутын турш хүчинтэй байна. Хэрэв та нууц үг сэргээх хүсэлт гаргаагүй бол уг имэйлийг үл тооно уу.</p>
+          </div>
+        `,
+      });
+      this.logger.log(`Password reset email sent to ${toEmail}`);
+      return true;
+    } catch (err: any) {
+      this.logger.error(`Failed to send password reset email to ${toEmail}: ${err.message}`);
+      return false;
+    }
+  }
 }
