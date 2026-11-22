@@ -10,6 +10,7 @@ export interface ImportResult {
   success: boolean;
   totalRows: number;
   importedCount: number;
+  skippedCount: number;
   failedCount: number;
   errors: { row: number; title: string; reason: string }[];
 }
@@ -191,6 +192,7 @@ export class ListingsExcelService {
       success: true,
       totalRows: 0,
       importedCount: 0,
+      skippedCount: 0,
       failedCount: 0,
       errors: [],
     };
@@ -199,6 +201,34 @@ export class ListingsExcelService {
       result.success = false;
       result.errors.push({ row: 0, title: 'Файл', reason: 'Excel файлд өгөгдөл олдсонгүй.' });
       return result;
+    }
+
+    // Preload existing unegui IDs, URLs, and (title + phone) pairs to avoid duplication
+    const existingListings = await this.listingsRepository
+      .createQueryBuilder('listing')
+      .select([
+        "listing.attributes->>'uneguiId' AS unegui_id",
+        "listing.attributes->>'originalUrl' AS original_url",
+        'listing.title AS title',
+        'listing.contactPhone AS contact_phone',
+      ])
+      .getRawMany();
+
+    const seenUneguiIds = new Set<string>();
+    const seenUrls = new Set<string>();
+    const seenTitlePhone = new Set<string>();
+
+    for (const item of existingListings) {
+      if (item.unegui_id) {
+        seenUneguiIds.add(String(item.unegui_id).trim());
+      }
+      if (item.original_url) {
+        seenUrls.add(String(item.original_url).trim().toLowerCase());
+      }
+      if (item.title) {
+        const phone = (item.contact_phone || '').trim();
+        seenTitlePhone.add(`${item.title.toLowerCase().trim()}:::${phone}`);
+      }
     }
 
     // Resolve userId if not provided
@@ -308,6 +338,28 @@ export class ListingsExcelService {
         const rawPhone = row.getCell(phoneCol).value?.toString().trim() || '';
         const contactPhone = rawPhone.replace(/[^\d+]/g, '');
 
+        // De-duplication check against DB and current file
+        const rawUneguiId = row.getCell(uneguiIdCol).value?.toString().trim();
+        const rawUrl = row.getCell(urlCol).value?.toString().trim();
+        const titleKey = `${title.toLowerCase().trim()}:::${contactPhone}`;
+
+        if (rawUneguiId && seenUneguiIds.has(rawUneguiId)) {
+          result.skippedCount++;
+          continue;
+        }
+        if (rawUrl && seenUrls.has(rawUrl.toLowerCase())) {
+          result.skippedCount++;
+          continue;
+        }
+        if (contactPhone && seenTitlePhone.has(titleKey)) {
+          result.skippedCount++;
+          continue;
+        }
+
+        if (rawUneguiId) seenUneguiIds.add(rawUneguiId);
+        if (rawUrl) seenUrls.add(rawUrl.toLowerCase());
+        if (contactPhone) seenTitlePhone.add(titleKey);
+
         // Location / District / Khoroo
         const locationVal = row.getCell(locCol).value?.toString().trim() || 'Улаанбаатар';
         const districtVal = row.getCell(distCol).value?.toString().trim() || 'Хан-Уул';
@@ -357,8 +409,8 @@ export class ListingsExcelService {
           windowDirections: row.getCell(windowCol).value?.toString().trim() || undefined,
           garage: row.getCell(garageCol).value?.toString().trim() || undefined,
           balcony: row.getCell(balconyCol).value?.toString().trim() || undefined,
-          uneguiId: row.getCell(uneguiIdCol).value?.toString().trim() || undefined,
-          originalUrl: row.getCell(urlCol).value?.toString().trim() || undefined,
+          uneguiId: rawUneguiId || undefined,
+          originalUrl: rawUrl || undefined,
           source: 'Excel Importer',
           importDate: new Date().toISOString(),
         };
@@ -427,14 +479,21 @@ export class ListingsExcelService {
 
   private mapCategoryToEnum(raw: string): ListingCategory {
     const lower = (raw || '').toLowerCase();
-    if (lower.includes('сууц') || lower.includes('байр') || lower.includes('өрөө') || lower.includes('apartment')) {
-      return ListingCategory.APARTMENT;
-    }
-    if (lower.includes('хаус') || lower.includes('зуслан') || lower.includes('аос') || lower.includes('house')) {
+    if (
+      lower.includes('хаус') ||
+      lower.includes('амины') ||
+      lower.includes('зуслан') ||
+      lower.includes('аос') ||
+      lower.includes('таунхаус') ||
+      lower.includes('house')
+    ) {
       return ListingCategory.HOUSE;
     }
     if (lower.includes('газар') || lower.includes('хашаа') || lower.includes('land')) {
       return ListingCategory.LAND;
+    }
+    if (lower.includes('сууц') || lower.includes('байр') || lower.includes('өрөө') || lower.includes('apartment')) {
+      return ListingCategory.APARTMENT;
     }
     if (lower.includes('амралт') || lower.includes('сувилал') || lower.includes('resort')) {
       return ListingCategory.RESORT;

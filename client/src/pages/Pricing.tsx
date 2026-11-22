@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, Check, Zap, Crown, Building2, UserCheck, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Check, Zap, Crown, Building2, UserCheck, AlertCircle, Sparkles, QrCode } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/i18n';
-
+import { QPayModal } from '@/components/payment/QPayModal';
 
 export const Pricing: React.FC = () => {
   const { user, token } = useAuthStore();
@@ -15,6 +15,14 @@ export const Pricing: React.FC = () => {
   const [status, setStatus] = useState<any>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // QPay Modal State
+  const [qpayModalOpen, setQpayModalOpen] = useState<boolean>(false);
+  const [selectedPlanForQPay, setSelectedPlanForQPay] = useState<{
+    tier: string;
+    planName: string;
+    basePrice: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchPlans();
@@ -84,11 +92,28 @@ export const Pricing: React.FC = () => {
     }
   };
 
-  const handleUpgrade = async (tier: string) => {
+  const handlePlanSelect = (plan: any) => {
     if (!token) {
-      navigate('/login');
+      navigate('/login?redirect=/pricing');
       return;
     }
+
+    // If it's a paid tier, open QPay modal
+    if (plan.priceMnt > 0) {
+      setSelectedPlanForQPay({
+        tier: plan.id,
+        planName: plan.name,
+        basePrice: plan.priceMnt,
+      });
+      setQpayModalOpen(true);
+      return;
+    }
+
+    // If free tier
+    handleFreeUpgrade(plan.id);
+  };
+
+  const handleFreeUpgrade = async (tier: string) => {
     setLoadingPlan(tier);
     setMsg(null);
     try {
@@ -96,10 +121,18 @@ export const Pricing: React.FC = () => {
       setMsg({ type: 'success', text: res.data.message || 'Эрх амжилттай шинэчлэгдлээ!' });
       await fetchStatus();
     } catch (err: any) {
-      setMsg({ type: 'error', text: err.response?.data?.message || 'Багц ахиулахад алдаа гарлаа.' });
+      setMsg({ type: 'error', text: err.response?.data?.message || 'Багц сонгоход алдаа гарлаа.' });
     } finally {
       setLoadingPlan(null);
     }
+  };
+
+  const handlePaymentSuccess = async () => {
+    setMsg({
+      type: 'success',
+      text: 'QPay төлбөр амжилттай хийгдэж, таны гишүүнчлэлийн багц идэвхжлээ!',
+    });
+    await fetchStatus();
   };
 
   return (
@@ -120,6 +153,14 @@ export const Pricing: React.FC = () => {
         <p className="text-nebula-text text-sm md:text-base">
           {t.pricing.subtitle}
         </p>
+
+        {/* QPay Integration Tag */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-xs font-semibold text-red-500 dark:text-red-400">
+          <div className="flex items-center justify-center px-1.5 py-0.5 rounded bg-red-600 text-white text-[10px] font-black uppercase tracking-tighter">
+            qPay
+          </div>
+          <span>QPay төлбөрийн системээр бүх банкны апп ашиглан 1 минутад төлөх боломжтой</span>
+        </div>
       </div>
 
       {/* Current status banner */}
@@ -229,28 +270,58 @@ export const Pricing: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleUpgrade(plan.id)}
-                disabled={isCurrent || loadingPlan === plan.id}
-                className={`w-full py-4 rounded-2xl font-bold text-sm transition-all shadow-lg ${
-                  isCurrent
-                    ? 'bg-white/10 text-nebula-text border border-white/10 cursor-default'
-                    : plan.recommended
-                    ? 'bg-gradient-to-r from-plasma to-aurora hover:from-plasma/90 hover:to-aurora/90 text-slate-950 shadow-plasma/40'
-                    : 'bg-void/80 hover:bg-void text-starlight border border-white/20 hover:border-plasma'
-                }`}
-              >
-                {loadingPlan === plan.id
-                  ? 'Боловсруулж байна...'
-                  : isCurrent
-                  ? t.pricing.currentPlan
-                  : t.pricing.choosePlan}
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => handlePlanSelect(plan)}
+                  disabled={isCurrent || loadingPlan === plan.id}
+                  className={`w-full py-4 rounded-2xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
+                    isCurrent
+                      ? 'bg-white/10 text-nebula-text border border-white/10 cursor-default'
+                      : plan.recommended
+                      ? 'bg-gradient-to-r from-plasma to-aurora hover:from-plasma/90 hover:to-aurora/90 text-slate-950 shadow-plasma/40 cursor-pointer'
+                      : 'bg-void/80 hover:bg-void text-starlight border border-white/20 hover:border-plasma cursor-pointer'
+                  }`}
+                >
+                  {plan.priceMnt > 0 && !isCurrent && (
+                    <div className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-black uppercase">
+                      QPay
+                    </div>
+                  )}
+                  <span>
+                    {loadingPlan === plan.id
+                      ? 'Боловсруулж байна...'
+                      : isCurrent
+                      ? t.pricing.currentPlan
+                      : plan.priceMnt > 0
+                      ? 'QPay-ээр авах'
+                      : t.pricing.choosePlan}
+                  </span>
+                </button>
+
+                {plan.priceMnt > 0 && !isCurrent && (
+                  <p className="text-[11px] text-center text-slate-500 dark:text-nebula-text flex items-center justify-center gap-1">
+                    <QrCode size={12} className="text-red-500" />
+                    <span>Бүх банкны QR болон апп дэмжинэ</span>
+                  </p>
+                )}
+              </div>
             </motion.div>
           );
         })}
       </div>
+
+      {/* QPay Payment Modal */}
+      {selectedPlanForQPay && (
+        <QPayModal
+          isOpen={qpayModalOpen}
+          onClose={() => setQpayModalOpen(false)}
+          tier={selectedPlanForQPay.tier}
+          planName={selectedPlanForQPay.planName}
+          basePrice={selectedPlanForQPay.basePrice}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 };

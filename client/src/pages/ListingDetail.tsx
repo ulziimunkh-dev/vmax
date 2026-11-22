@@ -20,6 +20,7 @@ import { formatPriceMongolianWords } from '@/utils/formatPrice';
 import { checkPhoneQuota, recordPhoneView, DAILY_GUEST_PHONE_LIMIT } from '@/utils/phoneQuota';
 import { PhoneQuotaLimitModal } from '@/components/common/PhoneQuotaLimitModal';
 import { MortgageCalculator } from '@/components/listings/MortgageCalculator';
+import { trackListingView, trackPhoneReveal } from '@/utils/analytics';
 
 
 
@@ -154,6 +155,9 @@ const ListingDetail = () => {
       setRevealedPhone(res.data.phone);
       setPhoneRevealsCount(res.data.revealsCount);
       setIsPhoneRevealed(true);
+      if (id) {
+        trackPhoneReveal(id, listing?.category, listing?.price);
+      }
     } catch {
       // Fallback
       const defaultPhone = listing?.contactPhone || listing?.attributes?.contactPhone || listing?.user?.phone || null;
@@ -237,6 +241,9 @@ const ListingDetail = () => {
       const data = res.data;
       setListing(data);
       addVisit(data);
+      if (data) {
+        trackListingView(data);
+      }
     } catch {
       setListing(fallbackListing);
       addVisit(fallbackListing);

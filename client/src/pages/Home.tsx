@@ -6,12 +6,12 @@ import ListingGrid from '@/components/listings/ListingGrid';
 import PropertyMap from '@/components/map/PropertyMap';
 import { ReelsFeedModal } from '@/components/listings/ReelsFeedModal';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { Listing, Project } from '@/types';
+import type { Listing } from '@/types';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/i18n';
-import { listingsAPI, projectsAPI } from '@/services/api';
-import { ProjectCard } from '@/components/projects/ProjectCard';
-import { LayoutGrid, Map, Sparkles, Zap, Scale, ArrowUpDown, Smartphone, Play, Building2, ArrowRight, Handshake, Phone, Mail } from 'lucide-react';
+import { listingsAPI } from '@/services/api';
+import { HomeHighlightsModal } from '@/components/home/HomeHighlightsModal';
+import { LayoutGrid, Map, Sparkles, ArrowUpDown, Smartphone, Play } from 'lucide-react';
 
 
 const HOME_FILTERS_STORAGE_KEY = 'vmax_home_filters';
@@ -120,7 +120,6 @@ const Home = () => {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
-  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [isReelsModalOpen, setIsReelsModalOpen] = useState(false);
@@ -213,9 +212,6 @@ const Home = () => {
         // ignore storage errors
       }
     });
-    projectsAPI.getAll({ limit: 3 }).then((res) => {
-      setFeaturedProjects(res.data?.items || []);
-    }).catch((err) => console.warn('Featured projects load:', err));
   }, []);
 
   useEffect(() => {
@@ -321,109 +317,11 @@ const Home = () => {
   return (
     <div className="w-full">
       <HeroSection />
+      {/* 🚀 Welcome / Highlights Popup Modal */}
+      <HomeHighlightsModal />
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 -mt-8 sm:-mt-20 relative z-20">
         <SearchBar onSearch={handleSearch} initialFilters={currentFilters} />
-
-        {/* Core Differentiators Highlights Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="glass-card p-4 rounded-2xl border border-white/10 flex items-center space-x-3 bg-cosmic/40">
-            <div className="p-2.5 bg-plasma/20 text-plasma rounded-xl flex-shrink-0">
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <h4 className="text-starlight font-bold text-sm">{t.homeHighlights.verifiedTitle}</h4>
-              <p className="text-nebula-text text-xs">{t.homeHighlights.verifiedDesc}</p>
-            </div>
-          </div>
-
-          <div className="glass-card p-4 rounded-2xl border border-white/10 flex items-center space-x-3 bg-cosmic/40">
-            <div className="p-2.5 bg-aurora/20 text-aurora rounded-xl flex-shrink-0">
-              <Zap size={20} />
-            </div>
-            <div>
-              <h4 className="text-starlight font-bold text-sm">{t.homeHighlights.fastSearchTitle}</h4>
-              <p className="text-nebula-text text-xs">{t.homeHighlights.fastSearchDesc}</p>
-            </div>
-          </div>
-
-          <div className="glass-card p-4 rounded-2xl border border-white/10 flex items-center space-x-3 bg-cosmic/40">
-            <div className="p-2.5 bg-nova/20 text-nova rounded-xl flex-shrink-0">
-              <Scale size={20} />
-            </div>
-            <div>
-              <h4 className="text-starlight font-bold text-sm">{t.homeHighlights.compareTitle}</h4>
-              <p className="text-nebula-text text-xs">{t.homeHighlights.compareDesc}</p>
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* 🏢 New Projects & Developments Showcase on Home */}
-      {featuredProjects.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-plasma/10 border border-plasma/30 text-plasma text-[11px] font-bold uppercase tracking-wider">
-                <Building2 size={13} />
-                <span>Барилгын төслүүд</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-heading font-black text-starlight tracking-tight">
-                Шилдэг хотхон & <span className="bg-gradient-to-r from-plasma via-nova to-aurora bg-clip-text text-transparent">Шинэ орон сууцууд</span>
-              </h2>
-            </div>
-            <Link
-              to="/projects"
-              className="text-xs font-bold text-plasma hover:text-white flex items-center gap-1.5 transition-colors self-start sm:self-auto group"
-            >
-              <span>Бүх төслийг үзэх ({featuredProjects.length}+)</span>
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProjects.map((p) => (
-              <ProjectCard key={p.id} project={p} />
-            ))}
-          </div>
-
-          {/* 🤝 Project Cooperation & Partnership Banner on Home */}
-          <div className="mt-8 relative overflow-hidden rounded-3xl border border-plasma/25 dark:border-plasma/40 bg-gradient-to-r from-plasma/10 via-purple-50/70 to-indigo-50/50 dark:from-[#171330] dark:via-[#23184d] dark:to-[#1a1236] p-6 sm:p-8 shadow-xl backdrop-blur-md">
-            <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-plasma/10 dark:bg-plasma/25 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -left-12 -top-12 w-48 h-48 bg-nova/10 dark:bg-nova/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-2xl">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-plasma/15 dark:bg-plasma/25 border border-plasma/30 dark:border-plasma/40 text-plasma dark:text-purple-200 text-[11px] font-black uppercase tracking-wider shadow-sm">
-                  <Handshake size={14} className="text-plasma" />
-                  <span>Барилга угсралт & Захиалагч нарт</span>
-                </div>
-                <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white-force tracking-tight">
-                  Барилгын төсөл, хотхоноо Vmax дээр байршуулж хамтран ажиллах
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-purple-100/90 leading-relaxed font-medium">
-                  Хотхоны албан ёсны үнэ, 3D аялал, өрөөний төлөвлөлтөө нийтлэн зорилтот худалдан авагчдад шууд хүргэхээр хамтран ажиллах бол бидэнтэй холбогдоорой.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 shrink-0">
-                <a
-                  href="tel:+97689767700"
-                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-plasma to-nova hover:from-plasma/90 hover:to-nova/90 text-white-force font-bold text-xs sm:text-sm shadow-lg shadow-plasma/30 transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
-                >
-                  <Phone size={16} />
-                  <span>Холбогдох (8976-7700)</span>
-                </a>
-                <Link
-                  to="/create-project"
-                  className="px-5 py-3 rounded-xl bg-white dark:bg-white/10 hover:bg-slate-50 dark:hover:bg-white/20 border border-slate-300 dark:border-white/25 text-slate-800 dark:text-white-force hover:text-plasma dark:hover:text-white-force font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
-                >
-                  <span>Төсөл нийтлэх</span>
-                  <ArrowRight size={15} />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Results Section Header */}

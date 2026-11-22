@@ -41,6 +41,13 @@ export default () => ({
     s3BucketName: process.env.AWS_S3_BUCKET_NAME ?? 'vmax-property-images',
     folder: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   },
+  qpay: {
+    baseUrl: process.env.QPAY_BASE_URL ?? 'https://merchant.qpay.mn/v2',
+    username: process.env.QPAY_USERNAME ?? '',
+    password: process.env.QPAY_PASSWORD ?? '',
+    invoiceCode: process.env.QPAY_INVOICE_CODE ?? 'VMAX_SUBSCRIPTION',
+    callbackUrl: process.env.QPAY_CALLBACK_URL ?? '',
+  },
 });
 
 

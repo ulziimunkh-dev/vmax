@@ -33,6 +33,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import api, { authAPI } from '@/services/api';
 
 import { ScrollToTop } from '@/components/common/ScrollToTop';
+import { AnalyticsTracker } from '@/components/common/AnalyticsTracker';
 
 const App = () => {
   const { token, setUser, logout, login } = useAuthStore();
@@ -79,6 +80,7 @@ const App = () => {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '474155590838-p7h6dsl91e883rmdsu5naqg9seevtv5v.apps.googleusercontent.com'}>
       <BrowserRouter>
         <ScrollToTop />
+        <AnalyticsTracker />
         <Starfield />
         <div className="min-h-screen flex flex-col font-sans relative z-0 transition-colors duration-300">
           <PromoBanner />

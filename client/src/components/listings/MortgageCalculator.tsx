@@ -14,6 +14,7 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
+import { trackMortgageCalculated } from '@/utils/analytics';
 
 interface MortgageCalculatorProps {
   initialPrice: number;
@@ -106,6 +107,20 @@ export const MortgageCalculator: React.FC<MortgageCalculatorProps> = ({
   // Amount needed to avoid commercial loan
   const downPaymentToAvoidCommercial = Math.max(0, propertyPrice - MORTGAGE_LIMIT);
   const downPercentToAvoidCommercial = propertyPrice > 0 ? Math.ceil((downPaymentToAvoidCommercial / propertyPrice) * 100) : 0;
+
+  useEffect(() => {
+    if (propertyPrice > 0 && totalMonthlyPayment > 0) {
+      const timer = setTimeout(() => {
+        trackMortgageCalculated({
+          propertyPrice,
+          loanType: loanMode,
+          monthlyPayment: totalMonthlyPayment,
+          downPayment: downPaymentAmount,
+        });
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [propertyPrice, loanMode, totalMonthlyPayment, downPaymentAmount]);
 
   // Handle price input typing with comma formatting
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {

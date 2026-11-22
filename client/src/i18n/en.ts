@@ -29,6 +29,8 @@ const en: Translations = {
     fastSearchDesc: 'Instant filters & precision real estate matching',
     compareTitle: 'Side-by-Side Comparison',
     compareDesc: 'Compare multiple properties at a single glance',
+    dontShowAgain: "Don't show again",
+    close: 'Close',
     subheading: 'Verified residential & commercial real estate across Ulaanbaatar',
     listMode: 'List',
     mapMode: 'Map',

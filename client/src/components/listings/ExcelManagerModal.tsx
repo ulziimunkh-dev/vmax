@@ -27,6 +27,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   const [result, setResult] = useState<{
     success: boolean;
     importedCount: number;
+    skippedCount?: number;
     failedCount: number;
     errors: { row: number; title: string; reason: string }[];
   } | null>(null);
@@ -224,7 +225,11 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
                   {result.importedCount > 0 ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                  <span>{result.importedCount} {t.excelManager.successImport} {result.failedCount > 0 && `(${result.failedCount} ${t.excelManager.failedImport})`}</span>
+                  <span>
+                    {result.importedCount} {t.excelManager.successImport}
+                    {result.skippedCount && result.skippedCount > 0 ? ` (${result.skippedCount} давхардсан тул алгассан)` : ''}
+                    {result.failedCount > 0 && ` (${result.failedCount} ${t.excelManager.failedImport})`}
+                  </span>
                 </div>
                 {result.errors.length > 0 && (
                   <div className="mt-2 text-xs space-y-1 max-h-24 overflow-y-auto">
