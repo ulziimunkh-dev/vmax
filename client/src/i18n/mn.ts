@@ -11,8 +11,10 @@ const mn = {
     reels: 'Reels Бичлэг',
     projects: 'Шинэ төсөл',
     furniture: 'Тавилга',
+    events: 'Эвент & Заал',
     pricing: 'Үнийн багц',
     compare: 'Харьцуулах',
+    donate: 'Дэмжих',
   },
   hero: {
     title: 'Монголын Үл Хөдлөх Хөрөнгийн Зах Зээл',

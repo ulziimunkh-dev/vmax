@@ -13,8 +13,10 @@ const en: Translations = {
     reels: 'Reels Videos',
     projects: 'New Projects',
     furniture: 'Furniture',
+    events: 'Events & Venues',
     pricing: 'Pricing',
     compare: 'Compare',
+    donate: 'Donate',
   },
   hero: {
     title: "Mongolia's Real Estate Marketplace",

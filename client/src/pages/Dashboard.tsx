@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Ban, Edit2, Trash2, RefreshCw, Eye, EyeOff, LayoutDashboard, Share2, Sparkles, Calendar, MessageSquare, Phone, ShieldCheck, User as UserIcon, X, ExternalLink, Building2, Armchair, Plus, MapPin, CheckCircle2, Star, Layers, AlertCircle, Camera, Video, Upload } from 'lucide-react';
+import { Activity, Clock, Ban, Edit2, Trash2, RefreshCw, Eye, EyeOff, LayoutDashboard, Share2, Sparkles, Calendar, MessageSquare, Phone, ShieldCheck, User as UserIcon, X, ExternalLink, Building2, Armchair, Plus, MapPin, CheckCircle2, Star, Layers, AlertCircle, Camera, Video, Upload, PartyPopper, Users } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { listingsAPI, chatAPI, projectsAPI, uploadAPI } from '@/services/api';
 import { furnitureApi } from '@/services/furnitureApi';
+import { eventsApi } from '@/services/eventsApi';
 import { useNavigate } from 'react-router-dom';
 import type { Listing } from '@/types';
 import type { FurnitureMaker, FurniturePortfolioItem } from '@/types/furniture';
+import {
+  type EventVenue,
+  type EventInquiry,
+  type EventOrganization,
+  type EventPhoneRevealLog,
+  type EventChatThread,
+} from '@/types/events';
+import { EventsDashboardSection } from '@/components/events/EventsDashboardSection';
 import { SocialShareModal } from '@/components/listings/SocialShareModal';
 import { PromoteListingModal } from '@/components/listings/PromoteListingModal';
 import { ListingExcelActions } from '@/components/listings/ListingExcelActions';
@@ -19,8 +28,8 @@ const Dashboard = () => {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
 
-  // Top-Level Section Selector: 'listings' | 'projects' | 'furniture'
-  const [dashboardSection, setDashboardSection] = useState<'listings' | 'projects' | 'furniture'>('listings');
+  // Top-Level Section Selector: 'listings' | 'projects' | 'furniture' | 'events'
+  const [dashboardSection, setDashboardSection] = useState<'listings' | 'projects' | 'furniture' | 'events'>('listings');
 
   // Listings state
   const [activeTab, setActiveTab] = useState<'active' | 'expired' | 'closed' | 'messages'>('active');
@@ -42,6 +51,14 @@ const Dashboard = () => {
   // Furniture Maker Workshop state
   const [myMaker, setMyMaker] = useState<FurnitureMaker | null>(null);
   const [furnitureLoading, setFurnitureLoading] = useState(false);
+
+  // Event Venues & Inquiries state
+  const [myOrg, setMyOrg] = useState<EventOrganization | null>(null);
+  const [myVenues, setMyVenues] = useState<EventVenue[]>([]);
+  const [myInquiries, setMyInquiries] = useState<EventInquiry[]>([]);
+  const [myPhoneReveals, setMyPhoneReveals] = useState<EventPhoneRevealLog[]>([]);
+  const [myChats, setMyChats] = useState<EventChatThread[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   // Quick Portfolio Add Modal State
   const [isPortfolioModalOpen, setIsPortfolioModalOpen] = useState(false);
@@ -126,16 +143,44 @@ const Dashboard = () => {
     }
   };
 
+  const fetchMyEvents = async () => {
+    setEventsLoading(true);
+    try {
+      const [orgRes, venuesRes, inquiriesRes, revealsRes, chatsRes] = await Promise.all([
+        eventsApi.getMyOrg(),
+        eventsApi.getMy(),
+        eventsApi.getMyInquiries(),
+        eventsApi.getMyPhoneReveals(),
+        eventsApi.getMyChats(),
+      ]);
+      setMyOrg(orgRes.data || null);
+      setMyVenues(Array.isArray(venuesRes.data) ? venuesRes.data : []);
+      setMyInquiries(Array.isArray(inquiriesRes.data) ? inquiriesRes.data : []);
+      setMyPhoneReveals(Array.isArray(revealsRes.data) ? revealsRes.data : []);
+      setMyChats(Array.isArray(chatsRes.data) ? chatsRes.data : []);
+    } catch (error) {
+      console.error('Failed to fetch my event venues', error);
+      setMyOrg(null);
+      setMyVenues([]);
+      setMyInquiries([]);
+      setMyPhoneReveals([]);
+      setMyChats([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchListings();
     fetchMyProjects();
     fetchMyMaker();
+    fetchMyEvents();
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'messages') {
       setActiveTab('messages');
     }
     const sec = params.get('section');
-    if (sec === 'projects' || sec === 'furniture' || sec === 'listings') {
+    if (sec === 'projects' || sec === 'furniture' || sec === 'listings' || sec === 'events') {
       setDashboardSection(sec);
     }
   }, []);
@@ -160,6 +205,18 @@ const Dashboard = () => {
       } catch (err) {
         console.error(err);
         alert('Урлан устгахад алдаа гарлаа.');
+      }
+    }
+  };
+
+  const handleDeleteVenue = async (id: string) => {
+    if (window.confirm('Та энэ ресторан / эвент заалны профайлыг устгахдаа итгэлтэй байна уу?')) {
+      try {
+        await eventsApi.delete(id);
+        setMyVenues((prev) => prev.filter((v) => v.id !== id));
+      } catch (err) {
+        console.error(err);
+        alert('Профайл устгахад алдаа гарлаа.');
       }
     }
   };
@@ -342,6 +399,22 @@ const Dashboard = () => {
               {myMaker ? '1/1' : '0/1'}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setDashboardSection('events')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition-all cursor-pointer ${
+              dashboardSection === 'events'
+                ? 'bg-white dark:bg-gradient-to-r dark:from-plasma dark:to-nova text-slate-900 dark:text-white shadow-md'
+                : 'text-slate-600 dark:text-nebula-text hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <PartyPopper size={16} />
+            <span>Эвент & Ресторан</span>
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-slate-200 dark:bg-white/20">
+              {myOrg ? '1/1' : '0/1'}
+            </span>
+          </button>
         </motion.div>
 
         {/* Section Header */}
@@ -352,6 +425,8 @@ const Dashboard = () => {
                 <Building2 size={28} className="sm:w-8 sm:h-8" />
               ) : dashboardSection === 'furniture' ? (
                 <Armchair size={28} className="sm:w-8 sm:h-8" />
+              ) : dashboardSection === 'events' ? (
+                <PartyPopper size={28} className="sm:w-8 sm:h-8" />
               ) : (
                 <LayoutDashboard size={28} className="sm:w-8 sm:h-8" />
               )}
@@ -362,6 +437,8 @@ const Dashboard = () => {
                   ? 'Барилгын төсөл, хотхоны удирдлага'
                   : dashboardSection === 'furniture'
                   ? 'Тавилгын урлан & Интерьер студи'
+                  : dashboardSection === 'events'
+                  ? 'Байгууллагын Эвент Профайл & Захиалга'
                   : t.dashboard.title}
               </h1>
               <p className="text-xs sm:text-sm text-nebula-text mt-0.5">
@@ -371,6 +448,10 @@ const Dashboard = () => {
                   ? myMaker
                     ? `${myMaker.name} • Урлангийн лимит: 1/1`
                     : 'Урлан бүртгэгдээгүй байна (Хэрэглэгчийн лимит: 1 урлан)'
+                  : dashboardSection === 'events'
+                  ? myOrg
+                    ? `${myOrg.name} (1/1) • Ресторан & Заал: ${myVenues.length} • Захиалга: ${myInquiries.length}`
+                    : 'Байгууллагын профайл үүсгээгүй байна (Лимит: 1/1)'
                   : `${t.dashboard.activeListings}: ${activeListings.length}`}
               </p>
             </div>
@@ -414,6 +495,16 @@ const Dashboard = () => {
                   <span>+ Шинэ төсөл бүртгэх</span>
                 </button>
               )
+            )}
+
+            {dashboardSection === 'events' && myOrg && (
+              <button
+                onClick={() => navigate('/create-event-venue')}
+                className="flex items-center justify-center space-x-1.5 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-bold text-xs sm:text-sm shadow-lg shadow-plasma/25 hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Plus size={16} />
+                <span>Ресторан / Заал нэмэх</span>
+              </button>
             )}
 
             {dashboardSection === 'furniture' && (
@@ -1095,6 +1186,35 @@ const Dashboard = () => {
                 )}
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* 🎉 Event Venues & Organization Profiles Section */}
+        {dashboardSection === 'events' && (
+          <motion.div variants={itemVariants}>
+            <EventsDashboardSection
+              myOrg={myOrg}
+              myVenues={myVenues}
+              myInquiries={myInquiries}
+              myPhoneReveals={myPhoneReveals}
+              myChats={myChats}
+              eventsLoading={eventsLoading}
+              onOrgSaved={(org) => setMyOrg(org)}
+              onVenueUpdated={(updated) =>
+                setMyVenues((prev) =>
+                  prev.map((v) => (v.id === updated.id ? updated : v)),
+                )
+              }
+              onDeleteVenue={handleDeleteVenue}
+              onInquiryCreated={(created) =>
+                setMyInquiries((prev) => [created, ...prev])
+              }
+              onInquiryUpdated={(updated) =>
+                setMyInquiries((prev) =>
+                  prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+                )
+              }
+            />
           </motion.div>
         )}
       </motion.div>

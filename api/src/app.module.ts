@@ -15,6 +15,7 @@ import { SavedSearchesModule } from './saved-searches/saved-searches.module';
 import { SmsModule } from './sms/sms.module';
 import { ProjectsModule } from './projects/projects.module';
 import { FurnitureModule } from './furniture/furniture.module';
+import { EventsModule } from './events/events.module';
 import { AiModule } from './ai/ai.module';
 import { ChatModule } from './chat/chat.module';
 import configuration from './config/configuration';
@@ -70,6 +71,7 @@ import configuration from './config/configuration';
     SmsModule,
     ProjectsModule,
     FurnitureModule,
+    EventsModule,
     AiModule,
     ChatModule,
   ],

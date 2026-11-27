@@ -13,6 +13,7 @@ import Profile from '@/pages/Profile';
 import CreateListing from '@/pages/CreateListing';
 import ListingDetail from '@/pages/ListingDetail';
 import Pricing from '@/pages/Pricing';
+import Donation from '@/pages/Donation';
 import CompareListings from '@/pages/CompareListings';
 import Projects from '@/pages/Projects';
 import ProjectDetail from '@/pages/ProjectDetail';
@@ -20,6 +21,9 @@ import CreateProject from '@/pages/CreateProject';
 import Furniture from '@/pages/Furniture';
 import FurnitureDetail from '@/pages/FurnitureDetail';
 import CreateFurnitureProfile from '@/pages/CreateFurnitureProfile';
+import Events from '@/pages/Events';
+import EventVenueDetail from '@/pages/EventVenueDetail';
+import CreateEventVenue from '@/pages/CreateEventVenue';
 import { MortgageCalculatorPage } from '@/pages/MortgageCalculatorPage';
 import AboutUs from '@/pages/AboutUs';
 import TermsOfService from '@/pages/TermsOfService';
@@ -93,6 +97,8 @@ const App = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/donate" element={<Donation />} />
+              <Route path="/support" element={<Donation />} />
               <Route path="/compare" element={<CompareListings />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/terms" element={<TermsOfService />} />
@@ -105,6 +111,9 @@ const App = () => {
               <Route path="/furniture" element={<Furniture />} />
               <Route path="/furniture/:id" element={<FurnitureDetail />} />
               <Route path="/create-furniture-profile" element={<CreateFurnitureProfile />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:id" element={<EventVenueDetail />} />
+              <Route path="/create-event-venue" element={<CreateEventVenue />} />
               <Route path="/calculator" element={<MortgageCalculatorPage />} />
               <Route path="/mortgage-calculator" element={<MortgageCalculatorPage />} />
               <Route path="/listings/:id/edit" element={<CreateListing />} />

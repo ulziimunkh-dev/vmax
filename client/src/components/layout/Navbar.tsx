@@ -17,6 +17,9 @@ import {
   Layers,
   MessageSquare,
   Calculator,
+  PartyPopper,
+  Heart,
+  MoreHorizontal,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -31,7 +34,9 @@ const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,20 +67,25 @@ const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close user dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close user menu on route change
+  // Close menus on route change
   useEffect(() => {
     setIsUserMenuOpen(false);
+    setIsMoreMenuOpen(false);
+    setIsDrawerOpen(false);
   }, [location.pathname]);
 
   const toggleLang = () => {
@@ -96,19 +106,29 @@ const Navbar: React.FC = () => {
           : 'bg-void/40 backdrop-blur-md border-b border-white/5'
           }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] w-full mx-auto px-3 sm:px-5 lg:px-6 xl:px-8">
           <div className="flex justify-between items-center h-16">
 
             {/* Left: Brand Logo & Main Nav */}
-            <div className="flex items-center space-x-3 xl:space-x-6">
-              <Link to="/" className="flex items-center space-x-2 group flex-shrink-0">
+            <div className="flex items-center space-x-2 xl:space-x-5 min-w-0">
+              {/* Mobile Burger Menu Button (Top-Left on Mobile < lg) */}
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(true)}
+                className="lg:hidden p-2 -ml-1 rounded-xl bg-void/60 text-plasma hover:text-white hover:bg-white/10 border border-white/10 active:scale-95 transition-all flex items-center justify-center flex-shrink-0 shadow-sm"
+                aria-label="Цэс нээх"
+              >
+                <Menu size={20} />
+              </button>
+
+              <Link to="/" className="flex items-center space-x-1.5 xl:space-x-2 group flex-shrink-0 mr-1 xl:mr-2">
                 <div className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl bg-gradient-to-tr from-plasma via-nova to-aurora p-0.5 shadow-lg shadow-plasma/30 group-hover:scale-105 transition-transform flex-shrink-0">
                   <div className="w-full h-full bg-void rounded-[10px] flex items-center justify-center">
                     <Building2 className="w-4 h-4 xl:w-5 xl:h-5 text-plasma group-hover:text-white transition-colors" />
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-lg xl:text-xl font-heading font-black tracking-tight text-starlight text-glow leading-none whitespace-nowrap">
+                  <span className="text-base xl:text-lg 2xl:text-xl font-heading font-black tracking-tight text-starlight text-glow leading-none whitespace-nowrap">
                     Vmax<span className="text-plasma">.mn</span>
                   </span>
                   <span className="text-[8px] xl:text-[9px] uppercase tracking-widest text-nebula-text/70 font-semibold mt-0.5 hidden sm:block">
@@ -121,7 +141,7 @@ const Navbar: React.FC = () => {
               <nav className="hidden lg:flex items-center space-x-0.5 xl:space-x-1">
                 <Link
                   to="/"
-                  className={`px-2.5 py-1.5 xl:px-3.5 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all whitespace-nowrap ${location.pathname === '/'
+                  className={`px-2 py-1.5 xl:px-3 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all whitespace-nowrap ${location.pathname === '/'
                     ? 'text-white bg-white/10 font-bold'
                     : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
@@ -131,13 +151,14 @@ const Navbar: React.FC = () => {
 
                 <Link
                   to="/projects"
-                  className={`px-2.5 py-1.5 xl:px-3.5 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname.startsWith('/projects')
+                  className={`px-2 py-1.5 xl:px-3 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname.startsWith('/projects')
                     ? 'text-white bg-white/10 font-bold'
                     : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
                 >
                   <Building2 size={14} className="text-plasma flex-shrink-0" />
-                  <span>{t.nav.projects}</span>
+                  <span className="hidden xl:inline">{t.nav.projects}</span>
+                  <span className="xl:hidden">Төсөл</span>
                   <span className="px-1.5 py-0.2 text-[8px] xl:text-[9px] font-black rounded-md bg-plasma/20 text-plasma border border-plasma/30 uppercase">
                     3D
                   </span>
@@ -145,7 +166,7 @@ const Navbar: React.FC = () => {
 
                 <Link
                   to="/furniture"
-                  className={`px-2.5 py-1.5 xl:px-3.5 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname.startsWith('/furniture')
+                  className={`px-2 py-1.5 xl:px-3 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname.startsWith('/furniture')
                     ? 'text-white bg-white/10 font-bold'
                     : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
@@ -158,40 +179,163 @@ const Navbar: React.FC = () => {
                 </Link>
 
                 <Link
+                  to="/events"
+                  className={`px-2 py-1.5 xl:px-3 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname.startsWith('/events') || location.pathname.startsWith('/create-event-venue')
+                    ? 'text-white bg-white/10 font-bold'
+                    : 'text-nebula-text hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                  <PartyPopper size={14} className="text-amber-400 flex-shrink-0" />
+                  <span className="hidden xl:inline">{t.nav.events}</span>
+                  <span className="xl:hidden">Эвент</span>
+                  <span className="px-1.5 py-0.2 text-[8px] xl:text-[9px] font-black rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+                    Hot
+                  </span>
+                </Link>
+
+                {/* Direct links on wide screens (2xl: >= 1536px) */}
+                <Link
                   to="/calculator"
-                  className={`px-2.5 py-1.5 xl:px-3.5 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname === '/calculator'
+                  className={`hidden 2xl:flex items-center space-x-1 px-2.5 py-2 rounded-xl text-xs xl:text-sm font-medium transition-all whitespace-nowrap ${location.pathname === '/calculator'
                     ? 'text-white bg-white/10 font-bold'
                     : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
                 >
                   <Calculator size={14} className="text-emerald-400 flex-shrink-0" />
-                  <span className="hidden xl:inline">Зээлийн тооцоолуур</span>
-                  <span className="xl:hidden">Тооцоолуур</span>
-                  <span className="px-1.5 py-0.2 text-[8px] xl:text-[9px] font-black rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
+                  <span>Зээлийн тооцоолуур</span>
+                  <span className="px-1.5 py-0.2 text-[8px] font-black rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
                     6%
                   </span>
                 </Link>
 
                 <Link
                   to="/compare"
-                  className={`px-2.5 py-1.5 xl:px-3.5 xl:py-2 rounded-xl text-xs xl:text-sm font-medium transition-all flex items-center space-x-1 whitespace-nowrap ${location.pathname === '/compare'
+                  className={`hidden 2xl:flex items-center space-x-1 px-2.5 py-2 rounded-xl text-xs xl:text-sm font-medium transition-all whitespace-nowrap ${location.pathname === '/compare'
                     ? 'text-white bg-white/10 font-bold'
                     : 'text-nebula-text hover:text-white hover:bg-white/5'
                     }`}
                 >
                   <Scale size={14} className="text-cyan-400 flex-shrink-0" />
-                  <span className="hidden xl:inline">{t.nav.compare}</span>
+                  <span>{t.nav.compare}</span>
                   {compareListings.length > 0 && (
                     <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-plasma text-white">
                       {compareListings.length}
                     </span>
                   )}
                 </Link>
+
+                <Link
+                  to="/donate"
+                  className={`hidden 2xl:flex items-center space-x-1 px-2.5 py-2 rounded-xl text-xs xl:text-sm font-medium transition-all whitespace-nowrap ${location.pathname === '/donate'
+                    ? 'text-rose-400 bg-rose-500/20 font-bold border border-rose-500/30'
+                    : 'text-nebula-text hover:text-rose-400 hover:bg-rose-500/10'
+                    }`}
+                >
+                  <Heart size={14} className="text-rose-400 fill-rose-400/40 flex-shrink-0" />
+                  <span>{t.nav.donate}</span>
+                </Link>
+
+                {/* More / Additional Tools Dropdown for screens < 2xl */}
+                <div className="relative 2xl:hidden flex-shrink-0" ref={moreMenuRef}>
+                  <button
+                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                    className={`px-2 py-1.5 xl:px-2.5 xl:py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1 whitespace-nowrap cursor-pointer border ${
+                      isMoreMenuOpen || ['/calculator', '/compare', '/donate', '/pricing'].includes(location.pathname)
+                        ? 'bg-white/10 text-white border-white/20'
+                        : 'text-nebula-text hover:text-white hover:bg-white/5 border-transparent'
+                    }`}
+                  >
+                    <MoreHorizontal size={15} className="text-nebula-text flex-shrink-0" />
+                    <span>Бусад</span>
+                    <ChevronDown
+                      size={12}
+                      className={`transition-transform duration-200 flex-shrink-0 ${isMoreMenuOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isMoreMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 mt-2 w-60 bg-void/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 space-y-1 z-50 overflow-hidden"
+                      >
+                        <Link
+                          to="/calculator"
+                          onClick={() => setIsMoreMenuOpen(false)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                            location.pathname === '/calculator' ? 'bg-white/10 text-white' : 'text-starlight hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Calculator size={15} className="text-emerald-400 flex-shrink-0" />
+                            <span>Зээлийн тооцоолуур</span>
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            6%
+                          </span>
+                        </Link>
+
+                        <Link
+                          to="/compare"
+                          onClick={() => setIsMoreMenuOpen(false)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                            location.pathname === '/compare' ? 'bg-white/10 text-white' : 'text-starlight hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Scale size={15} className="text-cyan-400 flex-shrink-0" />
+                            <span>Зар харьцуулах</span>
+                          </span>
+                          {compareListings.length > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-plasma text-white">
+                              {compareListings.length}
+                            </span>
+                          )}
+                        </Link>
+
+                        <Link
+                          to="/donate"
+                          onClick={() => setIsMoreMenuOpen(false)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                            location.pathname === '/donate' ? 'bg-rose-500/20 text-rose-300' : 'text-rose-400 hover:bg-rose-500/10'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Heart size={15} className="text-rose-400 fill-rose-400/40 flex-shrink-0" />
+                            <span>Биднийг дэмжих (Хандив)</span>
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                            Love
+                          </span>
+                        </Link>
+
+                        <Link
+                          to="/pricing"
+                          onClick={() => setIsMoreMenuOpen(false)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                            location.pathname === '/pricing' ? 'bg-white/10 text-white' : 'text-starlight hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Sparkles size={15} className="text-amber-400 flex-shrink-0" />
+                            <span>VIP Үнийн багц</span>
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            VIP
+                          </span>
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </nav>
             </div>
 
             {/* Right: Actions & User Controls */}
-            <div className="hidden lg:flex items-center space-x-2 xl:space-x-3">
+            <div className="hidden lg:flex items-center space-x-1.5 xl:space-x-2.5 flex-shrink-0">
               {/* Language & Theme Controls Pill */}
               <div className="flex items-center p-0.5 xl:p-1 bg-void/60 border border-white/10 rounded-xl space-x-0.5 xl:space-x-1">
                 {/* Theme Toggle */}
@@ -219,14 +363,14 @@ const Navbar: React.FC = () => {
                 </button>
               </div>
 
-              {/* Create Listing Primary CTA Button */}
+              {/* Create Listing Primary CTA Button (+ icon) */}
               <Link
                 to="/create-listing"
-                className="flex items-center space-x-1.5 px-3 py-1.5 xl:px-4 xl:py-2 rounded-xl bg-gradient-to-r from-plasma to-nova text-white font-semibold text-xs xl:text-sm shadow-md shadow-plasma/25 hover:shadow-lg hover:shadow-plasma/40 hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap flex-shrink-0"
+                title={t.nav.createListing}
+                aria-label={t.nav.createListing}
+                className="w-9 h-9 rounded-xl bg-gradient-to-r from-plasma to-nova text-white shadow-md shadow-plasma/25 hover:shadow-lg hover:shadow-plasma/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center flex-shrink-0"
               >
-                <Plus size={15} className="stroke-[2.5] flex-shrink-0" />
-                <span className="hidden xl:inline whitespace-nowrap">{t.nav.createListing}</span>
-                <span className="xl:hidden whitespace-nowrap">Зар</span>
+                <Plus size={18} className="stroke-[2.75]" />
               </Link>
 
               {/* Chat / Messages Notification Button */}
@@ -250,7 +394,7 @@ const Navbar: React.FC = () => {
                 <div className="relative flex-shrink-0" ref={userMenuRef}>
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-2 p-1.5 pr-2.5 rounded-xl bg-void/60 hover:bg-white/10 border border-white/10 transition-all group flex-shrink-0"
+                    className="flex items-center space-x-1.5 p-1 xl:p-1.5 2xl:pr-2.5 rounded-xl bg-void/60 hover:bg-white/10 border border-white/10 transition-all group flex-shrink-0 cursor-pointer"
                   >
                     <div className="w-7 h-7 xl:w-8 xl:h-8 rounded-lg bg-gradient-to-tr from-plasma to-aurora p-0.5 flex-shrink-0 overflow-hidden">
                       {user.avatar || user.avatarUrl ? (
@@ -265,8 +409,8 @@ const Navbar: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="text-left hidden xl:block">
-                      <p className="text-xs font-bold text-starlight leading-tight truncate max-w-[90px]">
+                    <div className="text-left hidden 2xl:block">
+                      <p className="text-xs font-bold text-starlight leading-tight truncate max-w-[85px]">
                         {user.name || 'Хэрэглэгч'}
                       </p>
                       <p className="text-[9px] text-plasma font-semibold leading-tight">
@@ -380,21 +524,29 @@ const Navbar: React.FC = () => {
             </div>
 
             {/* Mobile & Tablet Top Bar Controls (< 1024px) */}
-            <div className="lg:hidden flex items-center space-x-2">
+            <div className="lg:hidden flex items-center space-x-1.5 sm:space-x-2">
+              <Link
+                to="/create-listing"
+                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-plasma to-nova text-white text-xs font-bold shadow-md shadow-plasma/25 active:scale-95 transition-transform flex-shrink-0"
+              >
+                <Plus size={14} />
+                <span className="text-[11px] font-bold">Зар</span>
+              </Link>
+
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-xl bg-void/50 border border-white/10 text-starlight active:scale-95 transition-transform"
                 aria-label="Загвар солих"
               >
-                {mode === 'dark' ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-plasma" />}
+                {mode === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-plasma" />}
               </button>
 
               <button
                 onClick={toggleLang}
-                className="px-2.5 py-1.5 rounded-xl bg-void/50 border border-white/10 text-xs font-bold text-starlight uppercase active:scale-95 transition-transform flex items-center space-x-1"
+                className="px-2 py-1.5 rounded-xl bg-void/50 border border-white/10 text-[11px] font-bold text-starlight uppercase active:scale-95 transition-transform flex items-center space-x-0.5"
                 aria-label="Хэл солих"
               >
-                <Globe size={13} className="text-plasma" />
+                <Globe size={12} className="text-plasma" />
                 <span>{lang}</span>
               </button>
 
@@ -423,17 +575,9 @@ const Navbar: React.FC = () => {
                   className="p-2 rounded-xl bg-void/50 border border-white/10 text-starlight active:scale-95 transition-transform"
                   title="Нэвтрэх"
                 >
-                  <UserIcon size={17} className="text-plasma" />
+                  <UserIcon size={16} className="text-plasma" />
                 </Link>
               )}
-
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                className="p-2 rounded-xl bg-plasma/20 text-plasma border border-plasma/30 active:scale-95 transition-transform"
-                aria-label="Цэс нээх"
-              >
-                <Menu size={20} />
-              </button>
             </div>
 
           </div>
