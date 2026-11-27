@@ -20,6 +20,7 @@ import {
   PartyPopper,
   Heart,
   MoreHorizontal,
+  HelpCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -240,7 +241,7 @@ const Navbar: React.FC = () => {
                   <button
                     onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
                     className={`px-2 py-1.5 xl:px-2.5 xl:py-2 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1 whitespace-nowrap cursor-pointer border ${
-                      isMoreMenuOpen || ['/calculator', '/compare', '/donate', '/pricing'].includes(location.pathname)
+                      isMoreMenuOpen || ['/calculator', '/compare', '/donate', '/pricing', '/faq'].includes(location.pathname)
                         ? 'bg-white/10 text-white border-white/20'
                         : 'text-nebula-text hover:text-white hover:bg-white/5 border-transparent'
                     }`}
@@ -325,6 +326,22 @@ const Navbar: React.FC = () => {
                           </span>
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
                             VIP
+                          </span>
+                        </Link>
+
+                        <Link
+                          to="/faq"
+                          onClick={() => setIsMoreMenuOpen(false)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                            location.pathname === '/faq' ? 'bg-white/10 text-white' : 'text-starlight hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <HelpCircle size={15} className="text-plasma flex-shrink-0" />
+                            <span>Түгээмэл асуулт (FAQ)</span>
+                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-plasma/20 text-plasma border border-plasma/30">
+                            FAQ
                           </span>
                         </Link>
                       </motion.div>

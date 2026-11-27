@@ -142,6 +142,12 @@ const Footer: React.FC = () => {
                   <span>Биднийг дэмжих (Хандив)</span>
                 </Link>
               </li>
+              <li>
+                <Link to="/faq" className="text-nebula-text hover:text-plasma transition-colors flex items-center space-x-1.5">
+                  <ArrowRight size={12} className="text-plasma/60" />
+                  <span>Түгээмэл асуулт (FAQ)</span>
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -216,6 +222,7 @@ const Footer: React.FC = () => {
 
             <div className="mt-4 pt-4 border-t border-white/10 space-y-1.5 text-xs text-nebula-text">
               <div><Link to="/about" className="hover:text-plasma transition-colors">Бидний тухай</Link></div>
+              <div><Link to="/faq" className="hover:text-plasma transition-colors">Түгээмэл асуулт, хариулт (FAQ)</Link></div>
               <div><Link to="/donate" className="text-rose-400 hover:text-rose-300 font-medium transition-colors flex items-center gap-1.5"><Heart size={12} className="fill-rose-400/30" /> Бидний үйл ажиллагааг дэмжих</Link></div>
               <div><Link to="/terms" className="hover:text-plasma transition-colors">Үйлчилгээний нөхцөл (Terms)</Link></div>
               <div><Link to="/privacy" className="hover:text-plasma transition-colors">Нууцлалын бодлого (Privacy Policy)</Link></div>

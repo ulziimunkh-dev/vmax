@@ -24,6 +24,7 @@ import {
   PartyPopper,
   Heart,
   Wrench,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
@@ -174,6 +175,14 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
       desc: lang === 'en' ? 'About Vmax platform' : 'Vmax платформын танилцуулга',
       to: '/about',
       icon: <Info size={19} className="text-nebula-text" />,
+    },
+    {
+      label: lang === 'en' ? 'FAQ / Help' : 'Түгээмэл асуулт (FAQ)',
+      desc: lang === 'en' ? 'Frequently asked questions & answers' : 'Асуулт, хариулт & заавар',
+      to: '/faq',
+      icon: <HelpCircle size={19} className="text-plasma" />,
+      badge: 'FAQ',
+      badgeColor: 'bg-plasma/20 text-plasma border-plasma/30',
     },
     {
       label: lang === 'en' ? 'Terms & Privacy' : 'Үйлчилгээний нөхцөл',

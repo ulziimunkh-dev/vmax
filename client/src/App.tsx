@@ -14,6 +14,7 @@ import CreateListing from '@/pages/CreateListing';
 import ListingDetail from '@/pages/ListingDetail';
 import Pricing from '@/pages/Pricing';
 import Donation from '@/pages/Donation';
+import FAQ from '@/pages/FAQ';
 import CompareListings from '@/pages/CompareListings';
 import Projects from '@/pages/Projects';
 import ProjectDetail from '@/pages/ProjectDetail';
@@ -101,6 +102,7 @@ const App = () => {
               <Route path="/support" element={<Donation />} />
               <Route path="/compare" element={<CompareListings />} />
               <Route path="/about" element={<AboutUs />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/data-deletion" element={<PrivacyPolicy />} />
