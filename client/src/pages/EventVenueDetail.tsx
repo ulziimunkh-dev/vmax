@@ -27,6 +27,7 @@ import {
 } from '@/types/events';
 import { EventInquiryModal } from '@/components/events/EventInquiryModal';
 import { EventChatModal } from '@/components/events/EventChatModal';
+import { VideoEmbedPlayer } from '@/components/events/VideoEmbedPlayer';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useI18n } from '@/i18n';
 import { getImageUrl } from '@/utils/imageUrl';
@@ -276,12 +277,7 @@ export const EventVenueDetail: React.FC = () => {
                 {lang === 'en' ? '🎬 Venue Walkthrough Reel' : '🎬 Заалны танилцуулга Reel'}
               </h2>
               <div className="rounded-2xl overflow-hidden bg-black border border-white/10">
-                <video
-                  src={getImageUrl(venue.videoUrl)}
-                  controls
-                  playsInline
-                  className="w-full max-h-[420px] object-contain"
-                />
+                <VideoEmbedPlayer url={venue.videoUrl} />
               </div>
             </div>
           )}

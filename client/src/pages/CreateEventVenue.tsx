@@ -14,6 +14,10 @@ import {
   X,
 } from 'lucide-react';
 import { getImageUrl } from '@/utils/imageUrl';
+import {
+  VideoEmbedPlayer,
+  extractVideoSource,
+} from '@/components/events/VideoEmbedPlayer';
 import { eventsApi } from '@/services/eventsApi';
 import { uploadsAPI } from '@/services/api';
 import {
@@ -417,7 +421,7 @@ export const CreateEventVenue: React.FC = () => {
         email: email || undefined,
         coverUrl: coverUrl || images[0] || undefined,
         images,
-        videoUrl: videoUrl.trim() || undefined,
+        videoUrl: extractVideoSource(videoUrl) || undefined,
         amenities,
         packages,
       };
@@ -866,8 +870,8 @@ export const CreateEventVenue: React.FC = () => {
                 </label>
                 <p className="text-[11px] text-nebula-text">
                   {lang === 'en'
-                    ? 'Upload a short MP4/MOV tour of your restaurant or hall (max 2 minutes).'
-                    : 'Заал, рестораны орчныг харуулсан богино бичлэг (хамгийн урт нь 2 минут).'}
+                    ? 'Upload MP4/MOV or paste a Facebook Video/Reel/Embed (<iframe>) or YouTube link.'
+                    : 'MP4/MOV бичлэг хуулах эсвэл Facebook Reel / Video / Embed (<iframe>), YouTube линк оруулна уу.'}
                 </p>
               </div>
               <label className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-aurora/20 hover:bg-aurora/30 border border-aurora/40 text-xs font-bold text-aurora cursor-pointer">
@@ -887,25 +891,20 @@ export const CreateEventVenue: React.FC = () => {
             </div>
 
             <input
-              type="url"
+              type="text"
               value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://... эсвэл видео линк оруулах (сонголттой)"
+              onChange={(e) => setVideoUrl(extractVideoSource(e.target.value))}
+              placeholder="Facebook Reel/Video линк, <iframe ...> embed код, эсвэл MP4 линк оруулах"
               className="w-full px-3.5 py-2 rounded-xl bg-void/70 border border-white/10 text-xs text-starlight focus:outline-none focus:border-aurora"
             />
 
             {videoUrl && (
               <div className="relative rounded-xl overflow-hidden bg-black border border-white/10">
-                <video
-                  src={getImageUrl(videoUrl)}
-                  controls
-                  playsInline
-                  className="w-full max-h-60 object-contain"
-                />
+                <VideoEmbedPlayer url={videoUrl} maxHeightClass="max-h-60" />
                 <button
                   type="button"
                   onClick={() => setVideoUrl('')}
-                  className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-black/75 text-white hover:bg-red-500 text-[11px] font-bold cursor-pointer"
+                  className="absolute top-2 right-2 z-10 px-2.5 py-1 rounded-lg bg-black/75 text-white hover:bg-red-500 text-[11px] font-bold cursor-pointer"
                 >
                   Устгах
                 </button>
