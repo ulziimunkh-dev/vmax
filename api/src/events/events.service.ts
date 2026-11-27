@@ -46,6 +46,30 @@ export class EventsService implements OnModuleInit {
       if (count === 0) {
         await this.seedDemoVenues();
       }
+      // Assign Vmax realtor (uujgii36@gmail.com) as owner of transferred real venues
+      await this.venueRepository.manager.query(`
+        UPDATE event_venues
+        SET "userId" = u.id
+        FROM users u
+        WHERE u.email = 'uujgii36@gmail.com'
+          AND event_venues."userId" IN (
+            SELECT id FROM users WHERE email IN (
+              'eventowner_test@vmax.mn',
+              'meru_restaurant@vmax.mn',
+              'bluesky_hotel@vmax.mn',
+              'asem_club@vmax.mn',
+              'modern_nomads@vmax.mn',
+              'ub_event_hall@vmax.mn',
+              'juulchin_ballroom@vmax.mn',
+              'agartha_restaurant@vmax.mn',
+              'u_lounge@vmax.mn',
+              'khundlel_brauhaus@vmax.mn',
+              'soyombo_tuushin@vmax.mn',
+              'rings_restaurant@vmax.mn',
+              'grand_hill_a1c0c5@vmax.mn'
+            )
+          )
+      `);
     } catch (err) {
       console.warn('EventsService seed check skipped:', err?.message || err);
     }
@@ -79,12 +103,13 @@ export class EventsService implements OnModuleInit {
     id: string,
     dto: UpdateEventOrganizationDto,
     userId: string,
+    isAdmin = false,
   ): Promise<EventOrganization> {
     const org = await this.orgRepository.findOne({ where: { id } });
     if (!org) {
       throw new NotFoundException(`Organization ${id} not found`);
     }
-    if (org.userId !== userId) {
+    if (!isAdmin && org.userId !== userId) {
       throw new ForbiddenException('Зөвхөн байгууллагын эзэмшигч засах боломжтой');
     }
     Object.assign(org, dto);
@@ -208,8 +233,13 @@ export class EventsService implements OnModuleInit {
     };
   }
 
-  async findByUser(userId: string): Promise<EventVenue[]> {
+  async findByUser(userId: string, isAdmin = false): Promise<EventVenue[]> {
     if (!userId) return [];
+    if (isAdmin) {
+      return this.venueRepository.find({
+        order: { createdAt: 'DESC' },
+      });
+    }
     return this.venueRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
@@ -263,15 +293,21 @@ export class EventsService implements OnModuleInit {
     };
   }
 
-  async getMyPhoneRevealLogs(ownerUserId: string) {
+  async getMyPhoneRevealLogs(ownerUserId: string, isAdmin = false) {
     if (!ownerUserId) return [];
-    const venues = await this.venueRepository.find({
-      where: { userId: ownerUserId },
-      select: { id: true },
-    });
-    if (!venues.length) return [];
+    let venueIds: string[] = [];
+    if (isAdmin) {
+      const venues = await this.venueRepository.find({ select: { id: true } });
+      venueIds = venues.map((v) => v.id);
+    } else {
+      const venues = await this.venueRepository.find({
+        where: { userId: ownerUserId },
+        select: { id: true },
+      });
+      venueIds = venues.map((v) => v.id);
+    }
+    if (!venueIds.length) return [];
 
-    const venueIds = venues.map((v) => v.id);
     const logs = await this.phoneRevealRepository
       .createQueryBuilder('log')
       .leftJoinAndSelect('log.venue', 'venue')
@@ -305,12 +341,13 @@ export class EventsService implements OnModuleInit {
     venueId: string,
     userId: string,
     customerUserIdParam?: string,
+    isAdmin = false,
   ): Promise<EventMessage[]> {
     const venue = await this.venueRepository.findOne({ where: { id: venueId } });
     if (!venue) {
       throw new NotFoundException(`Event venue with ID ${venueId} not found`);
     }
-    const isOwner = venue.userId === userId;
+    const isOwner = isAdmin || venue.userId === userId;
     const targetCustomerId = isOwner && customerUserIdParam ? customerUserIdParam : userId;
 
     return this.messageRepository.find({
@@ -324,13 +361,14 @@ export class EventsService implements OnModuleInit {
     user: any,
     content: string,
     customerUserIdParam?: string,
+    isAdmin = false,
   ): Promise<EventMessage> {
     const venue = await this.venueRepository.findOne({ where: { id: venueId } });
     if (!venue) {
       throw new NotFoundException(`Event venue with ID ${venueId} not found`);
     }
     const userId = user?.id || user?.sub;
-    const isOwner = venue.userId === userId;
+    const isOwner = isAdmin || venue.userId === userId;
     const senderRole: 'CUSTOMER' | 'OWNER' =
       isOwner && customerUserIdParam && customerUserIdParam !== userId
         ? 'OWNER'
@@ -351,15 +389,21 @@ export class EventsService implements OnModuleInit {
     return this.messageRepository.save(msg);
   }
 
-  async getOwnerChatThreads(ownerUserId: string) {
+  async getOwnerChatThreads(ownerUserId: string, isAdmin = false) {
     if (!ownerUserId) return [];
-    const venues = await this.venueRepository.find({
-      where: { userId: ownerUserId },
-      select: { id: true, name: true },
-    });
-    if (!venues.length) return [];
+    let venueIds: string[] = [];
+    if (isAdmin) {
+      const venues = await this.venueRepository.find({ select: { id: true } });
+      venueIds = venues.map((v) => v.id);
+    } else {
+      const venues = await this.venueRepository.find({
+        where: { userId: ownerUserId },
+        select: { id: true, name: true },
+      });
+      venueIds = venues.map((v) => v.id);
+    }
+    if (!venueIds.length) return [];
 
-    const venueIds = venues.map((v) => v.id);
     const messages = await this.messageRepository
       .createQueryBuilder('msg')
       .leftJoinAndSelect('msg.venue', 'venue')
@@ -392,9 +436,14 @@ export class EventsService implements OnModuleInit {
     });
   }
 
-  async update(id: string, updateDto: UpdateEventVenueDto, userId: string): Promise<EventVenue> {
+  async update(
+    id: string,
+    updateDto: UpdateEventVenueDto,
+    userId: string,
+    isAdmin = false,
+  ): Promise<EventVenue> {
     const venue = await this.findOne(id);
-    if (venue.userId && venue.userId !== userId) {
+    if (!isAdmin && venue.userId && venue.userId !== userId) {
       throw new ForbiddenException('Та зөвхөн өөрийн бүртгэсэн заал/рестораныг засах боломжтой');
     }
 
@@ -402,9 +451,9 @@ export class EventsService implements OnModuleInit {
     return this.venueRepository.save(venue);
   }
 
-  async delete(id: string, userId: string): Promise<void> {
+  async delete(id: string, userId: string, isAdmin = false): Promise<void> {
     const venue = await this.findOne(id);
-    if (venue.userId && venue.userId !== userId) {
+    if (!isAdmin && venue.userId && venue.userId !== userId) {
       throw new ForbiddenException('Та зөвхөн өөрийн бүртгэсэн заал/рестораныг устгах боломжтой');
     }
     await this.venueRepository.remove(venue);
@@ -414,9 +463,10 @@ export class EventsService implements OnModuleInit {
     id: string,
     pkgDto: CreateEventPackageDto,
     userId: string,
+    isAdmin = false,
   ): Promise<EventVenue> {
     const venue = await this.findOne(id);
-    if (venue.userId && venue.userId !== userId) {
+    if (!isAdmin && venue.userId && venue.userId !== userId) {
       throw new ForbiddenException('Зөвхөн эзэмшигч багц нэмэх боломжтой');
     }
 
@@ -436,9 +486,14 @@ export class EventsService implements OnModuleInit {
     return this.venueRepository.save(venue);
   }
 
-  async removePackage(id: string, packageId: string, userId: string): Promise<EventVenue> {
+  async removePackage(
+    id: string,
+    packageId: string,
+    userId: string,
+    isAdmin = false,
+  ): Promise<EventVenue> {
     const venue = await this.findOne(id);
-    if (venue.userId && venue.userId !== userId) {
+    if (!isAdmin && venue.userId && venue.userId !== userId) {
       throw new ForbiddenException('Зөвхөн эзэмшигч багц устгах боломжтой');
     }
 
@@ -497,8 +552,15 @@ export class EventsService implements OnModuleInit {
     return { count: created.length, inquiries: created };
   }
 
-  async getInquiriesForOwner(userId: string): Promise<EventInquiry[]> {
+  async getInquiriesForOwner(userId: string, isAdmin = false): Promise<EventInquiry[]> {
     if (!userId) return [];
+    if (isAdmin) {
+      return this.inquiryRepository
+        .createQueryBuilder('inquiry')
+        .leftJoinAndSelect('inquiry.venue', 'venue')
+        .orderBy('inquiry.createdAt', 'DESC')
+        .getMany();
+    }
     const venues = await this.venueRepository.find({
       where: { userId },
       select: { id: true },
@@ -518,6 +580,7 @@ export class EventsService implements OnModuleInit {
     inquiryId: string,
     dto: UpdateEventInquiryDto,
     userId: string,
+    isAdmin = false,
   ): Promise<EventInquiry> {
     const inquiry = await this.inquiryRepository.findOne({
       where: { id: inquiryId },
@@ -526,7 +589,7 @@ export class EventsService implements OnModuleInit {
     if (!inquiry) {
       throw new NotFoundException(`Inquiry ${inquiryId} not found`);
     }
-    if (inquiry.venue?.userId && inquiry.venue.userId !== userId) {
+    if (!isAdmin && inquiry.venue?.userId && inquiry.venue.userId !== userId) {
       throw new ForbiddenException('Зөвхөн байгууллагын эзэмшигч захиалгыг шинэчлэх эрхтэй');
     }
     if (dto.status) inquiry.status = dto.status;
@@ -550,9 +613,13 @@ export class EventsService implements OnModuleInit {
     return saved;
   }
 
-  async getInquiriesForVenue(venueId: string, userId: string): Promise<EventInquiry[]> {
+  async getInquiriesForVenue(
+    venueId: string,
+    userId: string,
+    isAdmin = false,
+  ): Promise<EventInquiry[]> {
     const venue = await this.findOne(venueId);
-    if (venue.userId && venue.userId !== userId) {
+    if (!isAdmin && venue.userId && venue.userId !== userId) {
       throw new ForbiddenException('Зөвхөн тухайн газрын эзэмшигч захиалгын хүсэлтүүдийг харах боломжтой');
     }
 

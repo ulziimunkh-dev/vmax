@@ -15,6 +15,7 @@ import {
   Globe,
   Lock,
   MessageSquare,
+  Edit2,
 } from 'lucide-react';
 import { eventsApi } from '@/services/eventsApi';
 import {
@@ -107,7 +108,17 @@ export const EventVenueDetail: React.FC = () => {
     ),
   );
 
-  const isOwner = Boolean(user?.id && venue?.userId && user.id === venue.userId);
+  const cleanPhone = String(user?.phone || '').replace(/\D/g, '');
+  const userEmail = String(user?.email || '').trim().toLowerCase();
+  const isSuperAdmin = Boolean(
+    cleanPhone.endsWith('89767700') ||
+      cleanPhone.endsWith('89357373') ||
+      userEmail === 'uujgii36@gmail.com' ||
+      userEmail === 'ulziimunkhb.1@gmail.com',
+  );
+  const isOwner = Boolean(
+    user && ((venue?.userId && user.id === venue.userId) || isSuperAdmin),
+  );
 
   const handleRevealPhone = async () => {
     if (!venue || isPhoneRevealed || revealing) return;
@@ -137,18 +148,30 @@ export const EventVenueDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-      {/* Back Link */}
-      <Link
-        to="/events"
-        className="inline-flex items-center gap-2 text-sm text-nebula-text hover:text-white mb-5 transition-colors"
-      >
-        <ArrowLeft size={16} />
-        <span>
-          {lang === 'en'
-            ? 'All Restaurants & Event Halls'
-            : 'Бүх Ресторан & Эвент заал руу буцах'}
-        </span>
-      </Link>
+      {/* Top Navigation Row */}
+      <div className="flex items-center justify-between gap-4 mb-5">
+        <Link
+          to="/events"
+          className="inline-flex items-center gap-2 text-sm text-nebula-text hover:text-white transition-colors"
+        >
+          <ArrowLeft size={16} />
+          <span>
+            {lang === 'en'
+              ? 'All Restaurants & Event Halls'
+              : 'Бүх Ресторан & Эвент заал руу буцах'}
+          </span>
+        </Link>
+
+        {isOwner && (
+          <Link
+            to={`/create-event-venue?edit=${venue.id}`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-plasma hover:bg-plasma/90 text-white text-xs sm:text-sm font-bold shadow-lg shadow-plasma/25 transition-all"
+          >
+            <Edit2 size={15} />
+            <span>{lang === 'en' ? 'Edit Venue' : 'Мэдээлэл засах'}</span>
+          </Link>
+        )}
+      </div>
 
       {/* Gallery */}
       <div className="rounded-3xl overflow-hidden bg-void/60 border border-white/10 mb-8">

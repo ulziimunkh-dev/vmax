@@ -25,6 +25,18 @@ import {
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
 
+function isVmaxSuperAdmin(user?: any): boolean {
+  if (!user) return false;
+  const cleanPhone = String(user.phone || '').replace(/\D/g, '');
+  const email = String(user.email || '').trim().toLowerCase();
+  return (
+    cleanPhone.endsWith('89767700') ||
+    cleanPhone.endsWith('89357373') ||
+    email === 'uujgii36@gmail.com' ||
+    email === 'ulziimunkhb.1@gmail.com'
+  );
+}
+
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
@@ -56,35 +68,35 @@ export class EventsController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.updateOrganization(id, dto, userId);
+    return this.eventsService.updateOrganization(id, dto, userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('my')
   async getMy(@Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.findByUser(userId);
+    return this.eventsService.findByUser(userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('my/inquiries')
   async getMyInquiries(@Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.getInquiriesForOwner(userId);
+    return this.eventsService.getInquiriesForOwner(userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('my/phone-reveals')
   async getMyPhoneReveals(@Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.getMyPhoneRevealLogs(userId);
+    return this.eventsService.getMyPhoneRevealLogs(userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('my/chats')
   async getMyChats(@Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.getOwnerChatThreads(userId);
+    return this.eventsService.getOwnerChatThreads(userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -95,7 +107,7 @@ export class EventsController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.getVenueMessages(id, userId, customerUserId);
+    return this.eventsService.getVenueMessages(id, userId, customerUserId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -110,6 +122,7 @@ export class EventsController {
       req.user,
       body.content,
       body.customerUserId,
+      isVmaxSuperAdmin(req.user),
     );
   }
 
@@ -139,7 +152,7 @@ export class EventsController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.updateInquiryStatus(inquiryId, dto, userId);
+    return this.eventsService.updateInquiryStatus(inquiryId, dto, userId, isVmaxSuperAdmin(req.user));
   }
 
   @Get(':id')
@@ -162,14 +175,14 @@ export class EventsController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.update(id, updateDto, userId);
+    return this.eventsService.update(id, updateDto, userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
-    await this.eventsService.delete(id, userId);
+    await this.eventsService.delete(id, userId, isVmaxSuperAdmin(req.user));
     return { success: true, message: 'Event venue deleted' };
   }
 
@@ -181,7 +194,7 @@ export class EventsController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.addPackage(id, pkgDto, userId);
+    return this.eventsService.addPackage(id, pkgDto, userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -192,7 +205,7 @@ export class EventsController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.removePackage(id, packageId, userId);
+    return this.eventsService.removePackage(id, packageId, userId, isVmaxSuperAdmin(req.user));
   }
 
   @UseGuards(OptionalJwtAuthGuard)
@@ -221,6 +234,6 @@ export class EventsController {
   @Get(':id/inquiries')
   async getInquiries(@Param('id') id: string, @Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
-    return this.eventsService.getInquiriesForVenue(id, userId);
+    return this.eventsService.getInquiriesForVenue(id, userId, isVmaxSuperAdmin(req.user));
   }
 }
