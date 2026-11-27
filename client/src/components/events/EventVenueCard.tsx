@@ -57,7 +57,7 @@ export const EventVenueCard: React.FC<EventVenueCardProps> = ({
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-          <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-void/80 backdrop-blur-md text-white border border-white/15">
+          <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-900/80 backdrop-blur-md text-white border border-white/20 shadow-sm">
             {getVenueTypeLabel(venue.venueType, lang)}
           </span>
           <div className="flex items-center gap-1.5">
@@ -68,7 +68,7 @@ export const EventVenueCard: React.FC<EventVenueCardProps> = ({
               </span>
             )}
             {venue.isVerified && (
-              <span className="p-1.5 rounded-lg bg-emerald-500/20 backdrop-blur-md text-emerald-300 border border-emerald-500/30">
+              <span className="p-1.5 rounded-lg bg-slate-900/75 backdrop-blur-md text-emerald-400 border border-emerald-400/40 shadow-sm">
                 <ShieldCheck size={13} />
               </span>
             )}

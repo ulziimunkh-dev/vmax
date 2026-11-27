@@ -161,17 +161,17 @@ export const EventVenueDetail: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-void via-transparent to-transparent" />
 
           <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-            <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-void/85 backdrop-blur-md text-white border border-white/15">
+            <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900/80 backdrop-blur-md text-white border border-white/20 shadow-sm">
               {getVenueTypeLabel(venue.venueType, lang)}
             </span>
             {venue.isFeatured && (
-              <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center gap-1">
+              <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center gap-1 shadow-sm">
                 <Sparkles size={13} />
                 VIP
               </span>
             )}
             {venue.isVerified && (
-              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 backdrop-blur-md text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900/80 backdrop-blur-md text-emerald-400 border border-emerald-400/40 flex items-center gap-1 shadow-sm">
                 <ShieldCheck size={14} />
                 {lang === 'en' ? 'Verified' : 'Баталгаажсан'}
               </span>

@@ -634,7 +634,7 @@ export const EventsDashboardSection: React.FC<EventsDashboardSectionProps> = ({
                         alt={venue.name}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-void/80 backdrop-blur-md text-[11px] font-bold text-white border border-white/15">
+                      <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/80 backdrop-blur-md text-[11px] font-bold text-white border border-white/20 shadow-sm">
                         {getVenueTypeLabel(venue.venueType, lang)}
                       </div>
                     </div>
