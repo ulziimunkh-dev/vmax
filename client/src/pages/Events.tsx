@@ -60,6 +60,7 @@ export const Events: React.FC = () => {
     setLoading(true);
     try {
       const res = await eventsApi.getAll({
+        limit: 50,
         search: searchQuery.trim() || undefined,
         eventType: selectedOccasion === 'ALL' ? undefined : selectedOccasion,
         venueType: selectedVenueType === 'ALL' ? undefined : selectedVenueType,
